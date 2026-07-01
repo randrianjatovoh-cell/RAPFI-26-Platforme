@@ -10,12 +10,22 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const isProduction = !!process.env.DATABASE_URL;
 let pgPool = null;
 
+// ------------------------------------------------------------------
+// Fonction pour convertir les '?' en placeholders $1, $2, ...
+// ------------------------------------------------------------------
+function convertPlaceholders(sql, params) {
+  if (!params || params.length === 0) return sql;
+  let index = 0;
+  return sql.replace(/\?/g, () => `$${++index}`);
+}
+
 function createPgWrapper(pool) {
   return {
     async run(sql, ...params) {
       const client = await pool.connect();
       try {
-        const res = await client.query(sql, params);
+        const convertedSql = convertPlaceholders(sql, params);
+        const res = await client.query(convertedSql, params);
         let lastID = null;
         if (sql.trim().toUpperCase().startsWith('INSERT')) {
           const idRes = await client.query('SELECT lastval()');
@@ -29,7 +39,8 @@ function createPgWrapper(pool) {
     async get(sql, ...params) {
       const client = await pool.connect();
       try {
-        const res = await client.query(sql, params);
+        const convertedSql = convertPlaceholders(sql, params);
+        const res = await client.query(convertedSql, params);
         return res.rows[0] || null;
       } finally {
         client.release();
@@ -38,7 +49,8 @@ function createPgWrapper(pool) {
     async all(sql, ...params) {
       const client = await pool.connect();
       try {
-        const res = await client.query(sql, params);
+        const convertedSql = convertPlaceholders(sql, params);
+        const res = await client.query(convertedSql, params);
         return res.rows;
       } finally {
         client.release();
@@ -260,6 +272,7 @@ async function initDb() {
 
   await db.exec(schemaSQL);
 
+  // Ajout des mois 2026 (avec placeholders convertis automatiquement)
   const months2026 = [
     '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
     '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
