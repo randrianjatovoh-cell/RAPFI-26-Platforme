@@ -27,9 +27,21 @@ function createPgWrapper(pool) {
         const convertedSql = convertPlaceholders(sql, params);
         const res = await client.query(convertedSql, params);
         let lastID = null;
-        if (sql.trim().toUpperCase().startsWith('INSERT')) {
-          const idRes = await client.query('SELECT lastval()');
-          lastID = idRes.rows[0].lastval;
+        
+        // Si c'est un INSERT et que nous avons inséré une ligne
+        if (sql.trim().toUpperCase().startsWith('INSERT') && res.rowCount > 0) {
+          try {
+            // Essayer d'obtenir l'ID via lastval()
+            const idRes = await client.query('SELECT lastval()');
+            lastID = idRes.rows[0].lastval;
+          } catch (err) {
+            // Si lastval() échoue (ex: table sans séquence), on ignore
+            if (err.code !== '55000') {
+              // Si c'est une autre erreur, on la remonte
+              throw err;
+            }
+            // Sinon, on laisse lastID à null
+          }
         }
         return { lastID, changes: res.rowCount };
       } finally {
