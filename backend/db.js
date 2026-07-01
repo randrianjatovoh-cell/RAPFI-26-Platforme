@@ -59,7 +59,12 @@ function createPgWrapper(pool) {
     async exec(sql) {
       const client = await pool.connect();
       try {
-        await client.query(sql);
+        // PostgreSQL ne supporte pas plusieurs instructions dans une seule query,
+        // donc on les exécute une par une en les séparant par ';'
+        const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
+        for (const stmt of statements) {
+          await client.query(stmt);
+        }
       } finally {
         client.release();
       }
@@ -272,7 +277,7 @@ async function initDb() {
 
   await db.exec(schemaSQL);
 
-  // Ajout des mois 2026 (avec placeholders convertis automatiquement)
+  // Ajout des mois 2026
   const months2026 = [
     '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
     '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
