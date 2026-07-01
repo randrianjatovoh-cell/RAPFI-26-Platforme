@@ -68,7 +68,18 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Servir les photos uploadées
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------- Routes ----------
+// ---------- Routes de test (diagnostic) ----------
+// Route racine pour vérifier que le serveur répond
+app.get('/', (req, res) => {
+  res.json({ message: 'Backend is alive' });
+});
+
+// Route de test API
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Backend OK' });
+});
+
+// ---------- Routes API ----------
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/gl', require('./routes/gl'));
@@ -81,10 +92,6 @@ app.use('/api/frais', require('./routes/frais'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/logs', require('./routes/logs'));
 app.use('/api/eglises', require('./routes/eglises'));
-
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend OK' });
-});
 
 // ---------- Middleware de gestion d'erreurs ----------
 app.use((err, req, res, next) => {
@@ -105,7 +112,8 @@ const start = async () => {
     await initDb();
     await createAdminIfNotExists();
     const port = process.env.PORT || 5000;
-    app.listen(port, () => {
+    // Écouter sur toutes les interfaces (0.0.0.0) pour Render
+    app.listen(port, '0.0.0.0', () => {
       console.log(`✅ Backend démarré sur le port ${port}`);
       console.log(`   Environnement : ${process.env.NODE_ENV || 'development'}`);
     });
