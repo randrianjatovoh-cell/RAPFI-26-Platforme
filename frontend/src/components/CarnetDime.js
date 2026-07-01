@@ -77,7 +77,7 @@ export default function CarnetDime({ selectedEglise, currentMonth }) {
 
       for (let i = 0; i < 12; i++) {
         const monthKey = `${annee}-${String(i+1).padStart(2,'0')}`;
-        const glData = await api.getGL(monthKey) || {};
+        const glData = await api.getGL(monthKey, null, null, eglise) || {};
         let moisDime = 0, moisOffCombine = 0;
         for (let s=1; s<=5; s++) {
           const entries = glData[s] || [];
@@ -127,7 +127,7 @@ export default function CarnetDime({ selectedEglise, currentMonth }) {
         const nbrInit = new Array(12).fill(0);
         for (let i=0;i<12;i++) {
           const monthKey = `${annee}-${String(i+1).padStart(2,'0')}`;
-          const glData = await api.getGL(monthKey) || {};
+          const glData = await api.getGL(monthKey, null, null, eglise) || {};
           const membresSet = new Set();
           for (let s=1;s<=5;s++) {
             for (const entry of (glData[s]||[])) {
@@ -151,9 +151,9 @@ export default function CarnetDime({ selectedEglise, currentMonth }) {
 
   if (loading) return <div className="text-center p-4">Chargement du cahier de dîme...</div>;
 
-  const displayFederation = (user?.federation || '').toUpperCase();
-  const displayDistrict = capitalizeFirstLetter(user?.district || '');
-  const displayEglise = capitalizeFirstLetter(eglise);
+  const displayFederation = (user?.federation || 'Fédération non définie').toUpperCase();
+  const displayDistrict = capitalizeFirstLetter(user?.district || 'District non défini');
+  const displayEglise = capitalizeFirstLetter(eglise) || capitalizeFirstLetter(user?.eglise || 'Église non définie');
 
   return (
     <div className="carnet-dime">
@@ -169,27 +169,99 @@ export default function CarnetDime({ selectedEglise, currentMonth }) {
         .carnet-dime .left-align { text-align: left; }
         .carnet-dime .right-align { text-align: right; }
         .carnet-dime input { width: 60px; text-align: center; border: 1px solid #ccc; padding: 2px; }
+        .separator-line {
+          width: 1px;
+          height: 50px;
+          background-color: #000;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
         @media print { .no-print { display: none !important; } .carnet-dime { font-size: 9px; } .carnet-dime input { border: none; background: transparent; } }
       `}</style>
-      <div className="flex justify-between items-center mb-2 no-print"><h2 className="text-xl font-bold">Cahier de Dîme {annee}</h2><button onClick={() => window.print()} className="bg-gray-600 text-white px-3 py-1 rounded text-sm"><i className="fas fa-print"></i> Imprimer</button></div>
-      <div className="text-center mb-2"><div className="font-bold uppercase text-xl">{displayFederation}</div></div>
-      <div className="flex justify-between items-baseline mb-3"><div className="text-left font-bold uppercase">{displayDistrict}</div><div className="text-center font-bold text-xl">CAHIER DE DÎME {annee}</div><div className="text-right font-bold uppercase">{displayEglise}</div></div>
-      <div className="overflow-auto">
+
+      {/* Ligne des logos avec la fédération au centre */}
+      <div className="flex items-center justify-between" style={{ borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ width: '50px', height: '50px' }}>
+            <img src="/FINANCE.png" alt="Finance" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
+          </div>
+          <div className="separator-line" />
+          <div style={{ width: '50px', height: '50px' }}>
+            <img src="/Noir.png" alt="Noir" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
+          </div>
+        </div>
+        <div className="text-center flex-1">
+          <div className="font-bold uppercase text-xl">{displayFederation}</div>
+        </div>
+        <div className="no-print">
+          <button onClick={() => window.print()} className="bg-gray-600 text-white px-2 py-0.5 rounded text-sm">🖨️ Imprimer</button>
+        </div>
+      </div>
+
+      {/* Ligne d'information avec District, titre, Eglise - sans interligne */}
+      <div className="flex justify-between items-baseline" style={{ marginTop: 0, paddingTop: 0 }}>
+        <div className="text-left font-bold uppercase" style={{ fontSize: '11px' }}>
+          <span>District : </span>{displayDistrict}
+        </div>
+        <div className="text-center font-bold text-xl">CAHIER DE DÎME {annee}</div>
+        <div className="text-right font-bold uppercase" style={{ fontSize: '11px' }}>
+          <span>Eglise : </span>{displayEglise}
+        </div>
+      </div>
+
+      <div className="overflow-auto" style={{ marginTop: '4px' }}>
         <table>
           <thead>
-            <tr><td className="header-cell left-align" colSpan="2">%Off par Perso =</td>{MONTHS.map((_,idx)=><td key={idx} className="green-bg right-align">{offParPerso[idx] > 0 ? Math.round(offParPerso[idx]).toLocaleString() : '-'}</td>)}<td className="green-bg right-align">{totalOffParPerso > 0 ? Math.round(totalOffParPerso).toLocaleString() : '-'}</td></tr>
-            <tr><td className="header-cell left-align" colSpan="2">%Off%Dîme</td>{MONTHS.map((_,idx)=><td key={idx} className="green-bg right-align">{monthlyStats.pourcentOffDime[idx] > 0 ? Math.round(monthlyStats.pourcentOffDime[idx]) : '-'}</td>)}<td className="green-bg right-align">{totalAnnualStats.pourcentOffDime > 0 ? Math.round(totalAnnualStats.pourcentOffDime) : '-'}</td></tr>
-            <tr><td className="header-cell left-align" colSpan="2">Nbr de Membre</td>{MONTHS.map((_,idx)=><td key={idx} className="orange-bg"><input type="number" value={nbrMembres[idx]} onChange={e => handleNbrMembresChange(idx, e.target.value)} className="no-print" /></td>)}<td className="orange-bg">-</td></tr>
-            <tr><td className="header-cell left-align" colSpan="2">TOTAL VERS =</td>{MONTHS.map((_,idx)=><td key={idx} className="yellow-bg right-align">{formatNumber(monthlyStats.totalVers[idx])}</td>)}<td className="yellow-bg right-align">{formatNumber(totalAnnualStats.totalVers)}</td></tr>
-            <tr><td className="header-cell left-align" colSpan="2">Achat ou Frais =</td>{MONTHS.map((_,idx)=><td key={idx} className="right-align">{formatNumber(monthlyStats.frais[idx])}</td>)}<td className="right-align">{formatNumber(totalAnnualStats.frais)}</td></tr>
-            <tr><td className="header-cell left-align" colSpan="2">Off Combiné de l'Église =</td>{MONTHS.map((_,idx)=><td key={idx} className="right-align">{formatNumber(monthlyStats.offCombine[idx])}</td>)}<td className="right-align">{formatNumber(totalAnnualStats.offCombine)}</td></tr>
-            <tr><td className="header-cell left-align" colSpan="2">TOTAL DÎME (par Mois)=</td>{MONTHS.map((_,idx)=><td key={idx} className="right-align">{formatNumber(monthlyStats.totalDime[idx])}</td>)}<td className="right-align">{formatNumber(totalAnnualStats.totalDime)}</td></tr>
-            <tr className="bg-indigo-50"><th className="border p-1" style={{width:'30px'}}>N°</th><th className="border p-1 left-align" style={{width:'200px'}}>ANARANA</th>{MONTHS.map(m=><th key={m} className="border p-1" style={{width:'80px'}}>{m}</th>)}<th className="border p-1" style={{width:'100px'}}>TOTAL</th></tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">%Off par Perso =</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="green-bg right-align">{offParPerso[idx] > 0 ? Math.round(offParPerso[idx]).toLocaleString() : '-'}</td>)}
+              <td className="green-bg right-align">{totalOffParPerso > 0 ? Math.round(totalOffParPerso).toLocaleString() : '-'}</td>
+            </tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">%Off%Dîme</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="green-bg right-align">{monthlyStats.pourcentOffDime[idx] > 0 ? Math.round(monthlyStats.pourcentOffDime[idx]) : '-'}</td>)}
+              <td className="green-bg right-align">{totalAnnualStats.pourcentOffDime > 0 ? Math.round(totalAnnualStats.pourcentOffDime) : '-'}</td>
+            </tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">Nbr de Membre</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="orange-bg"><input type="number" value={nbrMembres[idx]} onChange={e => handleNbrMembresChange(idx, e.target.value)} className="no-print" /></td>)}
+              <td className="orange-bg">-</td>
+            </tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">TOTAL VERS =</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="yellow-bg right-align">{formatNumber(monthlyStats.totalVers[idx])}</td>)}
+              <td className="yellow-bg right-align">{formatNumber(totalAnnualStats.totalVers)}</td>
+            </tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">Achat ou Frais =</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="right-align">{formatNumber(monthlyStats.frais[idx])}</td>)}
+              <td className="right-align">{formatNumber(totalAnnualStats.frais)}</td>
+            </tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">Off Combiné de l'Église =</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="right-align">{formatNumber(monthlyStats.offCombine[idx])}</td>)}
+              <td className="right-align">{formatNumber(totalAnnualStats.offCombine)}</td>
+            </tr>
+            <tr>
+              <td className="header-cell left-align" colSpan="2">TOTAL DÎME (par Mois)=</td>
+              {MONTHS.map((_,idx)=><td key={idx} className="right-align">{formatNumber(monthlyStats.totalDime[idx])}</td>)}
+              <td className="right-align">{formatNumber(totalAnnualStats.totalDime)}</td>
+            </tr>
+            <tr className="bg-indigo-50">
+              <th className="border p-1" style={{width:'30px'}}>N°</th>
+              <th className="border p-1 left-align" style={{width:'200px'}}>ANARANA</th>
+              {MONTHS.map(m=><th key={m} className="border p-1" style={{width:'80px'}}>{m}</th>)}
+              <th className="border p-1" style={{width:'100px'}}>TOTAL</th>
+            </tr>
           </thead>
           <tbody>
             {members.map((member, index)=>(
-              <tr key={member.name}><td className="border p-1 text-center">{index+1}</td><td className="border p-1 left-align">{member.name === 'Anonyme' ? <span className="yellow-bg px-1">{escapeHtml(member.name)}</span> : escapeHtml(member.name)}</td>
-              {member.monthly.map((val,idx)=><td key={idx} className={`border p-1 right-align ${val===0?'gray-bg':''}`}>{formatNumber(val)}</td>)}<td className="border p-1 right-align font-bold">{formatNumber(member.total)}</td></tr>
+              <tr key={member.name}>
+                <td className="border p-1 text-center">{index+1}</td>
+                <td className="border p-1 left-align">{member.name === 'Anonyme' ? <span className="yellow-bg px-1">{escapeHtml(member.name)}</span> : escapeHtml(member.name)}</td>
+                {member.monthly.map((val,idx)=><td key={idx} className={`border p-1 right-align ${val===0?'gray-bg':''}`}>{formatNumber(val)}</td>)}
+                <td className="border p-1 right-align font-bold">{formatNumber(member.total)}</td>
+              </tr>
             ))}
           </tbody>
         </table>

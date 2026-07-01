@@ -1,164 +1,308 @@
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// src/services/api.js
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-let authToken = null;
+class ApiService {
+  constructor() {
+    // Récupérer le token depuis le localStorage au chargement
+    this.token = localStorage.getItem('token');
+  }
 
-export function setAuthToken(token) {
-  authToken = token;
-  if (token) localStorage.setItem('token', token);
-  else localStorage.removeItem('token');
-}
+  // Récupérer le token actuel
+  getAuthToken() {
+    return this.token || null;
+  }
 
-export function getAuthToken() {
-  if (!authToken) authToken = localStorage.getItem('token');
-  return authToken;
-}
+  // Définir le token (et le stocker dans localStorage)
+  setAuthToken(token) {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }
 
-async function request(endpoint, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-  const token = getAuthToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
-  if (!response.ok) {
-    let errorMsg = 'Erreur serveur';
+  async request(endpoint, options = {}) {
+    const url = `${API_URL}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const config = {
+      ...options,
+      headers,
+    };
+
     try {
-      const data = await response.json();
-      errorMsg = data.error || errorMsg;
-    } catch (e) {}
-    throw new Error(errorMsg);
+      const response = await fetch(url, config);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const error = new Error(errorData.error || `HTTP error ${response.status}`);
+        error.status = response.status;
+        if (response.status === 401 || response.status === 403) {
+          // Session expirée → on supprime le token
+          this.setAuthToken(null);
+          // On peut aussi émettre un événement pour notifier le contexte
+        }
+        throw error;
+      }
+      return response.json();
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
   }
-  return response.json();
+
+  // ===== AUTH =====
+  async login(email, password) {
+    const data = await this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    if (data.token) {
+      this.setAuthToken(data.token);
+    }
+    return data;
+  }
+
+  async register(userData) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async getMe() {
+    return this.request('/auth/me');
+  }
+
+  async getUsers() {
+    return this.request('/auth/users');
+  }
+
+  // ===== USERS =====
+  async getAllUsers() {
+    return this.request('/users');
+  }
+
+  async updateUser(id, data) {
+    return this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteUser(id) {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadPhoto(id, file) {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const url = `${API_URL}/users/${id}/photo`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+      },
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Erreur upload');
+    }
+    return response.json();
+  }
+
+  // ===== GL =====
+  async getGL(month, federation = null, district = null, eglise = null) {
+    let url = `/gl/${month}`;
+    const params = new URLSearchParams();
+    if (federation) params.append('federation', federation);
+    if (district) params.append('district', district);
+    if (eglise) params.append('eglise', eglise);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  async saveGL(data) {
+    return this.request('/gl/save', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== DÉPENSES =====
+  async getDepenses(month, federation = null, district = null, eglise = null) {
+    let url = `/depenses/${month}`;
+    const params = new URLSearchParams();
+    if (federation) params.append('federation', federation);
+    if (district) params.append('district', district);
+    if (eglise) params.append('eglise', eglise);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  async saveDepenses(data) {
+    return this.request('/depenses/save', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== MEMBRES =====
+  async getMembres() {
+    return this.request('/membres');
+  }
+
+  async addMembre(data) {
+    return this.request('/membres', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMembre(id, data) {
+    return this.request(`/membres/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMembre(id) {
+    return this.request(`/membres/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ===== MOIS =====
+  async getMonths() {
+    return this.request('/months');
+  }
+
+  async addMonth(id, name = null) {
+    return this.request('/months', {
+      method: 'POST',
+      body: JSON.stringify({ id, name }),
+    });
+  }
+
+  async deleteMonthData(month, eglise) {
+    return this.request(`/months/${month}/eglise/${eglise}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ===== CONFIG =====
+  async getChurchConfig() {
+    return this.request('/config');
+  }
+
+  async saveChurchConfig(data) {
+    return this.request('/config', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== REPORTS =====
+  async getMonthlyReport(month, eglise) {
+    return this.request(`/reports/monthly/${month}/${eglise}`);
+  }
+
+  async updateSabbathDate(month, eglise, sabbathIndex, date) {
+    return this.request('/reports/sabbath-date', {
+      method: 'PUT',
+      body: JSON.stringify({ month, eglise, sabbathIndex, date }),
+    });
+  }
+
+  async updateReportField(month, eglise, field, value) {
+    return this.request('/reports/field', {
+      method: 'PUT',
+      body: JSON.stringify({ month, eglise, field, value }),
+    });
+  }
+
+  async getEgliseReports(eglise) {
+    return this.request(`/reports/eglise/${eglise}`);
+  }
+
+  async getDistrictReports(district, year = null, month = null) {
+    let url = `/reports/district/${district}`;
+    const params = new URLSearchParams();
+    if (year) params.append('year', year);
+    if (month) params.append('month', month);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  async getFederationReports(federation, year = null, month = null) {
+    let url = `/reports/federation/${federation}`;
+    const params = new URLSearchParams();
+    if (year) params.append('year', year);
+    if (month) params.append('month', month);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  // ===== FRAIS =====
+  async getFrais(month, eglise) {
+    return this.request(`/frais/${month}/${eglise}`);
+  }
+
+  async saveFrais(month, eglise, frais) {
+    return this.request('/frais', {
+      method: 'POST',
+      body: JSON.stringify({ month, eglise, frais }),
+    });
+  }
+
+  // ===== STATS =====
+  async getMembersStats() {
+    return this.request('/stats/members');
+  }
+
+  // ===== LOGS =====
+  async addLog(userId, userName, userFonction) {
+    return this.request('/logs', {
+      method: 'POST',
+      body: JSON.stringify({ userId, userName, userFonction }),
+    });
+  }
+
+  async getLogs(limit = 100, offset = 0) {
+    return this.request(`/logs?limit=${limit}&offset=${offset}`);
+  }
+
+  async getUniqueVisitors() {
+    return this.request('/logs/unique');
+  }
+
+  async getVisitsPerUser() {
+    return this.request('/logs/visits');
+  }
+
+  // ===== EGLISES =====
+  async getEglisesByDistrict(district) {
+    return this.request(`/eglises/district/${district}`);
+  }
+
+  async getEglisesByFederation(federation) {
+    return this.request(`/eglises/federation/${federation}`);
+  }
 }
 
-export const api = {
-  // Auth
-  login(email, password) {
-    return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-  },
-  register(userData) {
-    return request('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
-  },
-  getAllUsers() {
-    return request('/auth/users');
-  },
+// Création d'une instance unique
+const apiInstance = new ApiService();
 
-  // GL
-  saveGL(month, data) {
-    return request('/gl/save', { method: 'POST', body: JSON.stringify({ month, data }) });
-  },
-  getGL(month) {
-    return request(`/gl/${month}`);
-  },
-
-  // Dépenses
-  saveDepenses(month, data) {
-    return request('/depenses/save', { method: 'POST', body: JSON.stringify({ month, data }) });
-  },
-  getDepenses(month) {
-    return request(`/depenses/${month}`);
-  },
-
-  // Membres
-  getMembres() {
-    return request('/membres');
-  },
-  addMembre(membre) {
-    return request('/membres', { method: 'POST', body: JSON.stringify(membre) });
-  },
-  updateMembre(id, updates) {
-    return request(`/membres/${id}`, { method: 'PUT', body: JSON.stringify(updates) });
-  },
-  deleteMembre(id) {
-    return request(`/membres/${id}`, { method: 'DELETE' });
-  },
-
-  // Mois
-  getMonths() {
-    return request('/months');
-  },
-  addMonth(id, name) {
-    return request('/months', { method: 'POST', body: JSON.stringify({ id, name }) });
-  },
-
-  // Configuration église
-  getChurchConfig() {
-    return request('/config');
-  },
-  saveChurchConfig(config) {
-    return request('/config', { method: 'POST', body: JSON.stringify(config) });
-  },
-
-  // Rapports mensuels
-  getMonthlyReport(month, eglise) {
-    return request(`/reports/monthly/${month}/${eglise}`);
-  },
-  updateReportField(month, eglise, field, value) {
-    return request('/reports/field', { method: 'PUT', body: JSON.stringify({ month, eglise, field, value }) });
-  },
-  updateSabbathDate(month, eglise, sabbathIndex, date) {
-    return request('/reports/sabbath-date', { method: 'PUT', body: JSON.stringify({ month, eglise, sabbathIndex, date }) });
-  },
-  getAllMonthlyReportsForEglise(eglise) {
-    return request(`/reports/eglise/${eglise}`);
-  },
-  getAllMonthlyReportsByDistrict(district) {
-    return request(`/reports/district/${district}`);
-  },
-  getAllMonthlyReportsByFederation(federation) {
-    return request(`/reports/federation/${federation}`);
-  },
-
-  // Frais
-  getFrais(month, eglise) {
-    return request(`/frais/${month}/${eglise}`);
-  },
-  setFrais(month, eglise, frais) {
-    return request('/frais', { method: 'POST', body: JSON.stringify({ month, eglise, frais }) });
-  },
-
-  // Stats membres
-  getMembersStats() {
-    return request('/stats/members');
-  },
-
-  // Logs
-  getUserLogs() {
-    return request('/logs');
-  },
-  addUserLog(userId, userName, userFonction) {
-    return request('/logs', { method: 'POST', body: JSON.stringify({ userId, userName, userFonction }) });
-  },
-  getUniqueVisitorsCount() {
-    return request('/logs/unique');
-  },
-  getVisitsPerUser() {
-    return request('/logs/visits');
-  },
-
-  // Utilisateurs (profil)
-  updateUser(id, updates) {
-    return request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(updates) });
-  },
-  updateUserPhoto(id, photoDataURL) {
-    return request(`/users/${id}/photo`, { method: 'PUT', body: JSON.stringify({ photo: photoDataURL }) });
-  },
-  updateUserPassword(id, newPassword) {
-    return request(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password: newPassword }) });
-  },
-
-  // Églises par district/fédération
-  getAllEglisesByDistrict(district) {
-    return request(`/eglises/district/${district}`);
-  },
-  getAllEglisesByFederation(federation) {
-    return request(`/eglises/federation/${federation}`);
-  },
-  getFederationReports(federation, year, month) {
-    return request(`/reports/federation/${federation}?year=${year}&month=${month}`);
-  }
-};
+// Export de l'instance et des fonctions utilitaires
+export const api = apiInstance;
+export const getAuthToken = () => apiInstance.getAuthToken();
+export const setAuthToken = (token) => apiInstance.setAuthToken(token);

@@ -1,5 +1,5 @@
 // src/components/Depenses.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, formatNumber, nombreEnLettresCapitalized, escapeHtml, capitalizeFirstLetter } from '../services/helpers';
@@ -14,6 +14,22 @@ function isValidDateStr(dateStr) {
   return !isNaN(date.getTime());
 }
 
+function formatMontant(value) {
+  if (value === undefined || value === null || value === 0) return '';
+  const num = Number(value);
+  if (isNaN(num) || num === 0) return '';
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
 const sampanaOptions = [
   "ASAFI", "Diakona", "Fahasalamana", "Fampielezam-boky", "Fanabeazana",
   "Fiduciare", "Fifandraisana", "FIPIA", "FIPIKRI", "Loholona",
@@ -21,39 +37,118 @@ const sampanaOptions = [
   "Mpitam-bola", "Mpitantsoratra", "MOZIKA", "PARL", "Sekoly Sabata", "Tanora Adventiste (JA)"
 ];
 
-export default function Depenses({ currentMonth, refreshAll, user: propUser, selectedEglise }) {
+export default function Depenses({ currentMonth, refreshAll, user: propUser, selectedEglise, readOnly = false }) {
   const { user: contextUser } = useUser();
   const user = propUser || contextUser;
   const [expenses, setExpenses] = useState([]);
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
+  const [volaSisaTeoAlohaDisplay, setVolaSisaTeoAlohaDisplay] = useState('0');
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [volaNihiditra, setVolaNihiditra] = useState(0);
-  const eglise = selectedEglise || user?.eglise || '';
-  const district = user?.district || '';
-  const federation = user?.federation || '';
+  const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  
+  const isAdmin = user?.fonction === 'Admin';
+  const isVerificateur = user?.fonction === 'Vérificateur';
+  const isPasteur = user?.fonction === 'Pasteur';
+  const isAncienOrTresorier = user?.fonction === 'Ancien' || user?.fonction === 'Trésorier';
+  
+  // 🔥 Utiliser selectedEglise s'il est fourni, sinon user.eglise
+  let effectiveEglise = selectedEglise || user?.eglise || '';
+  let effectiveDistrict = user?.district || '';
+  let effectiveFederation = user?.federation || '';
+  
+  if (isAdmin && selectedEglise) {
+    effectiveEglise = selectedEglise;
+    effectiveDistrict = '';
+    effectiveFederation = '';
+  }
+  
+  const eglise = effectiveEglise;
+  const district = effectiveDistrict;
+  const federation = effectiveFederation;
+
+  const idCounter = useRef(0);
 
   const [newExpense, setNewExpense] = useState({
     date: "", vote: "", comDate: "", reason: "", sampana: "", voaray: 0, amount: 0, mpiandraikitra: "", sonia: ""
   });
 
   useEffect(() => {
-    if (currentMonth && eglise) loadData();
+    if (currentMonth && eglise) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
   }, [currentMonth, eglise]);
 
   async function loadData() {
-    let expensesList = await api.getDepenses(currentMonth);
-    expensesList = expensesList.map(exp => ({
-      ...exp,
-      date: isValidDateStr(exp.date) ? exp.date : "",
-      comDate: isValidDateStr(exp.comDate) ? exp.comDate : ""
-    }));
-    setExpenses(expensesList);
-    const total = expensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    setTotalExpenses(total);
-    const report = await api.getMonthlyReport(currentMonth, eglise);
-    setVolaNihiditra(report ? (report.totalB || 0) : 0);
-    const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-    setVolaSisaTeoAloha(saved ? parseFloat(saved) : 0);
+    setLoading(true);
+    setError(null);
+    try {
+      let expensesList;
+      if (isAdmin) {
+        expensesList = await api.getDepenses(currentMonth, effectiveFederation, effectiveDistrict, effectiveEglise);
+      } else if (isVerificateur) {
+        expensesList = await api.getDepenses(currentMonth, effectiveFederation);
+      } else if (isPasteur) {
+        expensesList = await api.getDepenses(currentMonth, null, effectiveDistrict);
+      } else {
+        expensesList = await api.getDepenses(currentMonth, null, null, effectiveEglise);
+      }
+      
+      const formatted = expensesList.map(exp => ({
+        ...exp,
+        date: isValidDateStr(exp.date) ? exp.date : "",
+        comDate: isValidDateStr(exp.comDate) ? exp.comDate : ""
+      }));
+      
+      if (formatted.length > 0) {
+        const maxId = Math.max(...formatted.map(e => e.id || 0));
+        idCounter.current = maxId + 1;
+      } else {
+        idCounter.current = 1;
+      }
+      
+      setExpenses(formatted);
+      const total = formatted.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      setTotalExpenses(total);
+
+      let glData;
+      if (isAdmin) {
+        glData = await api.getGL(currentMonth, effectiveFederation, effectiveDistrict, effectiveEglise);
+      } else if (isVerificateur) {
+        glData = await api.getGL(currentMonth, effectiveFederation);
+      } else if (isPasteur) {
+        glData = await api.getGL(currentMonth, null, effectiveDistrict);
+      } else {
+        glData = await api.getGL(currentMonth, null, null, effectiveEglise);
+      }
+      
+      let totalB = 0;
+      if (glData) {
+        for (let s = 1; s <= 5; s++) {
+          const entries = glData[s] || [];
+          for (const entry of entries) {
+            totalB += (entry.b9 || 0) + (entry.b10 || 0);
+          }
+        }
+      }
+      setVolaNihiditra(totalB);
+
+      const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+      const val = saved ? parseFloat(saved) : 0;
+      setVolaSisaTeoAloha(val);
+      setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+    } catch (err) {
+      console.error('❌ Erreur chargement dépenses:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function notifyExpensesUpdated() {
@@ -61,203 +156,696 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   }
 
   async function handleAdd() {
-    let amountVal = parseFloat(newExpense.amount);
-    if (isNaN(amountVal) || amountVal <= 0) { alert("Montant invalide"); return; }
-    if (amountVal > MAX_AMOUNT) { alert(`Montant trop élevé`); return; }
+    if (readOnly) return;
+    if (!currentMonth) { alert("Sélectionnez un mois."); return; }
+    if (!eglise) { alert("Aucune église sélectionnée."); return; }
+
+    const amountVal = parseFloat(newExpense.amount);
+    if (isNaN(amountVal) || amountVal <= 0) {
+      alert("Montant de dépense invalide.");
+      return;
+    }
+    if (amountVal > MAX_AMOUNT) {
+      alert(`Montant trop élevé (max ${MAX_AMOUNT.toLocaleString()})`);
+      return;
+    }
+
     const voarayVal = parseFloat(newExpense.voaray) || 0;
+
+    const newId = idCounter.current++;
     const expense = {
-      id: Date.now(),
+      id: newId,
       monthId: currentMonth,
       eglise: eglise,
-      ...newExpense,
+      date: newExpense.date || "",
+      vote: newExpense.vote || "",
+      comDate: newExpense.comDate || "",
+      reason: newExpense.reason || "",
+      sampana: newExpense.sampana || "",
       voaray: voarayVal,
       amount: amountVal,
       ambiny: voarayVal - amountVal,
-      sampana: newExpense.sampana || "",
       mpiandraikitra: newExpense.mpiandraikitra || "",
-      sonia: ""
+      sonia: newExpense.sonia || ""
     };
-    const currentList = await api.getDepenses(currentMonth);
-    await api.saveDepenses(currentMonth, [...currentList, expense]);
-    setNewExpense({ date: "", vote: "", comDate: "", reason: "", sampana: "", voaray: 0, amount: 0, mpiandraikitra: "", sonia: "" });
-    await loadData();
-    if (refreshAll) refreshAll();
-    notifyExpensesUpdated();
+
+    setIsAdding(true);
+    try {
+      let currentList;
+      if (isAdmin) {
+        currentList = await api.getDepenses(currentMonth, effectiveFederation, effectiveDistrict, effectiveEglise);
+      } else if (isVerificateur) {
+        currentList = await api.getDepenses(currentMonth, effectiveFederation);
+      } else if (isPasteur) {
+        currentList = await api.getDepenses(currentMonth, null, effectiveDistrict);
+      } else {
+        currentList = await api.getDepenses(currentMonth, null, null, effectiveEglise);
+      }
+      
+      const updatedList = [...currentList, expense];
+      
+      await api.saveDepenses({
+        month: currentMonth,
+        data: updatedList,
+        eglise: effectiveEglise,
+        district: effectiveDistrict,
+        federation: effectiveFederation
+      });
+
+      setNewExpense({
+        date: "", vote: "", comDate: "", reason: "", sampana: "", voaray: 0, amount: 0, mpiandraikitra: "", sonia: ""
+      });
+
+      await loadData();
+      if (refreshAll) refreshAll();
+      notifyExpensesUpdated();
+    } catch (err) {
+      console.error('❌ Erreur ajout dépense:', err);
+      alert(`Erreur lors de l'ajout : ${err.message}`);
+    } finally {
+      setIsAdding(false);
+    }
   }
 
-  async function handleUpdate(id, field, value) {
-    let updateData = { [field]: value };
-    if (field === 'date' || field === 'comDate') {
-      if (value === "" || isValidDateStr(value)) updateData[field] = value;
-      else { alert("Format date invalide (AAAA-MM-JJ)"); return; }
+  function handleEdit(id) {
+    if (readOnly) return;
+    setEditingId(id);
+    setOpenMenuId(null);
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    loadData();
+  }
+
+  async function handleSaveEdit(id) {
+    if (readOnly) return;
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) return;
+    try {
+      let currentList;
+      if (isAdmin) {
+        currentList = await api.getDepenses(currentMonth, effectiveFederation, effectiveDistrict, effectiveEglise);
+      } else if (isVerificateur) {
+        currentList = await api.getDepenses(currentMonth, effectiveFederation);
+      } else if (isPasteur) {
+        currentList = await api.getDepenses(currentMonth, null, effectiveDistrict);
+      } else {
+        currentList = await api.getDepenses(currentMonth, null, null, effectiveEglise);
+      }
+      
+      const updatedList = currentList.map(e => e.id === id ? { ...expense } : e);
+      
+      await api.saveDepenses({
+        month: currentMonth,
+        data: updatedList,
+        eglise: effectiveEglise,
+        district: effectiveDistrict,
+        federation: effectiveFederation
+      });
+      
+      setEditingId(null);
+      await loadData();
+      if (refreshAll) refreshAll();
+      notifyExpensesUpdated();
+    } catch (err) {
+      console.error('❌ Erreur sauvegarde modification:', err);
+      alert(`Erreur : ${err.message}`);
     }
-    if (field === 'amount') {
-      let newAmount = parseFloat(value);
-      if (isNaN(newAmount)) newAmount = 0;
-      if (newAmount > MAX_AMOUNT) { alert("Montant trop élevé"); return; }
-      const expense = expenses.find(e => e.id === id);
-      const newVoaray = expense?.voaray || 0;
-      updateData.ambiny = newVoaray - newAmount;
-    }
-    if (field === 'voaray') {
-      let newVoaray = parseFloat(value) || 0;
-      const expense = expenses.find(e => e.id === id);
-      const newAmount = expense?.amount || 0;
-      updateData.ambiny = newVoaray - newAmount;
-    }
-    const updatedList = expenses.map(exp => exp.id === id ? { ...exp, ...updateData } : exp);
-    await api.saveDepenses(currentMonth, updatedList);
-    await loadData();
-    if (refreshAll) refreshAll();
-    notifyExpensesUpdated();
+  }
+
+  function handleFieldChange(id, field, value) {
+    if (readOnly) return;
+    setExpenses(prev => prev.map(exp => {
+      if (exp.id === id) {
+        let updated = { ...exp, [field]: value };
+        if (field === 'amount' || field === 'voaray') {
+          const voaray = field === 'voaray' ? parseFloat(value) || 0 : exp.voaray || 0;
+          const amount = field === 'amount' ? parseFloat(value) || 0 : exp.amount || 0;
+          updated.ambiny = voaray - amount;
+        }
+        return updated;
+      }
+      return exp;
+    }));
   }
 
   async function handleDelete(id) {
-    if (window.confirm("Supprimer cette dépense ?")) {
-      const updatedList = expenses.filter(exp => exp.id !== id);
-      await api.saveDepenses(currentMonth, updatedList);
+    if (readOnly) return;
+    if (!window.confirm("Supprimer cette dépense ?")) return;
+    try {
+      let currentList;
+      if (isAdmin) {
+        currentList = await api.getDepenses(currentMonth, effectiveFederation, effectiveDistrict, effectiveEglise);
+      } else if (isVerificateur) {
+        currentList = await api.getDepenses(currentMonth, effectiveFederation);
+      } else if (isPasteur) {
+        currentList = await api.getDepenses(currentMonth, null, effectiveDistrict);
+      } else {
+        currentList = await api.getDepenses(currentMonth, null, null, effectiveEglise);
+      }
+      
+      const updatedList = currentList.filter(e => e.id !== id);
+      
+      await api.saveDepenses({
+        month: currentMonth,
+        data: updatedList,
+        eglise: effectiveEglise,
+        district: effectiveDistrict,
+        federation: effectiveFederation
+      });
+      
       await loadData();
       if (refreshAll) refreshAll();
+      notifyExpensesUpdated();
+    } catch (err) {
+      console.error('❌ Erreur suppression:', err);
+      alert(`Erreur : ${err.message}`);
+    }
+  }
+
+  function toggleMenu(id) {
+    if (readOnly) return;
+    setOpenMenuId(openMenuId === id ? null : id);
+  }
+
+  function handleVolaSisaChange(e) {
+    if (readOnly) return;
+    const raw = e.target.value;
+    const numeric = raw.replace(/\s/g, '');
+    const num = parseFloat(numeric);
+    if (!isNaN(num) && num >= 0) {
+      setVolaSisaTeoAloha(num);
+      setVolaSisaTeoAlohaDisplay(formatMontant(num) || '0');
+      localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, num);
+      notifyExpensesUpdated();
+    } else if (raw === '') {
+      setVolaSisaTeoAloha(0);
+      setVolaSisaTeoAlohaDisplay('0');
+      localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, 0);
       notifyExpensesUpdated();
     }
   }
 
-  function handleVolaSisaChange(value) {
-    let val = parseFloat(value);
-    if (isNaN(val)) val = 0;
-    setVolaSisaTeoAloha(val);
-    localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, val);
-    notifyExpensesUpdated();
-  }
+  if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois pour afficher les dépenses.</div>;
+  if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
+  if (loading) return <div className="text-center p-4">Chargement des dépenses...</div>;
+  if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
 
   const volaSisa = volaNihiditra - totalExpenses + volaSisaTeoAloha;
   const displayEglise = capitalizeFirstLetter(eglise);
   const displayDistrict = capitalizeFirstLetter(district);
   const displayFederation = (federation || '').toUpperCase();
-  const mois = formatMonthYear(currentMonth);
+  const mois = formatMonthYear(currentMonth).split(' ')[0];
   const annee = currentMonth ? currentMonth.split('-')[0] : '';
 
-  if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois pour afficher les dépenses.</div>;
+  const MontantDisplay = ({ value }) => {
+    const formatted = formatMontant(value);
+    return <span className="montant-cell">{formatted} Ar</span>;
+  };
 
   return (
-    <div>
-      <div className="flex justify-end mb-2 no-print">
-        <button onClick={() => window.print()} className="bg-gray-600 text-white px-3 py-1 rounded text-sm">
-          <i className="fas fa-print"></i> Imprimer
-        </button>
-      </div>
-
+    <div className="depenses-container">
       <style>{`
+        .depenses-container .table-wrapper {
+          overflow-x: auto;
+        }
+
+        .depenses-container table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid #000;
+          table-layout: auto;
+        }
+
+        .depenses-container table th,
+        .depenses-container table td {
+          padding: 6px 10px;
+          vertical-align: middle;
+          border: 1px solid #000;
+          white-space: nowrap;
+          text-align: center;
+        }
+
+        .depenses-container table thead th {
+          background-color: #f3f4f6;
+          font-weight: 600;
+        }
+
+        .col-daty-komity {
+          width: 8% !important;
+          min-width: 70px !important;
+        }
+
+        .col-antony {
+          width: 22% !important;
+          min-width: 150px !important;
+        }
+
+        td.col-voaray,
+        td.col-fandaniana,
+        td.col-ambiny {
+          text-align: right !important;
+          white-space: nowrap;
+        }
+
+        .depenses-container input,
+        .depenses-container select {
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          padding: 2px 4px;
+          font-size: inherit;
+          width: 100%;
+          box-sizing: border-box;
+          background: #fff;
+        }
+        .depenses-container input:disabled,
+        .depenses-container select:disabled {
+          background: transparent;
+          border: none;
+          color: #000;
+          cursor: default;
+        }
+        .depenses-container input[type="number"] {
+          text-align: right;
+        }
+
+        .depenses-container .action-cell {
+          text-align: center;
+          white-space: nowrap;
+        }
+        .depenses-container .action-cell .dropdown-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 16px;
+          padding: 2px 6px;
+        }
+        .depenses-container .action-cell .dropdown-menu {
+          position: absolute;
+          background: white;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          z-index: 10;
+          min-width: 120px;
+          padding: 4px 0;
+          margin-top: 2px;
+        }
+        .depenses-container .action-cell .dropdown-menu button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 6px 12px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          font-size: 13px;
+        }
+        .depenses-container .action-cell .dropdown-menu button:hover {
+          background-color: #f0f0f0;
+        }
+        .depenses-container .action-cell .edit-actions button {
+          margin: 0 2px;
+          padding: 2px 6px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        .depenses-container .action-cell .edit-actions button:hover {
+          opacity: 0.7;
+        }
+
+        .signatures-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+          margin-top: 8px;
+          padding-top: 8px;
+          border-top: none;
+        }
+        .signature-block {
+          font-size: 10px;
+          text-align: center;
+        }
+
+        .total-text {
+          margin-top: 6px;
+          margin-bottom: 4px;
+          text-align: right;
+          font-size: 11px;
+        }
+
+        .tableau-recaps {
+          margin-left: auto;
+          width: auto;
+          border: 1px solid #000;
+        }
+        .tableau-recaps td {
+          padding: 2px 6px;
+          border: 1px solid #000;
+        }
+        .tableau-recaps td:first-child {
+          text-align: left !important;
+        }
+        .tableau-recaps td:last-child {
+          text-align: right !important;
+        }
+        .tableau-recaps input {
+          text-align: right;
+          width: 120px;
+          border: none;
+          background: transparent;
+          font-weight: inherit;
+        }
+
+        .montant-cell {
+          display: inline;
+          white-space: nowrap;
+        }
+
+        .separator-line {
+          width: 1px;
+          height: 50px;
+          background-color: #000;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
         @media print {
-          @page { size: A4 landscape; margin: 0.5cm 0.3cm; }
-          body, .depenses-print { font-size: 8pt !important; }
-          .no-print { display: none !important; }
-          table { page-break-inside: avoid; }
-          th, td { padding: 2px 3px !important; }
-          input { border: none !important; background: transparent !important; }
+          @page {
+            size: A4 landscape;
+            margin: 0.4cm 0.3cm;
+          }
+
+          body, .depenses-print {
+            font-size: 8pt !important;
+          }
+
+          .no-print,
+          .no-print-action {
+            display: none !important;
+          }
+
+          table {
+            page-break-inside: avoid;
+          }
+
+          th, td {
+            padding: 2px 4px !important;
+          }
+
+          input,
+          select {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
+          }
+
+          .depenses-container table {
+            table-layout: auto !important;
+            width: 100% !important;
+          }
+
+          .signatures-grid {
+            border-top: none !important;
+            page-break-inside: avoid;
+          }
+
+          .total-text {
+            font-size: 9pt;
+          }
+
+          .depenses-container .action-cell .dropdown-menu {
+            display: none !important;
+          }
+
+          .depenses-container .table-wrapper {
+            overflow-x: visible !important;
+          }
         }
       `}</style>
 
       <div className="depenses-print">
-        <div className="text-center">
-          {displayFederation && <div className="font-bold text-lg uppercase mb-1">{displayFederation}</div>}
-          <div className="font-bold text-lg">TATITRY NY VOLA NIVOAKA</div>
-          <div className="text-sm italic">"IZAY OLONA MAHATOKY TOKOA DIA HO BE FITAHIANA" (Ohab. 28:20a)</div>
+        {/* EN-TÊTE AVEC LOGOS ET BOUTON IMPRIMER */}
+        <div className="flex items-center justify-between mb-2" style={{ borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ width: '50px', height: '50px' }}>
+              <img src="/FINANCE.png" alt="Finance" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
+            </div>
+            <div className="separator-line" />
+            <div style={{ width: '50px', height: '50px' }}>
+              <img src="/Noir.png" alt="Noir" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
+            </div>
+          </div>
+          <div className="text-center flex-1">
+            {displayFederation && <div className="font-bold text-lg uppercase">{displayFederation}</div>}
+            <div className="font-bold text-lg">TATITRY NY VOLA NIVOAKA</div>
+            <div className="text-sm italic">"IZAY OLONA MAHATOKY TOKOA DIA HO BE FITAHIANA" (Ohab. 28:20a)</div>
+          </div>
+          <div className="no-print">
+            <button onClick={() => window.print()} className="bg-gray-600 text-white px-2 py-0.5 rounded text-sm">🖨️ Imprimer</button>
+          </div>
         </div>
 
-        <div className="flex justify-between items-start mt-1">
+        <div className="flex flex-wrap justify-between items-start mt-1">
           <div className="text-left text-sm">
             <div><strong>DISTRIKA:</strong> {escapeHtml(displayDistrict)}</div>
             <div><strong>FIANGONANA:</strong> {escapeHtml(displayEglise)}</div>
-            <div><strong>Volana:</strong> {mois.split(' ')[0]}</div>
+            <div><strong>Volana:</strong> {mois}</div>
             <div><strong>Taona:</strong> {annee}</div>
           </div>
           <div className="text-right">
-            <table className="border border-black text-sm" style={{ marginLeft: 'auto', width: 'auto' }}>
+            <table className="tableau-recaps">
               <tbody>
-                <tr><td className="border p-1 font-semibold">Vola sisa teo aloha :</td><td className="border p-1 text-right"><input type="number" value={volaSisaTeoAloha} onChange={e => handleVolaSisaChange(e.target.value)} step="any" style={{ textAlign: 'right' }} /> Ar</td></tr>
-                <tr><td className="border p-1 font-semibold">Vola nihiditra :</td><td className="border p-1 text-right">{formatNumber(volaNihiditra)} Ar</td></tr>
-                <tr><td className="border p-1 font-semibold">Totalin'ny fandaniana :</td><td className="border p-1 text-right">{formatNumber(totalExpenses)} Ar</td></tr>
-                <tr><td className="border p-1 font-semibold">Vola sisa :</td><td className="border p-1 text-right">{formatNumber(volaSisa)} Ar</td></tr>
+                <tr>
+                  <td className="font-semibold">Vola sisa teo aloha :</td>
+                  <td className="text-right">
+                    <input
+                      type="text"
+                      value={volaSisaTeoAlohaDisplay}
+                      onChange={handleVolaSisaChange}
+                      style={{ textAlign: 'right', width: '120px' }}
+                      placeholder="0"
+                      disabled={readOnly}
+                    />
+                    Ar
+                  </td>
+                </tr>
+                <tr><td className="font-semibold">Vola nihiditra :</td><td className="text-right"><MontantDisplay value={volaNihiditra} /></td></tr>
+                <tr><td className="font-semibold">Totalin'ny fandaniana :</td><td className="text-right"><MontantDisplay value={totalExpenses} /></td></tr>
+                <tr><td className="font-semibold">Vola sisa :</td><td className="text-right"><MontantDisplay value={volaSisa} /></td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className="overflow-x-auto mt-1">
-          <table className="w-full text-sm border border-black">
-            <thead className="bg-gray-100">
-              <tr className="text-center">
-                <th rowSpan="2" className="border p-1" style={{ width: '4%' }}>N°</th>
-                <th rowSpan="2" className="border p-1" style={{ width: '8%' }}>Daty</th>
-                <th colSpan="4" className="border p-1" style={{ width: '30%' }}>KOMITY</th>
-                <th colSpan="3" className="border p-1" style={{ width: '22%' }}>Vola</th>
-                <th colSpan="2" className="border p-1" style={{ width: '22%' }}>Mpiandraikitra & sonia</th>
-                <th rowSpan="2" className="border p-1" style={{ width: '5%' }}>Action</th>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th rowSpan="2">N°</th>
+                <th rowSpan="2">Daty</th>
+                <th colSpan="4">KOMITY</th>
+                <th colSpan="3">Vola</th>
+                <th colSpan="2">Mpiandraikitra &amp; sonia</th>
+                <th rowSpan="2" className="action-cell no-print-action">Action</th>
               </tr>
-              <tr className="text-center">
-                <th className="border p-1">Voty faha-</th>
-                <th className="border p-1">Daty komity</th>
-                <th className="border p-1">Antony</th>
-                <th className="border p-1">Sampana</th>
-                <th className="border p-1">Voaray</th>
-                <th className="border p-1">Fandaniana</th>
-                <th className="border p-1">Ambiny</th>
-                <th className="border p-1">Mpiandraikitra</th>
-                <th className="border p-1">Sonia</th>
+              <tr>
+                <th>Voty faha-</th>
+                <th className="col-daty-komity">Daty komity</th>
+                <th className="col-antony">Antony</th>
+                <th>Sampana</th>
+                <th className="col-voaray">Voaray</th>
+                <th className="col-fandaniana">Fandaniana</th>
+                <th className="col-ambiny">Ambiny</th>
+                <th>Mpiandraikitra</th>
+                <th>Sonia</th>
               </tr>
             </thead>
             <tbody>
               {expenses.map((exp, idx) => {
                 const ambinyCalculated = (Number(exp.voaray) || 0) - (Number(exp.amount) || 0);
+                const isEditing = editingId === exp.id;
                 return (
                   <tr key={exp.id}>
-                    <td className="border p-1 text-center">{idx+1}</td>
-                    <td className="border p-1"><input type="text" value={exp.date || ""} onChange={e => handleUpdate(exp.id, "date", e.target.value)} /></td>
-                    <td className="border p-1"><input type="text" value={exp.vote || ""} onChange={e => handleUpdate(exp.id, "vote", e.target.value)} /></td>
-                    <td className="border p-1"><input type="text" value={exp.comDate || ""} onChange={e => handleUpdate(exp.id, "comDate", e.target.value)} /></td>
-                    <td className="border p-1"><input type="text" value={exp.reason || ""} onChange={e => handleUpdate(exp.id, "reason", e.target.value)} /></td>
-                    <td className="border p-1">
-                      <select value={exp.sampana || ""} onChange={e => handleUpdate(exp.id, "sampana", e.target.value)}>
+                    <td>{idx+1}</td>
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={exp.date || ""}
+                          onChange={e => handleFieldChange(exp.id, "date", e.target.value)}
+                          style={{ width: '120px' }}
+                          disabled={readOnly}
+                        />
+                      ) : (
+                        <span>{formatDateShort(exp.date)}</span>
+                      )}
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={exp.vote || ""}
+                        onChange={e => isEditing ? handleFieldChange(exp.id, "vote", e.target.value) : null}
+                        disabled={!isEditing || readOnly}
+                      />
+                    </td>
+                    <td className="col-daty-komity">
+                      <input
+                        type="text"
+                        value={exp.comDate || ""}
+                        onChange={e => isEditing ? handleFieldChange(exp.id, "comDate", e.target.value) : null}
+                        disabled={!isEditing || readOnly}
+                        style={{ textAlign: 'center' }}
+                      />
+                    </td>
+                    <td className="col-antony">
+                      <input
+                        type="text"
+                        value={exp.reason || ""}
+                        onChange={e => isEditing ? handleFieldChange(exp.id, "reason", e.target.value) : null}
+                        disabled={!isEditing || readOnly}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={exp.sampana || ""}
+                        onChange={e => isEditing ? handleFieldChange(exp.id, "sampana", e.target.value) : null}
+                        disabled={!isEditing || readOnly}
+                      >
                         <option value="">--</option>
                         {sampanaOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </td>
-                    <td className="border p-1 text-right"><input type="number" value={exp.voaray || 0} onChange={e => handleUpdate(exp.id, "voaray", e.target.value)} step="any" style={{ textAlign: 'right' }} /></td>
-                    <td className="border p-1 text-right"><input type="number" value={exp.amount || 0} onChange={e => handleUpdate(exp.id, "amount", e.target.value)} step="any" style={{ textAlign: 'right' }} /></td>
-                    <td className="border p-1 text-right">{formatNumber(ambinyCalculated)} Ar</td>
-                    <td className="border p-1"><input type="text" value={exp.mpiandraikitra || ""} onChange={e => handleUpdate(exp.id, "mpiandraikitra", e.target.value)} placeholder="Nom" /></td>
-                    <td className="border p-1"><input type="text" value={exp.sonia || ""} onChange={e => handleUpdate(exp.id, "sonia", e.target.value)} /></td>
-                    <td className="border p-1 text-center"><button onClick={() => handleDelete(exp.id)} className="text-red-500"><i className="fas fa-trash"></i></button></td>
+                    <td className="col-voaray">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={exp.voaray || 0}
+                          onChange={e => handleFieldChange(exp.id, "voaray", e.target.value)}
+                          step="any"
+                          disabled={readOnly}
+                        />
+                      ) : (
+                        <MontantDisplay value={exp.voaray} />
+                      )}
+                    </td>
+                    <td className="col-fandaniana">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={exp.amount || 0}
+                          onChange={e => handleFieldChange(exp.id, "amount", e.target.value)}
+                          step="any"
+                          disabled={readOnly}
+                        />
+                      ) : (
+                        <MontantDisplay value={exp.amount} />
+                      )}
+                    </td>
+                    <td className="col-ambiny">
+                      <MontantDisplay value={ambinyCalculated} />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={exp.mpiandraikitra || ""}
+                        onChange={e => isEditing ? handleFieldChange(exp.id, "mpiandraikitra", e.target.value) : null}
+                        disabled={!isEditing || readOnly}
+                        placeholder="Nom"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={exp.sonia || ""}
+                        onChange={e => isEditing ? handleFieldChange(exp.id, "sonia", e.target.value) : null}
+                        disabled={!isEditing || readOnly}
+                      />
+                    </td>
+                    <td className="action-cell no-print-action">
+                      {isEditing ? (
+                        <div className="edit-actions">
+                          <button onClick={() => handleSaveEdit(exp.id)} className="text-green-600" title="Sauvegarder" disabled={readOnly}>
+                            <i className="fas fa-save"></i>
+                          </button>
+                          <button onClick={handleCancelEdit} className="text-gray-500" title="Annuler" disabled={readOnly}>
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            className="dropdown-btn"
+                            onClick={() => toggleMenu(exp.id)}
+                            title="Actions"
+                            disabled={readOnly}
+                          >
+                            <i className="fas fa-ellipsis-v"></i>
+                          </button>
+                          {openMenuId === exp.id && !readOnly && (
+                            <div className="dropdown-menu">
+                              <button onClick={() => handleEdit(exp.id)}>
+                                <i className="fas fa-edit"></i> Modifier
+                              </button>
+                              <button onClick={() => handleDelete(exp.id)} className="text-red-600">
+                                <i className="fas fa-trash"></i> Supprimer
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
-              <tr><td colSpan="7" className="border p-1 text-right font-bold">Total des dépenses :</td><td className="border p-1 font-bold text-right">{formatNumber(totalExpenses)} Ar</td><td className="border p-1"></td><td className="border p-1"></td><td className="border p-1"></td></tr>
+              <tr>
+                <td colSpan="7" className="text-right font-bold">Total des dépenses :</td>
+                <td className="font-bold text-right"><MontantDisplay value={totalExpenses} /></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
             </tfoot>
           </table>
         </div>
 
-        <div className="grid grid-cols-4 gap-1 mt-0.5 pt-0 signatures-grid">
+        <div className="total-text">
+          <strong>Arrêté à la somme de Ariary:</strong> <i>{nombreEnLettresCapitalized(totalExpenses)} Ar.</i>
+        </div>
+
+        <div className="signatures-grid">
           <div className="signature-block">Mpitam-bola mpanampy:<br/><br/>_______________<br/>(sonia)</div>
           <div className="signature-block">Mpitam-bola:<br/><br/>_______________<br/>(sonia)</div>
           <div className="signature-block">Loholona:<br/><br/>_______________<br/>(sonia)</div>
           <div className="signature-block">Pasteur:<br/><br/>_______________<br/>(sonia)</div>
         </div>
-        <div className="mt-1 text-right text-sm">Arrêté à la somme de Ariary: <i>{nombreEnLettresCapitalized(totalExpenses)} Ar.</i></div>
       </div>
 
-      <div className="mt-3 no-print grid md:grid-cols-9 gap-2 bg-gray-50 p-3 rounded-lg">
-        <input type="date" value={newExpense.date} onChange={e => setNewExpense({ ...newExpense, date: e.target.value })} className="border p-1 rounded" />
-        <input type="text" value={newExpense.vote} onChange={e => setNewExpense({ ...newExpense, vote: e.target.value })} placeholder="Voty faha" className="border p-1 rounded" />
-        <input type="date" value={newExpense.comDate} onChange={e => setNewExpense({ ...newExpense, comDate: e.target.value })} className="border p-1 rounded" />
-        <input type="text" value={newExpense.reason} onChange={e => setNewExpense({ ...newExpense, reason: e.target.value })} placeholder="Antony" className="border p-1 rounded" />
-        <select value={newExpense.sampana} onChange={e => setNewExpense({ ...newExpense, sampana: e.target.value })} className="border p-1 rounded"><option value="">Sampana</option>{sampanaOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>
-        <input type="number" value={newExpense.voaray} onChange={e => setNewExpense({ ...newExpense, voaray: e.target.value })} placeholder="Voaray (Ar)" className="border p-1 rounded" />
-        <input type="number" value={newExpense.amount} onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })} placeholder="Fandaniana (Ar)" className="border p-1 rounded" />
-        <input type="text" value={newExpense.mpiandraikitra} onChange={e => setNewExpense({ ...newExpense, mpiandraikitra: e.target.value })} placeholder="Mpiandraikitra" className="border p-1 rounded" />
-        <button onClick={handleAdd} className="bg-blue-600 text-white px-4 py-1 rounded"><i className="fas fa-plus"></i> Ajouter</button>
+      {/* Formulaire d'ajout – désactivé en mode lecture seule */}
+      <div className="mt-3 no-print grid grid-cols-1 md:grid-cols-9 gap-2 bg-gray-50 p-3 rounded-lg">
+        <input type="date" value={newExpense.date} onChange={e => setNewExpense({ ...newExpense, date: e.target.value })} className="border p-1 rounded" disabled={readOnly} />
+        <input type="text" value={newExpense.vote} onChange={e => setNewExpense({ ...newExpense, vote: e.target.value })} placeholder="Voty faha" className="border p-1 rounded" disabled={readOnly} />
+        <input type="date" value={newExpense.comDate} onChange={e => setNewExpense({ ...newExpense, comDate: e.target.value })} className="border p-1 rounded" disabled={readOnly} />
+        <input type="text" value={newExpense.reason} onChange={e => setNewExpense({ ...newExpense, reason: e.target.value })} placeholder="Antony" className="border p-1 rounded" disabled={readOnly} />
+        <select value={newExpense.sampana} onChange={e => setNewExpense({ ...newExpense, sampana: e.target.value })} className="border p-1 rounded" disabled={readOnly}>
+          <option value="">Sampana</option>
+          {sampanaOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+        <input type="number" value={newExpense.voaray} onChange={e => setNewExpense({ ...newExpense, voaray: e.target.value })} placeholder="Voaray (Ar)" className="border p-1 rounded text-right" disabled={readOnly} />
+        <input type="number" value={newExpense.amount} onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })} placeholder="Fandaniana (Ar)" className="border p-1 rounded text-right" disabled={readOnly} />
+        <input type="text" value={newExpense.mpiandraikitra} onChange={e => setNewExpense({ ...newExpense, mpiandraikitra: e.target.value })} placeholder="Mpiandraikitra" className="border p-1 rounded" disabled={readOnly} />
+        <button
+          onClick={handleAdd}
+          disabled={isAdding || readOnly}
+          className={`bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition ${(isAdding || readOnly) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isAdding ? 'Ajout...' : <><i className="fas fa-plus"></i> Ajouter</>}
+        </button>
       </div>
     </div>
   );

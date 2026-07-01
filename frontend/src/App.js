@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserProvider, useUser } from './context/UserContext';
 import { api } from './services/api';
+import { usePermissions } from './hooks/usePermissions';
+import { ReceiptsProvider, useReceipts } from './context/ReceiptsContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Formulaire from './components/Formulaire';
@@ -16,38 +18,135 @@ import UsersManagement from './components/UserManagement';
 import Profile from './components/Profile';
 import RapportAnnuel from './components/RapportAnnuel';
 import RecapFederation from './components/RecapFederation';
+import Receipts from './components/Receipts';
+import { formatMonthYear } from './services/helpers';
 
-// Composant interne qui utilise le contexte utilisateur
+// 🔥 Définition des couleurs des onglets
+const tabColorMap = {
+  // Couleurs inactives
+  inactive: {
+    dashboard: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
+    formulaire: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700',
+    grandlivre: 'bg-blue-50 hover:bg-blue-100 text-blue-700',
+    recap: 'bg-green-50 hover:bg-green-100 text-green-700',
+    rapport: 'bg-purple-50 hover:bg-purple-100 text-purple-700',
+    rapcomite: 'bg-orange-50 hover:bg-orange-100 text-orange-700',
+    rapportannuel: 'bg-red-50 hover:bg-red-100 text-red-700',
+    depenses: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700',
+    carnet: 'bg-pink-50 hover:bg-pink-100 text-pink-700',
+    recapdistrict: 'bg-teal-50 hover:bg-teal-100 text-teal-700',
+    recapfederation: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700',
+    users: 'bg-amber-50 hover:bg-amber-100 text-amber-700',
+    receipts: 'bg-rose-50 hover:bg-rose-100 text-rose-700',
+  },
+  // Couleurs actives
+  active: {
+    dashboard: 'bg-gray-600 text-white hover:bg-gray-700',
+    formulaire: 'bg-indigo-600 text-white hover:bg-indigo-700',
+    grandlivre: 'bg-blue-600 text-white hover:bg-blue-700',
+    recap: 'bg-green-600 text-white hover:bg-green-700',
+    rapport: 'bg-purple-600 text-white hover:bg-purple-700',
+    rapcomite: 'bg-orange-600 text-white hover:bg-orange-700',
+    rapportannuel: 'bg-red-600 text-white hover:bg-red-700',
+    depenses: 'bg-yellow-600 text-white hover:bg-yellow-700',
+    carnet: 'bg-pink-600 text-white hover:bg-pink-700',
+    recapdistrict: 'bg-teal-600 text-white hover:bg-teal-700',
+    recapfederation: 'bg-cyan-600 text-white hover:bg-cyan-700',
+    users: 'bg-amber-600 text-white hover:bg-amber-700',
+    receipts: 'bg-rose-600 text-white hover:bg-rose-700',
+  }
+};
+
+// Liste des onglets de consultation (pour le vérificateur)
+const consultationTabIds = ['grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses', 'carnet'];
+
+const consultationTabsLabels = {
+  grandlivre: 'Grand Livre',
+  recap: 'RECAP GL',
+  rapport: 'Rapport mensuel',
+  rapcomite: 'Rapport comité',
+  rapportannuel: 'Rapport annuel',
+  depenses: 'Dépenses',
+  carnet: 'Carnet de dîme'
+};
+
 function AppContent() {
-  const { user, logout } = useUser();
+  const { user, loading, logout } = useUser();
+  const { receiptsData, updateReceipts } = useReceipts();
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentMonth, setCurrentMonth] = useState(null);
   const [selectedSabbath, setSelectedSabbath] = useState(null);
   const [selectedEglise, setSelectedEglise] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [selectedFederation, setSelectedFederation] = useState(null);
   const [months, setMonths] = useState([]);
   const [hasData, setHasData] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [pasteurMode, setPasteurMode] = useState(null); // null, 'ajout', 'voir'
+  const [pasteurMode, setPasteurMode] = useState(null);
+  const [consultationMode, setConsultationMode] = useState(false);
+  const [showReceiptsTab, setShowReceiptsTab] = useState(false);
+  const [pasteurReadOnly, setPasteurReadOnly] = useState(false);
 
-  // Chargement initial des mois
+  // États pour le vérificateur
+  const [selectedDistrictForVerif, setSelectedDistrictForVerif] = useState(null);
+  const [verifEgliseSelected, setVerifEgliseSelected] = useState(false);
+
+  const isAdmin = user?.fonction === 'Admin';
+  const isVerificateur = user?.fonction === 'Vérificateur';
+  const isPasteur = user?.fonction === 'Pasteur';
+  const isAncienOrTresorier = user?.fonction === 'Ancien' || user?.fonction === 'Trésorier';
+
+  // Vérification des données existantes pour le mois/église (Pasteur)
   useEffect(() => {
+    if (!isPasteur || !currentMonth || !selectedEglise) {
+      setPasteurReadOnly(false);
+      return;
+    }
+    async function checkExistingData() {
+      try {
+        const glData = await api.getGL(currentMonth, null, null, selectedEglise);
+        let hasAnyData = false;
+        if (glData) {
+          for (let s = 1; s <= 5; s++) {
+            if (glData[s] && glData[s].length > 0) {
+              hasAnyData = true;
+              break;
+            }
+          }
+        }
+        setPasteurReadOnly(hasAnyData);
+      } catch (err) {
+        console.error('Erreur vérification données existantes:', err);
+        setPasteurReadOnly(false);
+      }
+    }
+    checkExistingData();
+  }, [currentMonth, selectedEglise, isPasteur]);
+
+  useEffect(() => {
+    if (!user) return;
     async function loadMonths() {
-      const mois = await api.getMonths();
-      setMonths(mois);
-      if (mois.length > 0 && !currentMonth) setCurrentMonth(mois[0].id);
+      try {
+        const mois = await api.getMonths();
+        setMonths(mois);
+        if (mois.length > 0 && !currentMonth) setCurrentMonth(mois[0].id);
+      } catch (err) {
+        if (err.message === "SESSION_EXPIRED") console.warn("Session expirée");
+        else console.error("Erreur chargement mois :", err);
+      }
     }
     loadMonths();
-  }, []);
+  }, [user, currentMonth]);
 
-  // Vérifie si des données existent pour le mois/église/sabbat courant
   useEffect(() => {
+    if (!user || !currentMonth || !selectedEglise || !selectedSabbath) {
+      setHasData(false);
+      return;
+    }
     async function checkDataExistence() {
-      if (!currentMonth || !selectedEglise || !selectedSabbath) {
-        setHasData(false);
-        return;
-      }
       try {
-        const glData = await api.getGL(currentMonth);
+        const glData = await api.getGL(currentMonth, null, null, selectedEglise);
         const entries = glData && glData[selectedSabbath] ? glData[selectedSabbath] : [];
         setHasData(entries.length > 0);
       } catch (err) {
@@ -56,41 +155,58 @@ function AppContent() {
       }
     }
     checkDataExistence();
-  }, [currentMonth, selectedEglise, selectedSabbath]);
+  }, [currentMonth, selectedEglise, selectedSabbath, user]);
 
-  // Si un utilisateur est connecté et a une église, on la sélectionne par défaut
   useEffect(() => {
-    if (user && user.eglise && !selectedEglise) {
+    if (user && user.eglise && !selectedEglise && isAncienOrTresorier) {
       setSelectedEglise(user.eglise);
     }
-  }, [user, selectedEglise]);
+  }, [user, selectedEglise, isAncienOrTresorier]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-sky-600 rounded-full animate-spin"></div>
+          <p className="mt-2 text-gray-600">Vérification de la session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const token = localStorage.getItem('token');
+  if (!user || !token) {
+    if (user && !token) logout();
+    return <Login onLogin={() => {}} />;
+  }
 
   const refreshMonths = async () => {
-    const mois = await api.getMonths();
-    setMonths(mois);
-    if (mois.length > 0 && (!currentMonth || !mois.some(m => m.id === currentMonth))) {
-      setCurrentMonth(mois[0].id);
+    if (!user) return;
+    try {
+      const mois = await api.getMonths();
+      setMonths(mois);
+      if (mois.length > 0 && (!currentMonth || !mois.some(m => m.id === currentMonth))) {
+        setCurrentMonth(mois[0].id);
+      }
+    } catch (err) {
+      if (err.message === "SESSION_EXPIRED") console.warn("Session expirée");
+      else console.error("Erreur refreshMonths :", err);
     }
   };
 
   const refreshAll = async () => {
     await refreshMonths();
-    // La vérification hasData se fera via le useEffect
   };
 
   const handleDataSaved = () => {
-    // Déclenche une revérification
     if (currentMonth && selectedEglise && selectedSabbath) {
-      api.getGL(currentMonth).then(glData => {
-        const entries = glData && glData[selectedSabbath] ? glData[selectedSabbath] : [];
-        setHasData(entries.length > 0);
-      });
+      api.getGL(currentMonth, null, null, selectedEglise)
+        .then(glData => {
+          const entries = glData && glData[selectedSabbath] ? glData[selectedSabbath] : [];
+          setHasData(entries.length > 0);
+        })
+        .catch(err => console.error("Erreur handleDataSaved", err));
     }
-  };
-
-  const handleLogin = (loggedUser) => {
-    // Le login est géré par UserContext, mais on peut mettre à jour l'état local si besoin
-    if (loggedUser.eglise) setSelectedEglise(loggedUser.eglise);
   };
 
   const handleLogout = () => {
@@ -100,20 +216,80 @@ function AppContent() {
     setSelectedSabbath(null);
     setSelectedEglise(null);
     setPasteurMode(null);
+    setConsultationMode(false);
     setCurrentMonth(null);
+    setShowReceiptsTab(false);
+    setSelectedDistrictForVerif(null);
+    setVerifEgliseSelected(false);
   };
 
-  const handleUserUpdate = (updatedUser) => {
-    // Le UserContext n'a pas de méthode update, on pourrait l'ajouter,
-    // mais pour l'instant on ne fait rien de spécial car le user est dans le contexte.
-    // On peut simplement rafraîchir si nécessaire.
-    if (updatedUser.eglise) setSelectedEglise(updatedUser.eglise);
+  const handleOpenReceipts = (data) => {
+    if (data) {
+      updateReceipts(data);
+    }
+    setShowReceiptsTab(true);
+    setActiveTab('receipts');
   };
 
-  // Définition des onglets (inchangée)
+  const onCloseReceipts = () => {
+    setShowReceiptsTab(false);
+    setActiveTab('formulaire');
+  };
+
+  const handleSelectEgliseFromRecap = (eglise) => {
+    setConsultationMode(true);
+    setSelectedEglise(eglise);
+    setPasteurMode('ajout');
+    setActiveTab('formulaire');
+    setSelectedSabbath(null);
+  };
+
+  const handleAccueil = () => {
+    setPasteurMode('accueil');
+    setSelectedEglise(null);
+    setConsultationMode(false);
+    setActiveTab('dashboard');
+    setSelectedSabbath(null);
+  };
+
+  // 🔥 Pour le vérificateur : sélectionner un district depuis RecapFederation
+  const handleSelectDistrictFromFederation = (district) => {
+    setSelectedDistrictForVerif(district);
+    setVerifEgliseSelected(false);
+    setSelectedEglise(null);
+    setActiveTab('recapdistrict');
+  };
+
+  // 🔥 Pour le vérificateur : revenir à la fédération depuis RecapDistrict
+  const handleBackToFederation = () => {
+    setSelectedDistrictForVerif(null);
+    setVerifEgliseSelected(false);
+    setSelectedEglise(null);
+    setActiveTab('recapfederation');
+  };
+
+  // 🔥 Pour le vérificateur : revenir à la liste des districts (depuis la consultation d'une église)
+  const handleBackToDistrictList = () => {
+    setVerifEgliseSelected(false);
+    setSelectedEglise(null);
+    setActiveTab('recapdistrict');
+  };
+
+  // 🔥 Pour le vérificateur : sélectionner une église depuis RecapDistrict
+  const handleSelectEgliseForVerificateur = (eglise) => {
+    setSelectedEglise(eglise);
+    setVerifEgliseSelected(true);
+    const firstConsultTab = consultationTabIds[0] || 'grandlivre';
+    setActiveTab(firstConsultTab);
+    setSelectedSabbath(null);
+    if (months.length > 0 && !currentMonth) {
+      setCurrentMonth(months[0].id);
+    }
+  };
+
   const allTabs = [
     { id: 'dashboard', label: 'Tableau de bord', icon: 'fas fa-chart-line', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'formulaire', label: 'Formulaire de remplissage', icon: 'fas fa-edit', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+    { id: 'formulaire', label: 'Formulaire de remplissage', icon: 'fas fa-edit', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] },
     { id: 'grandlivre', label: 'Grand Livre détaillé', icon: 'fas fa-book', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
     { id: 'recap', label: 'RECAP Grand Livre', icon: 'fas fa-table', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
     { id: 'rapport', label: 'Rapport mensuel', icon: 'fas fa-chart-pie', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
@@ -123,7 +299,8 @@ function AppContent() {
     { id: 'carnet', label: 'Carnet de dîme', icon: 'fas fa-hand-holding-heart', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
     { id: 'recapdistrict', label: 'RECAP District', icon: 'fas fa-church', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
     { id: 'recapfederation', label: 'RECAP Fédération', icon: 'fas fa-globe', requireData: false, roles: ['Admin', 'Vérificateur'] },
-    { id: 'users', label: 'Utilisateurs', icon: 'fas fa-users-cog', requireData: false, roles: ['Admin'] }
+    { id: 'users', label: 'Utilisateurs', icon: 'fas fa-users-cog', requireData: false, roles: ['Admin'] },
+    { id: 'receipts', label: 'Reçus personnels', icon: 'fas fa-file-invoice', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] }
   ];
 
   const rapportGroupIds = ['grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses'];
@@ -131,15 +308,19 @@ function AppContent() {
   const getVisibleTabs = () => {
     if (!user) return [];
     let tabs = allTabs.filter(tab => tab.roles.includes(user.fonction));
-    
-    if (user.fonction === 'Trésorier' || user.fonction === 'Ancien') {
-      const allowedIds = ['dashboard', 'formulaire', 'carnet', ...rapportGroupIds];
-      tabs = tabs.filter(t => allowedIds.includes(t.id));
+    tabs = tabs.filter(tab => tab.id !== 'receipts' || showReceiptsTab);
+
+    if (isAncienOrTresorier) {
+      tabs = tabs.filter(t => ['dashboard', 'formulaire', 'carnet', ...rapportGroupIds].includes(t.id) || t.id === 'receipts');
     }
     
-    if (user.fonction === 'Pasteur') {
+    if (isPasteur) {
+      if (pasteurMode === null || pasteurMode === 'accueil') {
+        return tabs.filter(t => t.id === 'dashboard');
+      }
       if (pasteurMode === 'ajout') {
-        return tabs.filter(t => t.id !== 'recapdistrict');
+        const allowed = ['dashboard', 'formulaire', 'grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses', 'carnet'];
+        return tabs.filter(t => allowed.includes(t.id));
       }
       if (pasteurMode === 'voir') {
         return tabs.filter(t => t.id === 'recapdistrict');
@@ -147,8 +328,25 @@ function AppContent() {
       return [];
     }
     
-    if (user.fonction === 'Vérificateur') {
-      tabs = tabs.filter(t => t.id !== 'users');
+    // 🔥 VÉRIFICATEUR
+    if (isVerificateur) {
+      let tabsForVerif = tabs.filter(tab => tab.id === 'dashboard' || tab.id === 'recapfederation');
+      
+      if (selectedDistrictForVerif) {
+        const recapDistrictTab = allTabs.find(t => t.id === 'recapdistrict');
+        if (recapDistrictTab) {
+          tabsForVerif.push(recapDistrictTab);
+        }
+      }
+      
+      if (selectedEglise && verifEgliseSelected) {
+        const consultationTabsFiltered = allTabs.filter(t => 
+          consultationTabIds.includes(t.id) && t.roles.includes('Vérificateur')
+        );
+        tabsForVerif = [...tabsForVerif, ...consultationTabsFiltered];
+      }
+      
+      return tabsForVerif;
     }
     
     return tabs;
@@ -158,40 +356,46 @@ function AppContent() {
 
   const isTabDisabled = (tab) => {
     if (!user) return true;
-    if (user.fonction !== 'Pasteur') {
-      return tab.requireData && (!currentMonth || !selectedSabbath || !selectedEglise || !hasData);
+    if (isPasteur) {
+      if (pasteurMode === 'voir') return tab.id !== 'recapdistrict';
+      if (pasteurMode === 'ajout') {
+        if (tab.id === 'formulaire') return false;
+        return !(currentMonth && selectedSabbath && selectedEglise);
+      }
+      if (pasteurMode === 'accueil') return tab.id !== 'dashboard';
+      return true;
     }
-    // Pasteur
-    if (pasteurMode === 'voir') return tab.id !== 'recapdistrict';
-    if (pasteurMode === 'ajout') {
-      if (tab.id === 'formulaire') return false;
-      return !(currentMonth && selectedSabbath && selectedEglise);
+    if (tab.requireData) {
+      if (isVerificateur && selectedEglise && verifEgliseSelected) {
+        return false;
+      }
+      return !(currentMonth && selectedSabbath && selectedEglise && hasData);
     }
-    return true;
+    return false;
   };
 
-  const isFormSubmitDisabled = () => {
-    if (user?.fonction !== 'Pasteur' || pasteurMode !== 'ajout') return false;
-    return !currentMonth || !selectedSabbath || !selectedEglise;
-  };
-
-  const isReadOnly = () => {
-    if (user?.fonction === 'Vérificateur') return true;
-    if (user?.fonction === 'Pasteur' && pasteurMode === 'voir') return true;
-    if (user?.fonction === 'Pasteur' && pasteurMode === 'ajout') {
-      return hasData;
-    }
+  const isReadOnlyForPasteur = () => {
+    if (isPasteur && pasteurReadOnly) return true;
+    if (isPasteur && consultationMode) return true;
     return false;
   };
 
   const renderActiveTab = () => {
     if (!user) return null;
-    const commonReadOnly = isReadOnly();
-    const formSubmitDisabled = isFormSubmitDisabled();
-    
+    const readOnly = isReadOnlyForPasteur() || isVerificateur;
+
     switch (activeTab) {
-      case 'dashboard': return <Dashboard mode={user.fonction === 'Vérificateur' ? 'verificateur' : undefined} />;
+      case 'dashboard':
+        return (
+          <Dashboard
+            selectedFederation={selectedFederation}
+            selectedDistrict={selectedDistrict}
+            selectedEglise={selectedEglise}
+            pasteurMode={pasteurMode}
+          />
+        );
       case 'formulaire':
+        if (isVerificateur) return null;
         return (
           <Formulaire
             currentMonth={currentMonth}
@@ -204,91 +408,255 @@ function AppContent() {
             onSabbathChange={setSelectedSabbath}
             selectedEglise={selectedEglise}
             onEgliseChange={setSelectedEglise}
-            readOnly={commonReadOnly}
-            disableSubmit={formSubmitDisabled}
+            selectedDistrict={selectedDistrict}
+            onDistrictChange={setSelectedDistrict}
+            selectedFederation={selectedFederation}
+            onFederationChange={setSelectedFederation}
+            readOnly={readOnly || false}
+            onOpenReceipts={handleOpenReceipts}
           />
         );
-      case 'grandlivre': return <GrandLivre currentMonth={currentMonth} selectedEglise={selectedEglise} refreshAll={refreshAll} />;
-      case 'recap': return <RecapGL currentMonth={currentMonth} selectedEglise={selectedEglise} refreshAll={refreshAll} />;
-      case 'depenses': return <Depenses currentMonth={currentMonth} selectedEglise={selectedEglise} refreshAll={refreshAll} />;
-      case 'rapport': return <RapportMensuel currentMonth={currentMonth} selectedEglise={selectedEglise} />;
-      case 'rapcomite': return <RapportComite currentMonth={currentMonth} selectedEglise={selectedEglise} />;
-      case 'rapportannuel': return <RapportAnnuel selectedEglise={selectedEglise} />;
-      case 'carnet': return <CarnetDime currentMonth={currentMonth} selectedEglise={selectedEglise} />;
-      case 'recapdistrict': 
-        if (user.fonction === 'Pasteur' && pasteurMode === 'voir') {
-          return <RecapDistrict mode="consultation" readOnly={true} />;
-        } else if (user.fonction === 'Vérificateur') {
-          return <RecapDistrict mode="verificateur" readOnly={true} />;
+      case 'grandlivre':
+        return <GrandLivre currentMonth={currentMonth} selectedEglise={selectedEglise} refreshAll={refreshAll} readOnly={readOnly} />;
+      case 'recap':
+        return <RecapGL currentMonth={currentMonth} selectedEglise={selectedEglise} refreshAll={refreshAll} readOnly={readOnly} />;
+      case 'depenses':
+        return <Depenses currentMonth={currentMonth} selectedEglise={selectedEglise} refreshAll={refreshAll} readOnly={readOnly} />;
+      case 'rapport':
+        return <RapportMensuel currentMonth={currentMonth} selectedEglise={selectedEglise} readOnly={readOnly} />;
+      case 'rapcomite':
+        return <RapportComite currentMonth={currentMonth} selectedEglise={selectedEglise} />;
+      case 'rapportannuel':
+        return <RapportAnnuel selectedEglise={selectedEglise} readOnly={readOnly} />;
+      case 'carnet':
+        return <CarnetDime selectedEglise={selectedEglise} currentMonth={currentMonth} />;
+      case 'recapdistrict':
+        if (isVerificateur && selectedDistrictForVerif) {
+          return (
+            <RecapDistrict
+              mode="verificateur"
+              readOnly={true}
+              districtProp={selectedDistrictForVerif}
+              onSelectEglise={handleSelectEgliseForVerificateur}
+              onBack={handleBackToFederation}
+            />
+          );
+        } else if (isPasteur && pasteurMode === 'voir') {
+          return <RecapDistrict mode="consultation" readOnly={true} onSelectEglise={handleSelectEgliseFromRecap} />;
         } else {
-          return <RecapDistrict readOnly={commonReadOnly} />;
+          return <RecapDistrict readOnly={false} onSelectEglise={handleSelectEgliseFromRecap} />;
         }
-      case 'recapfederation': return <RecapFederation readOnly={commonReadOnly} />;
-      case 'users': return <UsersManagement />;
-      default: return <Dashboard />;
+      case 'recapfederation':
+        return <RecapFederation readOnly={isVerificateur} onSelectDistrict={handleSelectDistrictFromFederation} />;
+      case 'users':
+        return <UsersManagement />;
+      case 'receipts':
+        return (
+          <Receipts
+            entries={receiptsData.entries}
+            eglise={receiptsData.eglise}
+            district={receiptsData.district}
+            federation={receiptsData.federation}
+            sabbathDate={receiptsData.sabbathDate}
+            monthId={receiptsData.monthId}
+            sabbathIndex={receiptsData.sabbathIndex}
+            onClose={onCloseReceipts}
+          />
+        );
+      default:
+        return <Dashboard />;
     }
   };
 
-  if (!user) return <Login onLogin={handleLogin} />;
+  const getTitleWithName = () => {
+    const base = `GESTION DES DÎMES ET OFFRANDES - `;
+    if (isAdmin) return base + 'ADMINISTRATION';
+    if (isVerificateur) return base + `${user?.federation || 'FÉDÉRATION'}`.trim().toUpperCase();
+    if (isPasteur) return base + `DISTRICT ${user?.district || ''}`.trim().toUpperCase();
+    if (isAncienOrTresorier) return base + `ÉGLISE ${user?.eglise || ''}`.trim().toUpperCase();
+    return base + 'UTILISATEUR';
+  };
 
-  const isPasteur = user.fonction === 'Pasteur';
+  const mainTitle = getTitleWithName();
+
   const showTabsBar = !showProfile && (
     !isPasteur ||
     pasteurMode === 'ajout' ||
-    (pasteurMode === 'voir' && visibleTabs.length > 0)
+    pasteurMode === 'voir' ||
+    pasteurMode === 'accueil' ||
+    pasteurMode === null
   );
 
-  return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6">
-      <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-xl shadow-md mb-6 no-print">
-        <div className="flex items-center gap-3"><i className="fas fa-book-open text-indigo-700 text-2xl"></i><h1 className="text-xl font-bold text-gray-800">MATRICE – Gestion des offrandes et dîmes</h1></div>
-        <div className="flex items-center gap-4">
-          {isPasteur && (
-            <div className="flex gap-2">
-              <button onClick={() => { setPasteurMode('ajout'); setActiveTab('formulaire'); }} className={`px-3 py-1 rounded text-sm ${pasteurMode === 'ajout' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>AJOUT</button>
-              <button onClick={() => { setPasteurMode('voir'); setActiveTab('recapdistrict'); }} className={`px-3 py-1 rounded text-sm ${pasteurMode === 'voir' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>VOIR</button>
-            </div>
-          )}
-          <button onClick={() => setShowProfile(!showProfile)} className="flex items-center gap-2 text-sm bg-gray-100 px-3 py-1 rounded-full hover:bg-gray-200 transition">
-            {user.photo ? <img src={user.photo} alt="avatar" className="w-6 h-6 rounded-full object-cover" /> : <i className="fas fa-user-circle text-lg"></i>}
-            <span>{user.nom || user.email} ({user.fonction})</span>
-            <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs`}></i>
-          </button>
-          <button onClick={handleLogout} className="text-red-600 hover:text-red-800 text-sm"><i className="fas fa-sign-out-alt"></i> Déconnexion</button>
-        </div>
-      </div>
+  // 🔥 Fonction pour obtenir les classes CSS d'un onglet selon son état actif
+  const getTabClasses = (tabId, isActive) => {
+    const inactiveClass = tabColorMap.inactive[tabId] || 'bg-gray-50 hover:bg-gray-100 text-gray-700';
+    const activeClass = tabColorMap.active[tabId] || 'bg-gray-600 text-white hover:bg-gray-700';
+    return isActive ? activeClass : inactiveClass;
+  };
 
-      {showTabsBar && (
-        <div className="flex flex-wrap gap-2 mb-6 no-print">
-          {visibleTabs.map(tab => {
-            const disabled = isTabDisabled(tab);
-            const isActive = activeTab === tab.id;
+  // 🔥 Barre de navigation personnalisée pour le vérificateur
+  const renderVerificateurNavigation = () => {
+    if (!isVerificateur || !selectedEglise || !verifEgliseSelected) return null;
+
+    return (
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 no-print">
+        <button
+          onClick={handleBackToDistrictList}
+          className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition"
+        >
+          <i className="fas fa-arrow-left mr-1"></i> Retour
+        </button>
+        <div className="font-bold text-blue-800">
+          <i className="fas fa-church mr-1"></i> ÉGLISE : {selectedEglise}
+        </div>
+        <div className="flex-1"></div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Mois :</label>
+          <select
+            value={currentMonth || ''}
+            onChange={(e) => setCurrentMonth(e.target.value)}
+            className="border rounded px-2 py-1 bg-white text-sm"
+          >
+            {months.map((m) => (
+              <option key={m.id} value={m.id}>{formatMonthYear(m.id)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1">
+          {consultationTabIds.map((id) => {
+            const isActive = activeTab === id;
+            const label = consultationTabsLabels[id] || id;
             return (
               <button
-                key={tab.id}
-                onClick={() => !disabled && setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${isActive ? 'bg-indigo-700 text-white' : 'bg-white shadow-sm hover:bg-indigo-50'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={disabled}
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`px-3 py-1 rounded text-sm font-medium transition ${getTabClasses(id, isActive)}`}
               >
-                <i className={`${tab.icon} mr-1`}></i> {tab.label}
+                {label}
               </button>
             );
           })}
         </div>
-      )}
+      </div>
+    );
+  };
 
-      <div className="bg-white rounded-xl shadow p-4">
-        {showProfile ? <Profile onUserUpdate={handleUserUpdate} onClose={() => setShowProfile(false)} /> : renderActiveTab()}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        {/* En-tête */}
+        <div className="flex flex-wrap justify-between items-center bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-4 rounded-xl shadow-lg mb-6 no-print text-white">
+          <div className="flex items-center gap-3">
+            <img
+              src="/FINANCE.png"
+              alt="Finance"
+              className="h-10 w-10 object-contain"
+              onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<i class="fas fa-coins text-white text-2xl"></i>'; }}
+            />
+            <h1 className="text-xl font-bold uppercase tracking-wide">{mainTitle}</h1>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap">
+            {isPasteur && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAccueil}
+                  className={`px-3 py-1 rounded text-sm font-medium transition ${
+                    pasteurMode === 'accueil'
+                      ? 'bg-white text-sky-700'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  ACCUEIL
+                </button>
+                <button
+                  onClick={() => {
+                    setPasteurMode('ajout');
+                    setConsultationMode(false);
+                    setActiveTab('formulaire');
+                  }}
+                  className={`px-3 py-1 rounded text-sm font-medium transition ${
+                    pasteurMode === 'ajout'
+                      ? 'bg-white text-sky-700'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  AJOUT
+                </button>
+                <button
+                  onClick={() => {
+                    setPasteurMode('voir');
+                    setConsultationMode(false);
+                    setActiveTab('recapdistrict');
+                  }}
+                  className={`px-3 py-1 rounded text-sm font-medium transition ${
+                    pasteurMode === 'voir'
+                      ? 'bg-white text-sky-700'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  VOIR
+                </button>
+              </div>
+            )}
+            <button 
+              onClick={() => setShowProfile(!showProfile)} 
+              className="flex items-center gap-2 text-sm bg-white/20 px-3 py-1 rounded-full hover:bg-white/30 transition"
+            >
+              {user?.photo ? (
+                <img src={user.photo} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+              ) : (
+                <i className="fas fa-user-circle text-lg"></i>
+              )}
+              <span>{user.nom || user.email} ({user.fonction})</span>
+              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs`}></i>
+            </button>
+            <button onClick={handleLogout} className="text-red-300 hover:text-white transition text-sm">
+              <i className="fas fa-sign-out-alt"></i> Déconnexion
+            </button>
+          </div>
+        </div>
+
+        {/* Barre de navigation personnalisée pour le vérificateur */}
+        {renderVerificateurNavigation()}
+
+        {/* Barre d'onglets principale avec couleurs */}
+        {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
+          <div className="flex flex-wrap gap-2 mb-6 no-print">
+            {visibleTabs.map(tab => {
+              const disabled = isTabDisabled(tab);
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => !disabled && setActiveTab(tab.id)}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${getTabClasses(tab.id, isActive)} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={disabled}
+                >
+                  <i className={`${tab.icon} mr-1`}></i> {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-4">
+          {showProfile ? (
+            <Profile onClose={() => setShowProfile(false)} />
+          ) : (
+            renderActiveTab()
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-// Composant principal avec le provider
 function App() {
   return (
     <UserProvider>
-      <AppContent />
+      <ReceiptsProvider>
+        <AppContent />
+      </ReceiptsProvider>
     </UserProvider>
   );
 }
