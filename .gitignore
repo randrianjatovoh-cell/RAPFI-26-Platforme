@@ -1,6 +1,4 @@
-# ============================================
-# NODE_MODULES (dépendances)
-# ============================================
+# === NODE_MODULES ===
 node_modules/
 backend/node_modules/
 frontend/node_modules/
@@ -10,64 +8,44 @@ yarn-error.log*
 .pnp
 .pnp.js
 
-# ============================================
-# ENVIRONNEMENT (SECRETS) - TRÈS IMPORTANT
-# ============================================
+# === ENVIRONNEMENT (SECRETS) ===
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-*.env
-*.env.local
 backend/.env
 frontend/.env
+*.env
 
-# ============================================
-# BACKEND (fichiers générés et données locales)
-# ============================================
+# === BACKEND ===
 backend/uploads/
 backend/data/
 backend/rapfi.db
 backend/rapfi.db-journal
-backend/*.sqlite
-backend/*.sqlite3
-backend/dist/
-backend/build/
+*.sqlite
+*.sqlite3
 
-# ============================================
-# FRONTEND (build et cache)
-# ============================================
+# === FRONTEND ===
 frontend/build/
 frontend/dist/
 frontend/.cache
-frontend/*.log
 
-# ============================================
-# SYSTÈME (OS et IDE)
-# ============================================
+# === SYSTÈME ===
 .DS_Store
 Thumbs.db
 *.log
 *.tmp
-*.temp
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
-desktop.ini
 
-# ============================================
-# TESTS ET COUVERTURE
-# ============================================
+# === TESTS ===
 coverage/
 .nyc_output/
-*.lcov
 
-# ============================================
-# BUILD ET ARCHIVES
-# ============================================
+# === BUILD ===
 *.tgz
 *.gz
 dist/
@@ -75,11 +53,7 @@ build/
 *.zip
 *.rar
 
-# ============================================
-# MISCELLANEOUS
-# ============================================
+# === MISC ===
 *.pem
 *.key
 *.crt
-*.p12
-*.pfx
