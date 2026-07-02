@@ -1,12 +1,17 @@
 // src/services/api.js
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Log pour vérifier l'URL de base au chargement
 console.log('🚀 API_URL =', API_URL);
 
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('token');
+    this.onUnauthorized = null;
+  }
+
+  // Permet à l'application de réagir à une déconnexion automatique
+  setOnUnauthorized(callback) {
+    this.onUnauthorized = callback;
   }
 
   getAuthToken() {
@@ -24,7 +29,7 @@ class ApiService {
 
   async request(endpoint, options = {}) {
     const url = `${API_URL}${endpoint}`;
-    console.log(`📤 Requête vers ${url}`); // Trace l'URL de chaque requête
+    console.log(`📤 Requête vers ${url}`);
 
     const headers = {
       'Content-Type': 'application/json',
@@ -45,8 +50,12 @@ class ApiService {
         const errorData = await response.json().catch(() => ({}));
         const error = new Error(errorData.error || `HTTP error ${response.status}`);
         error.status = response.status;
+        // Si 401 ou 403, on supprime le token et on notifie
         if (response.status === 401 || response.status === 403) {
           this.setAuthToken(null);
+          if (this.onUnauthorized) {
+            this.onUnauthorized(error.message);
+          }
         }
         throw error;
       }
