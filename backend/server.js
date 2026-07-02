@@ -20,17 +20,14 @@ app.use(cors({
 app.options('*', cors());
 
 // ---------- Rate Limiting ----------
-// Limiteur pour les routes sensibles (authentification) – actif partout
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 30, // 30 tentatives
+  max: 30,
   message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' }
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-// 🔥 En développement, on désactive complètement le rate limiter global
-// En production, on applique des limites avec exemptions pour les GET de lecture
 if (process.env.NODE_ENV === 'production') {
   const maxGlobal = parseInt(process.env.RATE_LIMIT_MAX) || 200;
   const globalLimiter = rateLimit({
@@ -43,13 +40,8 @@ if (process.env.NODE_ENV === 'production') {
 
   app.use('/api', (req, res, next) => {
     const exemptedPaths = [
-      '/api/config',
-      '/api/months',
-      '/api/eglises',
-      '/api/reports',
-      '/api/frais',
-      '/api/depenses',
-      '/api/gl'
+      '/api/config', '/api/months', '/api/eglises',
+      '/api/reports', '/api/frais', '/api/depenses', '/api/gl'
     ];
     if (req.method === 'GET' && exemptedPaths.some(p => req.path.startsWith(p))) {
       return next();
@@ -58,18 +50,21 @@ if (process.env.NODE_ENV === 'production') {
   });
   console.log(`🔒 Rate Limiting activé : ${maxGlobal} requêtes / 15 min (GET lecture exemptées)`);
 } else {
-  console.log('⚠️ Rate Limiting global désactivé en développement (pour éviter les 429).');
+  console.log('⚠️ Rate Limiting global désactivé en développement.');
 }
 
 // ---------- Middlewares ----------
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Servir les photos uploadées
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------- Routes de test (diagnostic) ----------
-// Route racine pour vérifier que le serveur répond
+// ---------- Routes de test et health check ----------
+// Health check pour Render (indispensable)
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Route racine
 app.get('/', (req, res) => {
   res.json({ message: 'Backend is alive' });
 });
@@ -112,7 +107,6 @@ const start = async () => {
     await initDb();
     await createAdminIfNotExists();
     const port = process.env.PORT || 5000;
-    // Écouter sur toutes les interfaces (0.0.0.0) pour Render
     app.listen(port, '0.0.0.0', () => {
       console.log(`✅ Backend démarré sur le port ${port}`);
       console.log(`   Environnement : ${process.env.NODE_ENV || 'development'}`);
