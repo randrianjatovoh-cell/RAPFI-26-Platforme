@@ -24,21 +24,22 @@ async function createUser(user) {
   return result.lastID;
 }
 
+// ✅ Correction : passer les valeurs directement (sans spread car db.run accepte tableau)
 async function updateUser(id, updates) {
   const db = await openDb();
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = Object.values(updates);
   values.push(id);
-  // ✅ Correction : spread operator pour PostgreSQL
-  await db.run(`UPDATE users SET ${fields} WHERE id = ?`, ...values);
+  // db.run accepte maintenant un tableau en paramètre (grâce à la modification de db.js)
+  await db.run(`UPDATE users SET ${fields} WHERE id = ?`, values);
 }
 
+// ✅ Suppression de plain_password dans la réponse
 async function getAllUsers() {
   const db = await openDb();
-  // ✅ Inclure plain_password pour l'affichage admin
   return db.all(`
     SELECT id, nom, prenom, email, eglise, district, federation,
-           fonction, niveau, photo, adresse, contact, plain_password
+           fonction, niveau, photo, adresse, contact
     FROM users
   `);
 }
@@ -75,9 +76,6 @@ async function createAdminIfNotExists() {
   }
 }
 
-/**
- * Crée une église si elle n'existe pas déjà (comme un utilisateur minimal)
- */
 async function createEgliseIfNotExists(eglise, district, federation) {
   const db = await openDb();
   const existing = await db.get('SELECT 1 FROM users WHERE eglise = ?', eglise);
@@ -108,7 +106,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
   console.log(`✅ Église "${eglise}" créée avec succès (email: ${email})`);
 }
 
-// ---------- Récupération des églises par district/fédération ----------
+// ---------- Récupération des églises ----------
 async function getEglisesByDistrict(district) {
   const db = await openDb();
   const users = await db.all(
@@ -301,7 +299,7 @@ async function updateMembre(userId, id, updates) {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = Object.values(updates);
   values.push(id, userId);
-  await db.run(`UPDATE membres SET ${fields} WHERE id = ? AND user_id = ?`, ...values);
+  await db.run(`UPDATE membres SET ${fields} WHERE id = ? AND user_id = ?`, values);
 }
 
 async function deleteMembre(userId, id) {
@@ -374,15 +372,15 @@ async function upsertMonthlyReport(month, eglise, data) {
       VALUES ($$1, $$2, ${placeholders})
       ON CONFLICT (month_id, eglise) DO UPDATE SET ${updateSet}
     `;
-    await db.run(sql, ...values);
+    await db.run(sql, values);
   } else {
     const placeholdersSQL = keys.map(() => '?').join(', ');
     const sql = `INSERT OR REPLACE INTO monthly_reports (${columns.join(', ')}) VALUES (?, ?, ${placeholdersSQL})`;
-    await db.run(sql, ...values);
+    await db.run(sql, values);
   }
 }
 
-// ---------- Fonction de recalcul du rapport mensuel ----------
+// ---------- Recalcul rapport ----------
 async function computeAndSaveMonthlyReports(monthId, eglise) {
   const db = await openDb();
 
@@ -512,6 +510,7 @@ async function addUserLog(userId, userName, userFonction, ip = '', userAgent = '
   );
 }
 
+// ✅ Correction : passer les paramètres comme tableau
 async function getUserLogs(limit = 100, offset = 0) {
   const db = await openDb();
   const query = `

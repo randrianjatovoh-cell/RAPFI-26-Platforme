@@ -109,9 +109,8 @@ class ApiService {
     });
   }
 
-  async uploadPhoto(id, file) {
-    const formData = new FormData();
-    formData.append('photo', file);
+  // ✅ Correction : accepter FormData directement
+  async uploadPhoto(id, formData) {
     const url = `${API_URL}/users/${id}/photo`;
     console.log(`📤 Upload photo vers ${url}`);
     const response = await fetch(url, {
@@ -128,8 +127,8 @@ class ApiService {
     return response.json();
   }
 
-  async uploadUserPhoto(id, file) {
-    return this.uploadPhoto(id, file);
+  async uploadUserPhoto(id, formData) {
+    return this.uploadPhoto(id, formData);
   }
 
   async updateUserPassword(id, password) {

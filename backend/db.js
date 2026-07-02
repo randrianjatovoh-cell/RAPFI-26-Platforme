@@ -21,26 +21,23 @@ function convertPlaceholders(sql, params) {
 
 function createPgWrapper(pool) {
   return {
+    // ✅ run accepte soit des arguments séparés, soit un tableau
     async run(sql, ...params) {
+      // Si params est un tableau de un élément qui est lui-même un tableau, on le déplie
+      if (params.length === 1 && Array.isArray(params[0])) {
+        params = params[0];
+      }
       const client = await pool.connect();
       try {
         const convertedSql = convertPlaceholders(sql, params);
         const res = await client.query(convertedSql, params);
         let lastID = null;
-        
-        // Si c'est un INSERT et que nous avons inséré une ligne
         if (sql.trim().toUpperCase().startsWith('INSERT') && res.rowCount > 0) {
           try {
-            // Essayer d'obtenir l'ID via lastval()
             const idRes = await client.query('SELECT lastval()');
             lastID = idRes.rows[0].lastval;
           } catch (err) {
-            // Si lastval() échoue (ex: table sans séquence), on ignore
-            if (err.code !== '55000') {
-              // Si c'est une autre erreur, on la remonte
-              throw err;
-            }
-            // Sinon, on laisse lastID à null
+            if (err.code !== '55000') throw err;
           }
         }
         return { lastID, changes: res.rowCount };
@@ -48,7 +45,11 @@ function createPgWrapper(pool) {
         client.release();
       }
     },
+    // ✅ get accepte soit des arguments séparés, soit un tableau
     async get(sql, ...params) {
+      if (params.length === 1 && Array.isArray(params[0])) {
+        params = params[0];
+      }
       const client = await pool.connect();
       try {
         const convertedSql = convertPlaceholders(sql, params);
@@ -58,7 +59,11 @@ function createPgWrapper(pool) {
         client.release();
       }
     },
+    // ✅ all accepte soit des arguments séparés, soit un tableau
     async all(sql, ...params) {
+      if (params.length === 1 && Array.isArray(params[0])) {
+        params = params[0];
+      }
       const client = await pool.connect();
       try {
         const convertedSql = convertPlaceholders(sql, params);
@@ -71,8 +76,6 @@ function createPgWrapper(pool) {
     async exec(sql) {
       const client = await pool.connect();
       try {
-        // PostgreSQL ne supporte pas plusieurs instructions dans une seule query,
-        // donc on les exécute une par une en les séparant par ';'
         const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
         for (const stmt of statements) {
           await client.query(stmt);
@@ -289,7 +292,6 @@ async function initDb() {
 
   await db.exec(schemaSQL);
 
-  // Ajout des mois 2026
   const months2026 = [
     '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
     '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
