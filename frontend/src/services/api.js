@@ -1,5 +1,5 @@
-// ⚠️ Utilisation d'une variable d'environnement pour plus de flexibilité
-const API_URL = process.env.REACT_APP_API_URL || 'https://rapfi-backend.onrender.com/api';
+// ⚠️ URL forcée pour la production (Render)
+const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 
