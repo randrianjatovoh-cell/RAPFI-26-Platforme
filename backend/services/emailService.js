@@ -1,49 +1,42 @@
 const nodemailer = require('nodemailer');
 
-// Récupération de l'URL de la plateforme depuis les variables d'environnement
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Vérifier la présence des variables essentielles
+// Vérification au démarrage
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn('⚠️ Les variables EMAIL_USER ou EMAIL_PASS ne sont pas définies. L\'envoi d\'email est désactivé.');
+  console.warn('⚠️ EMAIL_USER ou EMAIL_PASS non définies. L\'envoi d\'email est désactivé.');
 }
 
-// Création du transporteur avec des options de timeout
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // Timeouts pour éviter les blocages
   connectionTimeout: 5000,
   greetingTimeout: 5000,
   socketTimeout: 5000,
 });
 
-// Vérifier la configuration au démarrage (appelé une fois)
+// Vérification de la connexion SMTP
 transporter.verify((error, success) => {
   if (error) {
-    console.error('❌ Erreur de configuration du transporteur email :', error.message);
+    console.error('❌ Échec de la connexion au serveur Gmail :', error.message);
     if (error.response) console.error('   Réponse SMTP :', error.response);
   } else {
-    console.log('✅ Transporteur email configuré avec succès (Gmail).');
+    console.log(`✅ Connexion SMTP réussie (expéditeur : ${process.env.EMAIL_USER})`);
   }
 });
 
-/**
- * Envoie un email de bienvenue à un nouvel utilisateur
- * @param {string} to - Email du destinataire
- * @param {string} nom - Nom de l'utilisateur
- * @param {string} email - Email de l'utilisateur
- * @param {string} plainPassword - Mot de passe en clair
- * @returns {Promise<void>}
- */
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
-  // Si les variables d'environnement ne sont pas définies, on annule sans erreur
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn(`⚠️ Tentative d'envoi d'email à ${to} annulée (configuration manquante).`);
-    return;
+    console.warn(`⚠️ Envoi annulé (config manquante) pour ${to}`);
+    return { success: false, error: 'Configuration email manquante' };
+  }
+
+  if (!to || !to.includes('@')) {
+    console.warn(`⚠️ Adresse email invalide : ${to}`);
+    return { success: false, error: 'Adresse email invalide' };
   }
 
   const subject = 'Bienvenue sur la plateforme RAPFI EGLISE';
@@ -78,12 +71,10 @@ async function sendWelcomeEmail(to, nom, email, plainPassword) {
       html,
     });
     console.log(`✅ Email envoyé à ${to} (Message-ID: ${info.messageId})`);
+    return { success: true, info };
   } catch (error) {
     console.error(`❌ Échec de l'envoi d'email à ${to} :`, error.message);
-    if (error.response) {
-      console.error('   Réponse du serveur SMTP :', error.response);
-    }
-    // On relance l'erreur pour que l'appelant (auth.js) puisse la loguer
+    if (error.response) console.error('   Réponse SMTP :', error.response);
     throw error;
   }
 }

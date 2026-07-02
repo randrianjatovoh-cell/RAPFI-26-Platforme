@@ -6,6 +6,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const { initDb } = require('./db');
 const { createAdminIfNotExists } = require('./models');
+const { sendWelcomeEmail } = require('./services/emailService'); // Ajout pour test
 
 const app = express();
 
@@ -20,6 +21,7 @@ const allowedOrigins = [
 ];
 const corsOptions = {
   origin: function (origin, callback) {
+    // Permettre les requêtes sans origin (comme les appels API directs)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
       callback(null, true);
@@ -34,9 +36,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-// Middleware pour logger les requêtes entrantes
+// Middleware pour logger les requêtes entrantes (avec temps d'exécution)
 app.use((req, res, next) => {
-  console.log(`📥 ${req.method} ${req.url}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`📥 ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+  });
   next();
 });
 
@@ -60,6 +66,7 @@ if (process.env.NODE_ENV === 'production') {
     message: { error: 'Trop de requêtes effectuées. Veuillez réessayer dans 15 minutes.' }
   });
 
+  // Appliquer à toutes les routes POST/PUT/DELETE/PATCH
   app.use('/api', (req, res, next) => {
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
       return globalLimiter(req, res, next);
@@ -76,7 +83,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------- Routes de test ----------
+// ---------- Routes de test et health check ----------
 app.get('/healthz', (req, res) => {
   res.status(200).send('OK');
 });
@@ -87,6 +94,18 @@ app.get('/', (req, res) => {
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend OK' });
+});
+
+// 🔥 ROUTE DE TEST POUR L'EMAIL (à supprimer après vérification)
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const testEmail = req.query.email || 'test@example.com';
+    const result = await sendWelcomeEmail(testEmail, 'Test User', testEmail, 'Password123');
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error('Erreur test email:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ---------- Routes API ----------

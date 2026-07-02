@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('❌ Erreur login :', err);
+    console.error('Erreur login:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -63,14 +63,11 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
   try {
     const { nom, prenom, eglise, district, federation, responsable, email, password, fonction } = req.body;
 
-    // Vérifier si l'email existe déjà
     const existing = await getUserByEmail(email);
     if (existing) return res.status(400).json({ error: 'Email déjà utilisé' });
 
-    // Hacher le mot de passe
     const hashed = await bcrypt.hash(password, 10);
 
-    // Créer l'utilisateur
     const id = await createUser({
       nom,
       prenom: prenom || '',
@@ -88,22 +85,32 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
       plain_password: password
     });
 
-    // 🔥 ENVOI D'EMAIL DE BIENVENUE (avec logs améliorés)
+    // 🔥 Envoi de l'email avec logs détaillés
+    let emailSent = false;
+    let emailError = null;
     try {
       console.log(`📧 Tentative d'envoi d'email à ${email}...`);
-      await sendWelcomeEmail(email, nom, email, password);
-      console.log(`✅ Email de bienvenue envoyé à ${email}`);
-    } catch (emailErr) {
-      console.error(`❌ Erreur lors de l'envoi de l'email à ${email} :`, emailErr.message);
-      if (emailErr.response) {
-        console.error('   Détails SMTP :', emailErr.response);
+      const result = await sendWelcomeEmail(email, nom, email, password);
+      if (result.success) {
+        emailSent = true;
+        console.log(`✅ Email de bienvenue envoyé à ${email}`);
+      } else {
+        emailError = result.error;
+        console.warn(`⚠️ Email non envoyé : ${emailError}`);
       }
-      // On ne bloque pas la réponse en cas d'échec de l'email
+    } catch (emailErr) {
+      emailError = emailErr.message;
+      console.error('❌ Erreur lors de l\'envoi de l\'email :', emailErr);
     }
 
-    res.status(201).json({ id, message: 'Utilisateur créé avec succès.' });
+    res.status(201).json({
+      id,
+      message: 'Utilisateur créé avec succès.',
+      emailSent,
+      emailError: emailError || undefined
+    });
   } catch (err) {
-    console.error('❌ Erreur création utilisateur :', err);
+    console.error('Erreur création utilisateur :', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -114,7 +121,7 @@ router.get('/users', authenticateToken, authorize('Admin'), async (req, res) => 
     const users = await getAllUsers();
     res.json(users);
   } catch (err) {
-    console.error('❌ Erreur dans /auth/users :', err);
+    console.error('Erreur dans /auth/users :', err);
     res.status(500).json({ error: 'Erreur serveur lors du chargement des utilisateurs' });
   }
 });
