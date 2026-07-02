@@ -1,44 +1,52 @@
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+const provider = process.env.EMAIL_PROVIDER || 'sendgrid'; // 'gmail' ou 'sendgrid'
 
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn('⚠️ Les variables EMAIL_USER ou EMAIL_PASS ne sont pas définies.');
+let transporter = null;
+
+if (provider === 'gmail') {
+  // Configuration Gmail (inchangée)
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('⚠️ Variables EMAIL_USER ou EMAIL_PASS non définies pour Gmail.');
+  }
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+  });
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ Échec de la connexion au serveur Gmail :', error.message);
+    } else {
+      console.log(`✅ Connexion SMTP Gmail réussie (expéditeur : ${process.env.EMAIL_USER})`);
+    }
+  });
+} else if (provider === 'sendgrid') {
+  // Configuration SendGrid
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('⚠️ SENDGRID_API_KEY non définie. L\'envoi d\'email avec SendGrid est désactivé.');
+  } else {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log('✅ SendGrid configuré avec succès.');
+  }
+} else {
+  console.warn(`⚠️ Provider ${provider} non reconnu. Utilisation de SendGrid par défaut.`);
+  if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log('✅ SendGrid configuré avec succès.');
+  }
 }
 
-// ⚡ Utilisation du port 587 (TLS) au lieu de 465 (SSL) pour éviter les blocages réseau
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // TLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  // Forcer IPv4 si possible
-  lookup: (hostname, options, callback) => {
-    require('dns').lookup(hostname, { family: 4 }, callback);
-  },
-});
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Échec de la connexion au serveur Gmail :', error.message);
-    if (error.response) console.error('   Réponse SMTP :', error.response);
-  } else {
-    console.log(`✅ Connexion SMTP réussie (expéditeur : ${process.env.EMAIL_USER})`);
-  }
-});
-
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn(`⚠️ Envoi annulé (config manquante) pour ${to}`);
-    return { success: false, error: 'Configuration email manquante' };
-  }
-
   if (!to || !to.includes('@')) {
     console.warn(`⚠️ Adresse email invalide : ${to}`);
     return { success: false, error: 'Adresse email invalide' };
@@ -69,17 +77,32 @@ async function sendWelcomeEmail(to, nom, email, plainPassword) {
   `;
 
   try {
-    const info = await transporter.sendMail({
-      from: `"RAPFI EGLISE" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
-    console.log(`✅ Email envoyé à ${to} (Message-ID: ${info.messageId})`);
-    return { success: true, info };
+    if (provider === 'gmail' && transporter) {
+      const info = await transporter.sendMail({
+        from: `"RAPFI EGLISE" <${process.env.EMAIL_USER}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log(`✅ Email envoyé via Gmail à ${to} (Message-ID: ${info.messageId})`);
+      return { success: true, info };
+    } else if (provider === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+      const msg = {
+        to,
+        from: process.env.SENDGRID_FROM_EMAIL || 'plateformerapfi@gmail.com',
+        subject,
+        html,
+      };
+      await sgMail.send(msg);
+      console.log(`✅ Email envoyé via SendGrid à ${to}`);
+      return { success: true };
+    } else {
+      console.warn(`⚠️ Aucun service d'email configuré. Envoi simulé à ${to}`);
+      return { success: false, error: 'Aucun service email configuré' };
+    }
   } catch (error) {
     console.error(`❌ Échec de l'envoi d'email à ${to} :`, error.message);
-    if (error.response) console.error('   Réponse SMTP :', error.response);
+    if (error.response) console.error('   Réponse :', error.response);
     throw error;
   }
 }
