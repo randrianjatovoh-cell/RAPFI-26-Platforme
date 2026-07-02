@@ -1,6 +1,6 @@
 // src/components/UserManagement.js
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../context/UserContext';   // ✅ Chemin corrigé
+import { useUser } from '../context/UserContext';   // ✅ CHEMIN CORRIGÉ
 import { api } from '../services/api';
 
 function generateRandomPassword() {
@@ -8,7 +8,6 @@ function generateRandomPassword() {
 }
 
 export default function UsersManagement() {
-  const { user: currentUser } = useUser(); // pour éventuellement l'utiliser
   const [users, setUsers] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -226,7 +225,7 @@ export default function UsersManagement() {
     setEditingId(user.id);
     setFormData({
       ...user,
-      motDePasse: user.plain_password || '' // pré‑remplir le mot de passe en clair
+      motDePasse: user.plain_password || ''
     });
   }
 

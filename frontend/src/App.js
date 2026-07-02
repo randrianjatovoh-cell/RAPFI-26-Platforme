@@ -1,9 +1,8 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
-import { UserProvider, useUser } from '../context/UserContext';
+import { UserProvider, useUser } from './context/UserContext';
 import { api } from './services/api';
 import { usePermissions } from './hooks/usePermissions';
-import { ReceiptsProvider, useReceipts } from '../context/ReceiptsContext';
+import { ReceiptsProvider, useReceipts } from './context/ReceiptsContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Formulaire from './components/Formulaire';

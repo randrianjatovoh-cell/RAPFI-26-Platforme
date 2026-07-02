@@ -1,6 +1,5 @@
-// src/services/api.js
-// ⚠️ URL fixée en dur pour contourner le problème de variable d'environnement
-const API_URL = 'https://rapfi-backend.onrender.com/api';
+// ⚠️ Utilisation d'une variable d'environnement pour plus de flexibilité
+const API_URL = process.env.REACT_APP_API_URL || 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 

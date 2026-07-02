@@ -9,10 +9,10 @@ const { createAdminIfNotExists } = require('./models');
 
 const app = express();
 
-// ✅ Correction : trust proxy pour Render
+// Trust proxy pour Render
 app.set('trust proxy', true);
 
-// ✅ CORS : autoriser toutes les origines (temporaire ou définitif)
+// CORS : autoriser toutes les origines (pour le moment)
 const allowedOrigin = '*';
 app.use(cors({
   origin: allowedOrigin,
@@ -21,6 +21,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.options('*', cors());
+
+// Middleware pour logger les requêtes entrantes
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.url}`);
+  next();
+});
 
 // ---------- Rate Limiting ----------
 const authLimiter = rateLimit({
