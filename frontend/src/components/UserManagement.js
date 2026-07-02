@@ -221,11 +221,12 @@ export default function UsersManagement() {
     setTimeout(() => setMessage(''), 5000);
   }
 
+  // ✅ CORRECTION : pré-remplir le champ motDePasse avec le mot de passe en clair
   function handleEdit(user) {
     setEditingId(user.id);
     setFormData({
       ...user,
-      motDePasse: ''
+      motDePasse: user.plain_password || '' // ← Affiche le mot de passe actuel en clair
     });
   }
 
