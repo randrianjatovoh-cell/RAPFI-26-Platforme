@@ -9,9 +9,8 @@ const { createAdminIfNotExists } = require('./models');
 
 const app = express();
 
-// ⚡ Correction du trust proxy pour éviter l'erreur rate limiting
-// Sur Render, on peut le définir à false ou à un proxy spécifique.
-app.set('trust proxy', false); // Désactive la confiance proxy (plus sécurisé pour le rate limiting)
+// ⚡ Activer trust proxy pour Render (nécessaire pour les IP derrière le proxy)
+app.set('trust proxy', true);
 
 // CORS restreint en production
 const allowedOrigins = [
@@ -42,11 +41,15 @@ app.use((req, res, next) => {
 });
 
 // ---------- Rate Limiting ----------
+// ⚡ Désactiver les validations conflictuelles
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 30,
   message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' },
-  trustProxy: false, // Désactiver l'utilisation du proxy pour l'IP
+  validate: {
+    trustProxy: false,  // désactiver la validation pour éviter l'erreur
+    xForwardedForHeader: false,
+  },
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -59,7 +62,10 @@ if (process.env.NODE_ENV === 'production') {
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Trop de requêtes effectuées. Veuillez réessayer dans 15 minutes.' },
-    trustProxy: false,
+    validate: {
+      trustProxy: false,
+      xForwardedForHeader: false,
+    },
   });
 
   app.use('/api', (req, res, next) => {

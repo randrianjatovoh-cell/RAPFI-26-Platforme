@@ -2,31 +2,28 @@ const nodemailer = require('nodemailer');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Vérification des variables d'environnement
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   console.warn('⚠️ Les variables EMAIL_USER ou EMAIL_PASS ne sont pas définies.');
 }
 
-// ⚡ Configuration explicite de Gmail pour éviter les problèmes IPv6
+// ⚡ Utilisation du port 587 (TLS) au lieu de 465 (SSL) pour éviter les blocages réseau
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // SSL
+  port: 587,
+  secure: false, // TLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  connectionTimeout: 5000,
-  greetingTimeout: 5000,
-  socketTimeout: 5000,
-  // Certains environnements supportent family: 4 pour forcer IPv4
-  // mais cela dépend du module 'net' sous-jacent.
-  // On peut essayer d'ajouter : lookup: (hostname, options, callback) => { /* forcer IPv4 */ }
-  // Cependant, la solution la plus fiable est de laisser nodemailer gérer.
-  // En cas d'échec, on pourra utiliser un service alternatif.
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+  // Forcer IPv4 si possible
+  lookup: (hostname, options, callback) => {
+    require('dns').lookup(hostname, { family: 4 }, callback);
+  },
 });
 
-// Vérification de la connexion SMTP
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Échec de la connexion au serveur Gmail :', error.message);
@@ -36,9 +33,6 @@ transporter.verify((error, success) => {
   }
 });
 
-/**
- * Envoie un email de bienvenue
- */
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn(`⚠️ Envoi annulé (config manquante) pour ${to}`);
