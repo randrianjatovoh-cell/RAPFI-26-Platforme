@@ -171,7 +171,9 @@ export default function UsersManagement() {
         setMessage(`Utilisateur ajouté. Mot de passe: ${newPassword}`);
       }
       resetForm();
+      // ✅ Recharger immédiatement la liste
       await loadUsers();
+      // Mettre à jour les listes déroulantes
       const allUsers = await api.getAllUsers();
       const districts = [...new Set(allUsers.map(u => u.district).filter(d => d))];
       const eglises = [...new Set(allUsers.map(u => u.eglise).filter(e => e))];

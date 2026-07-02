@@ -1,4 +1,3 @@
-// src/components/Profile.js
 import React, { useState, useRef, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -52,6 +51,15 @@ export default function Profile({ onClose }) {
     try {
       const formData = new FormData();
       formData.append('photo', file);
+
+      // ✅ Vérifier que user.id existe
+      if (!user?.id) {
+        setMessage('Erreur: utilisateur non identifié');
+        setMessageType('error');
+        setTimeout(() => setMessage(''), 5000);
+        setUploading(false);
+        return;
+      }
 
       const result = await api.uploadUserPhoto(user.id, formData);
       
@@ -118,6 +126,14 @@ export default function Profile({ onClose }) {
     }
     setIsSaving(true);
     try {
+      // ✅ Vérifier que user.id existe
+      if (!user?.id) {
+        setMessage('Erreur: utilisateur non identifié');
+        setMessageType('error');
+        setTimeout(() => setMessage(''), 5000);
+        setIsSaving(false);
+        return;
+      }
       await api.updateUser(user.id, { adresse, contact });
       updateUser({ adresse, contact });
       setOriginalAdresse(adresse);
