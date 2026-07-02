@@ -1,6 +1,9 @@
 // src/services/api.js
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// Log pour vérifier l'URL de base au chargement
+console.log('🚀 API_URL =', API_URL);
+
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('token');
@@ -21,6 +24,8 @@ class ApiService {
 
   async request(endpoint, options = {}) {
     const url = `${API_URL}${endpoint}`;
+    console.log(`📤 Requête vers ${url}`); // Trace l'URL de chaque requête
+
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -47,7 +52,7 @@ class ApiService {
       }
       return response.json();
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('❌ API request failed:', error);
       throw error;
     }
   }
@@ -102,6 +107,7 @@ class ApiService {
     const formData = new FormData();
     formData.append('photo', file);
     const url = `${API_URL}/users/${id}/photo`;
+    console.log(`📤 Upload photo vers ${url}`);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
