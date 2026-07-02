@@ -1,6 +1,6 @@
 // src/components/UserManagement.js
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../context/UserContext';  // ✅ Chemin corrigé
+import { useUser } from '../context/UserContext';   // ✅ Chemin corrigé
 import { api } from '../services/api';
 
 function generateRandomPassword() {
@@ -411,7 +411,6 @@ export default function UsersManagement() {
       )}
 
       {activeSubTab === 'frequentation' && (
-        // ... (le reste est inchangé)
         <div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-100 p-4 rounded shadow">
