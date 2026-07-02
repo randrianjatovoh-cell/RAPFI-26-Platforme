@@ -367,9 +367,10 @@ async function upsertMonthlyReport(month, eglise, data) {
   if (db.isPostgres) {
     const placeholders = keys.map((_, i) => `$${i + 3}`).join(', ');
     const updateSet = keys.map(k => `${k} = EXCLUDED.${k}`).join(', ');
+    // ✅ Correction : utiliser $1 et $2 au lieu de $$1 et $$2
     const sql = `
       INSERT INTO monthly_reports (${columns.join(', ')})
-      VALUES ($$1, $$2, ${placeholders})
+      VALUES ($1, $2, ${placeholders})
       ON CONFLICT (month_id, eglise) DO UPDATE SET ${updateSet}
     `;
     await db.run(sql, ...values);
@@ -529,7 +530,7 @@ async function getUserLogs(limit = 100, offset = 0) {
     ORDER BY timestamp DESC
     LIMIT ? OFFSET ?
   `;
-  // ✅ Correction : spread operator pour les paramètres
+  // ✅ Correction : spread operator
   return db.all(query, limit, offset);
 }
 

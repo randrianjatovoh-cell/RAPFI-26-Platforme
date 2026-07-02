@@ -1,5 +1,5 @@
 // src/components/Dashboard.js
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, escapeHtml } from '../services/helpers';
@@ -50,42 +50,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // Référence pour annuler les requêtes en cours
-  const abortControllerRef = useRef(null);
-
-  // Cache simple pour éviter de recharger les mêmes données
-  const cacheRef = useRef({});
-
-  // ---- Fonction de chargement des données (OPTIMISÉE) ----
+  // ---- Fonction de chargement des données (optimisée avec Promise.all) ----
   const loadData = useCallback(async () => {
-    // Annuler les requêtes précédentes
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
     setLoading(true);
     setError(null);
 
     try {
       const yearStr = selectedYear.toString();
-      const cacheKey = `${yearStr}_${user?.id}_${eglise}`;
-      
-      // Vérifier le cache
-      if (cacheRef.current[cacheKey]) {
-        const cached = cacheRef.current[cacheKey];
-        setAnnualData(cached.annualData || annualData);
-        setDistrictData(cached.districtData || []);
-        setFederationData(cached.federationData || []);
-        setLoading(false);
-        return;
-      }
-
-      const months = [
-        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-      ];
 
       if (isAncienOrTresorier) {
         const egliseNom = user.eglise;
@@ -95,14 +66,15 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
-        // ✅ Optimisation : toutes les requêtes en parallèle
+        const months = [
+          'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+        ];
+
+        // ✅ Optimisation : Promise.all pour paralléliser les requêtes
         const monthPromises = months.map(async (month, idx) => {
           const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
-          const [glData, expensesList] = await Promise.all([
-            api.getGL(monthId, null, null, egliseNom),
-            api.getDepenses(monthId, null, null, egliseNom)
-          ]);
-          
+          const glData = await api.getGL(monthId, null, null, egliseNom);
           let monthTotalA = 0;
           let monthDime = 0;
           let monthOther = 0;
@@ -133,6 +105,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             }
           }
 
+          const expensesList = await api.getDepenses(monthId, null, null, egliseNom);
           const monthExpenses = expensesList.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
           return {
@@ -149,6 +122,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
         const results = await Promise.all(monthPromises);
 
+        // Initialisation du tableau
         const monthlyData = months.map((month, idx) => ({
           month,
           totalA: 0,
@@ -164,6 +138,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         let totalIncome = 0;
         let totalExpenses = 0;
 
+        // Remplir monthlyData avec les résultats
         results.forEach((res) => {
           const idx = res.idx;
           monthlyData[idx].totalA = res.monthTotalA;
@@ -179,7 +154,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           totalExpenses += res.monthExpenses;
         });
 
-        // Calcul du solde initial
+        // Calcul du solde initial (volaSisaTeoAloha)
         let volaSisaTeoAloha = 0;
 
         try {
@@ -199,10 +174,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           try {
             const prevYear = (selectedYear - 1).toString();
             const decMonthId = `${prevYear}-12`;
-            const [decGL, decExpenses] = await Promise.all([
-              api.getGL(decMonthId, null, null, egliseNom),
-              api.getDepenses(decMonthId, null, null, egliseNom)
-            ]);
+            const decGL = await api.getGL(decMonthId, null, null, egliseNom);
             let decTotalB = 0;
             if (decGL) {
               for (let s = 1; s <= 5; s++) {
@@ -212,6 +184,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
+            const decExpenses = await api.getDepenses(decMonthId, null, null, egliseNom);
             const decTotalExpenses = decExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
             volaSisaTeoAloha = decTotalB - decTotalExpenses;
           } catch (err) {
@@ -234,20 +207,17 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         const volaNivoaka = totalExpenses;
         const volaAfindra = volaSisaTeoAloha + volaNiditra - volaNivoaka;
 
-        const newAnnualData = {
+        setAnnualData({
           totalA,
           volaSisaTeoAloha,
           volaNiditra,
           volaNivoaka,
           volaAfindra,
           monthlyData
-        };
-        setAnnualData(newAnnualData);
-        
-        // Mettre en cache
-        cacheRef.current[cacheKey] = { annualData: newAnnualData };
+        });
 
       } else if (isPasteur) {
+        // ✅ Optimisation : Promise.all pour le pasteur
         const district = user.district;
         if (!district) {
           setError("Votre compte n'est pas associé à un district.");
@@ -255,10 +225,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
+        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
         if (eglise) {
-          // Une seule église
-          const egliseData = { eglise, monthly: {}, totalDime: 0, totalA: 0 };
-          
           const monthPromises = months.map(async (month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
             const glData = await api.getGL(monthId, null, null, eglise);
@@ -277,17 +246,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           });
 
           const results = await Promise.all(monthPromises);
+          const egliseData = { eglise, monthly: {}, totalDime: 0, totalA: 0 };
           results.forEach(({ month, dime, totalA }) => {
             egliseData.monthly[month] = { dime, totalA };
             egliseData.totalDime += dime;
             egliseData.totalA += totalA;
           });
-
-          const newDistrictData = [egliseData];
-          setDistrictData(newDistrictData);
-          cacheRef.current[cacheKey] = { districtData: newDistrictData };
+          setDistrictData([egliseData]);
         } else {
-          // Toutes les églises du district
           const eglisesList = await api.getEglisesByDistrict(district);
           if (eglisesList.length === 0) {
             setError("Aucune église trouvée pour ce district.");
@@ -297,7 +263,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
           const districtPromises = eglisesList.map(async (egliseNom) => {
             const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
-            
             const monthPromises = months.map(async (month, idx) => {
               const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
               const glData = await api.getGL(monthId, null, null, egliseNom);
@@ -324,12 +289,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             return egliseData;
           });
 
-          const newDistrictData = await Promise.all(districtPromises);
-          setDistrictData(newDistrictData);
-          cacheRef.current[cacheKey] = { districtData: newDistrictData };
+          const districtDataTemp = await Promise.all(districtPromises);
+          setDistrictData(districtDataTemp);
         }
 
       } else if (isVerificateur) {
+        // ✅ Optimisation : Promise.all pour le vérificateur
         const federation = user.federation;
         if (!federation) {
           setError("Votre compte n'est pas associé à une fédération.");
@@ -344,9 +309,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
+        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
         const fedPromises = fedEglisesList.map(async (egliseNom) => {
           const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
-          
           const monthPromises = months.map(async (month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
             const glData = await api.getGL(monthId);
@@ -373,38 +339,28 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return egliseData;
         });
 
-        const newFederationData = await Promise.all(fedPromises);
-        setFederationData(newFederationData);
-        cacheRef.current[cacheKey] = { federationData: newFederationData };
+        const federationDataTemp = await Promise.all(fedPromises);
+        setFederationData(federationDataTemp);
       }
 
     } catch (err) {
-      if (err.name === 'AbortError') {
-        console.log('Requête annulée');
-        return;
-      }
       console.error('Dashboard: Erreur globale', err);
       setError(err.message || 'Erreur de chargement des données');
     } finally {
-      if (abortControllerRef.current === abortController) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [user, selectedYear, isAncienOrTresorier, isPasteur, isVerificateur, eglise]);
 
   // Rechargement quand l'église ou l'année change
   useEffect(() => {
-    if (eglise || isPasteur || isVerificateur) {
+    if (eglise || isPasteur) {
       loadData();
     }
   }, [eglise, selectedYear, loadData]);
 
   const refresh = useCallback(() => {
-    // Invalider le cache pour le recharger
-    const cacheKey = `${selectedYear}_${user?.id}_${eglise}`;
-    delete cacheRef.current[cacheKey];
     setRefreshKey(prev => prev + 1);
-  }, [selectedYear, user?.id, eglise]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener('data-updated', refresh);
@@ -415,26 +371,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     loadData();
   }, [loadData, refreshKey]);
 
-  // Nettoyer les requêtes en cours lors du démontage
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
   // =================== RENDU ===================
-  // ... (le reste du code est inchangé, je le recopie ici pour être complet)
-  // Mais pour ne pas saturer la réponse, je vais laisser le rendu existant,
-  // car il n'a pas été modifié.
-  // Je vais le recopier entièrement ci-dessous :
+  // (La partie rendu reste inchangée, identique à votre version originale)
+  // Je la garde pour être complet, mais elle n'a pas été modifiée.
 
-  // ----- ANCIEN / TRÉSORIER (UNIFORMISÉ) -----
+  // ----- ANCIEN / TRÉSORIER -----
   const renderAncienDashboard = () => {
     const { totalA, volaSisaTeoAloha, volaNiditra, volaNivoaka, volaAfindra, monthlyData } = annualData;
 
-    // On force l'affichage des trois segments même si nuls
     const pieData = [
       { name: 'Reste', value: volaSisaTeoAloha !== 0 ? Math.abs(volaSisaTeoAloha) : 0.001 },
       { name: 'Entrées', value: volaNiditra !== 0 ? Math.abs(volaNiditra) : 0.001 },
