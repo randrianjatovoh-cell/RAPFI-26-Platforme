@@ -57,7 +57,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// ---------- REGISTER ----------
+// ---------- REGISTER (Admin uniquement) ----------
 router.post('/register', authenticateToken, authorize('Admin'), async (req, res) => {
   try {
     const { nom, prenom, eglise, district, federation, responsable, email, password, fonction } = req.body;
@@ -84,7 +84,7 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
       plain_password: password
     });
 
-    // 🔥 Envoi de l'email avec logs détaillés
+    // 🔥 Envoi de l'email (Brevo)
     let emailSent = false;
     let emailError = null;
     try {
@@ -114,7 +114,7 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
   }
 });
 
-// ---------- LISTE DES UTILISATEURS ----------
+// ---------- LISTE DES UTILISATEURS (Admin) ----------
 router.get('/users', authenticateToken, authorize('Admin'), async (req, res) => {
   try {
     const users = await getAllUsers();

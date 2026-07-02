@@ -9,6 +9,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@sendinblue/client": "^3.8.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
@@ -21,7 +22,6 @@
     "pg": "^8.22.0",
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.4",
-    "streamifier": "^0.1.1",
-    "@sendgrid/mail": "^7.7.0"
+    "streamifier": "^0.1.1"
   }
 }

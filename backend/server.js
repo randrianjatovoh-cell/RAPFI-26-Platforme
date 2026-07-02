@@ -9,7 +9,7 @@ const { createAdminIfNotExists } = require('./models');
 
 const app = express();
 
-// ⚡ Activer trust proxy pour Render (nécessaire pour les IP derrière le proxy)
+// ⚡ Trust proxy pour Render (nécessaire pour l'IP derrière le proxy)
 app.set('trust proxy', true);
 
 // CORS restreint en production
@@ -41,13 +41,12 @@ app.use((req, res, next) => {
 });
 
 // ---------- Rate Limiting ----------
-// ⚡ Désactiver les validations conflictuelles
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 30,
   message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' },
   validate: {
-    trustProxy: false,  // désactiver la validation pour éviter l'erreur
+    trustProxy: false,   // éviter les erreurs
     xForwardedForHeader: false,
   },
 });
