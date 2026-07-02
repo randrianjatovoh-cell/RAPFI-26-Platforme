@@ -4,7 +4,7 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 
 export default function Profile({ onClose }) {
-  const { user, updateUser, refreshUser } = useUser();
+  const { user, updateUser } = useUser();
   const [photo, setPhoto] = useState(user?.photo || '');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('success');
@@ -62,7 +62,7 @@ export default function Profile({ onClose }) {
       setMessageType('success');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      console.error('❌ Erreur:', err);
+      console.error('❌ Erreur upload photo:', err);
       setMessage(`Erreur: ${err.message || 'Impossible de mettre à jour la photo'}`);
       setMessageType('error');
       setTimeout(() => setMessage(''), 5000);
@@ -102,7 +102,8 @@ export default function Profile({ onClose }) {
       setConfirmPassword('');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setMessage('Erreur lors du changement de mot de passe');
+      console.error('❌ Erreur changement mot de passe:', err);
+      setMessage(`Erreur: ${err.message || 'Impossible de changer le mot de passe'}`);
       setMessageType('error');
       setTimeout(() => setMessage(''), 5000);
     }
@@ -125,6 +126,7 @@ export default function Profile({ onClose }) {
       setMessageType('success');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
+      console.error('❌ Erreur mise à jour adresse/contact:', err);
       setMessage(`Erreur: ${err.message || 'Impossible de mettre à jour'}`);
       setMessageType('error');
       setTimeout(() => setMessage(''), 5000);
@@ -135,7 +137,6 @@ export default function Profile({ onClose }) {
 
   const hasChanges = adresse !== originalAdresse || contact !== originalContact;
 
-  // Affiche un message de succès/erreur
   const renderMessage = () => {
     if (!message) return null;
     const bgColor = 
@@ -152,7 +153,6 @@ export default function Profile({ onClose }) {
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl">
-      {/* En-tête centré */}
       <div className="flex items-center mb-6 relative border-b pb-4">
         <h2 className="text-2xl font-bold flex-1 text-center text-indigo-700">
           <i className="fas fa-user-circle mr-2"></i>Mon profil

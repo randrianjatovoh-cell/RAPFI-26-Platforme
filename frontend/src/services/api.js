@@ -3,16 +3,13 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 class ApiService {
   constructor() {
-    // Récupérer le token depuis le localStorage au chargement
     this.token = localStorage.getItem('token');
   }
 
-  // Récupérer le token actuel
   getAuthToken() {
     return this.token || null;
   }
 
-  // Définir le token (et le stocker dans localStorage)
   setAuthToken(token) {
     this.token = token;
     if (token) {
@@ -44,9 +41,7 @@ class ApiService {
         const error = new Error(errorData.error || `HTTP error ${response.status}`);
         error.status = response.status;
         if (response.status === 401 || response.status === 403) {
-          // Session expirée → on supprime le token
           this.setAuthToken(null);
-          // On peut aussi émettre un événement pour notifier le contexte
         }
         throw error;
       }
@@ -102,6 +97,7 @@ class ApiService {
     });
   }
 
+  // Upload photo (méthode générique)
   async uploadPhoto(id, file) {
     const formData = new FormData();
     formData.append('photo', file);
@@ -118,6 +114,19 @@ class ApiService {
       throw new Error(errorData.error || 'Erreur upload');
     }
     return response.json();
+  }
+
+  // Alias pour plus de clarté dans Profile.js
+  async uploadUserPhoto(id, file) {
+    return this.uploadPhoto(id, file);
+  }
+
+  // Changement de mot de passe (route dédiée)
+  async updateUserPassword(id, password) {
+    return this.request(`/users/${id}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ password }),
+    });
   }
 
   // ===== GL =====
@@ -299,10 +308,8 @@ class ApiService {
   }
 }
 
-// Création d'une instance unique
 const apiInstance = new ApiService();
 
-// Export de l'instance et des fonctions utilitaires
 export const api = apiInstance;
 export const getAuthToken = () => apiInstance.getAuthToken();
 export const setAuthToken = (token) => apiInstance.setAuthToken(token);
