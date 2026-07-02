@@ -1,9 +1,7 @@
-// Utilisation du SDK officiel Brevo
 const Brevo = require('@getbrevo/brevo');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Configuration du client Brevo
 const defaultClient = Brevo.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY;
@@ -20,7 +18,6 @@ async function sendWelcomeEmail(to, nom, email, plainPassword) {
   // Vérifier que la clé API est définie
   if (!process.env.BREVO_API_KEY) {
     console.warn('⚠️ BREVO_API_KEY non définie, passage en mode fichier.');
-    // Mode fichier de secours
     const fs = require('fs');
     const path = require('path');
     const logEntry = `
@@ -58,7 +55,6 @@ Mot de passe: ${plainPassword}
     </div>
   `;
 
-  // Création de l'email à envoyer
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.htmlContent = html;
