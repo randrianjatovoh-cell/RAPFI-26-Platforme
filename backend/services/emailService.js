@@ -1,22 +1,15 @@
-const Brevo = require('@getbrevo/brevo');
+const axios = require('axios');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-const defaultClient = Brevo.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-
-const apiInstance = new Brevo.TransactionalEmailsApi();
-
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
-  // Vérifier que l'email est valide
   if (!to || !to.includes('@')) {
     console.warn(`⚠️ Adresse email invalide : ${to}`);
     return { success: false, error: 'Adresse email invalide' };
   }
 
-  // Vérifier que la clé API est définie
-  if (!process.env.BREVO_API_KEY) {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
     console.warn('⚠️ BREVO_API_KEY non définie, passage en mode fichier.');
     const fs = require('fs');
     const path = require('path');
@@ -55,22 +48,32 @@ Mot de passe: ${plainPassword}
     </div>
   `;
 
-  const sendSmtpEmail = new Brevo.SendSmtpEmail();
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  sendSmtpEmail.sender = {
-    name: 'RAPFI EGLISE',
-    email: process.env.BREVO_FROM_EMAIL || 'plateformerapfi@gmail.com'
+  const data = {
+    sender: {
+      name: 'RAPFI EGLISE',
+      email: process.env.BREVO_FROM_EMAIL || 'plateformerapfi@gmail.com'
+    },
+    to: [{ email: to }],
+    subject: subject,
+    htmlContent: html,
   };
-  sendSmtpEmail.to = [{ email: to }];
 
   try {
-    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`✅ Email envoyé via Brevo à ${to} (id: ${response.messageId})`);
-    return { success: true, response };
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', data, {
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      timeout: 10000,
+    });
+    console.log(`✅ Email envoyé via Brevo à ${to} (id: ${response.data.messageId})`);
+    return { success: true, response: response.data };
   } catch (error) {
     console.error(`❌ Échec Brevo :`, error.message);
-    if (error.response) console.error('   Réponse :', error.response.body);
+    if (error.response) {
+      console.error('   Statut :', error.response.status);
+      console.error('   Réponse :', error.response.data);
+    }
     throw error;
   }
 }
