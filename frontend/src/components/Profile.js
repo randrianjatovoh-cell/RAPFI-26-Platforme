@@ -3,33 +3,68 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 
 export default function Profile({ onClose }) {
-  const { user, updateUser } = useUser();
-  const [photo, setPhoto] = useState(user?.photo || '');
+  const { user: contextUser, updateUser } = useUser();
+  // ⚠️ Utiliser un état local pour les données du profil, initialisé avec les données du contexte
+  const [user, setUser] = useState(contextUser);
+  const [photo, setPhoto] = useState(contextUser?.photo || '');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('success');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [adresse, setAdresse] = useState(user?.adresse || '');
-  const [contact, setContact] = useState(user?.contact || '');
+  const [adresse, setAdresse] = useState(contextUser?.adresse || '');
+  const [contact, setContact] = useState(contextUser?.contact || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [originalAdresse, setOriginalAdresse] = useState(user?.adresse || '');
-  const [originalContact, setOriginalContact] = useState(user?.contact || '');
+  const [originalAdresse, setOriginalAdresse] = useState(contextUser?.adresse || '');
+  const [originalContact, setOriginalContact] = useState(contextUser?.contact || '');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const isAdmin = user?.fonction === 'Admin';
 
+  // ✅ Charger les données fraîches de l'utilisateur au montage
   useEffect(() => {
-    setAdresse(user?.adresse || '');
-    setContact(user?.contact || '');
-    setOriginalAdresse(user?.adresse || '');
-    setOriginalContact(user?.contact || '');
-    setPhoto(user?.photo || '');
-  }, [user]);
+    async function loadUserData() {
+      try {
+        const freshUser = await api.getMe();
+        if (freshUser) {
+          setUser(freshUser);
+          setPhoto(freshUser.photo || '');
+          setAdresse(freshUser.adresse || '');
+          setContact(freshUser.contact || '');
+          setOriginalAdresse(freshUser.adresse || '');
+          setOriginalContact(freshUser.contact || '');
+          // Mettre à jour le contexte pour synchroniser
+          updateUser(freshUser);
+        }
+      } catch (err) {
+        console.error('Erreur chargement profil:', err);
+        setMessage('Impossible de charger les données du profil');
+        setMessageType('error');
+      }
+    }
+    loadUserData();
+  }, []); // Ne s'exécute qu'au montage
+
+  // Synchroniser quand le contexte change (par ex. après une mise à jour externe)
+  useEffect(() => {
+    if (contextUser) {
+      setUser(contextUser);
+      setPhoto(contextUser.photo || '');
+      setAdresse(contextUser.adresse || '');
+      setContact(contextUser.contact || '');
+      setOriginalAdresse(contextUser.adresse || '');
+      setOriginalContact(contextUser.contact || '');
+    }
+  }, [contextUser]);
 
   const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      setMessage('Aucun fichier sélectionné');
+      setMessageType('error');
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
 
     if (!file.type.startsWith('image/')) {
       setMessage('Le fichier doit être une image');
@@ -52,7 +87,6 @@ export default function Profile({ onClose }) {
       const formData = new FormData();
       formData.append('photo', file);
 
-      // ✅ Vérifier que user.id existe
       if (!user?.id) {
         setMessage('Erreur: utilisateur non identifié');
         setMessageType('error');
@@ -64,6 +98,7 @@ export default function Profile({ onClose }) {
       const result = await api.uploadUserPhoto(user.id, formData);
       
       setPhoto(result.photoUrl);
+      // Mettre à jour le contexte
       updateUser({ photo: result.photoUrl });
 
       setMessage('Photo mise à jour avec succès !');
@@ -126,7 +161,6 @@ export default function Profile({ onClose }) {
     }
     setIsSaving(true);
     try {
-      // ✅ Vérifier que user.id existe
       if (!user?.id) {
         setMessage('Erreur: utilisateur non identifié');
         setMessageType('error');
@@ -135,9 +169,10 @@ export default function Profile({ onClose }) {
         return;
       }
       await api.updateUser(user.id, { adresse, contact });
-      updateUser({ adresse, contact });
+      // Mettre à jour l'état local et le contexte
       setOriginalAdresse(adresse);
       setOriginalContact(contact);
+      updateUser({ adresse, contact });
       setMessage('Adresse et contact mis à jour !');
       setMessageType('success');
       setTimeout(() => setMessage(''), 3000);
@@ -222,37 +257,37 @@ export default function Profile({ onClose }) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             <i className="fas fa-user mr-1"></i> Nom complet
           </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.nom} {user.prenom}</div>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.nom} {user?.prenom}</div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             <i className="fas fa-envelope mr-1"></i> Email
           </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.email}</div>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.email}</div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             <i className="fas fa-briefcase mr-1"></i> Fonction
           </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.fonction}</div>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.fonction}</div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             <i className="fas fa-church mr-1"></i> Église
           </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.eglise || 'Non renseigné'}</div>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.eglise || 'Non renseigné'}</div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             <i className="fas fa-map-marker-alt mr-1"></i> District
           </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.district || 'Non renseigné'}</div>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.district || 'Non renseigné'}</div>
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             <i className="fas fa-globe mr-1"></i> Fédération
           </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.federation || 'Non renseigné'}</div>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.federation || 'Non renseigné'}</div>
         </div>
       </div>
 
