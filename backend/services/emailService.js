@@ -2,9 +2,11 @@ const nodemailer = require('nodemailer');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Vérification au démarrage
+// Vérification des variables d'environnement au démarrage
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn('⚠️ EMAIL_USER ou EMAIL_PASS non définies. L\'envoi d\'email est désactivé.');
+  console.warn('⚠️ Les variables EMAIL_USER ou EMAIL_PASS ne sont pas définies. L\'envoi d\'email est désactivé.');
+} else {
+  console.log(`📧 EMAIL_USER configuré : ${process.env.EMAIL_USER}`);
 }
 
 const transporter = nodemailer.createTransport({
@@ -28,7 +30,11 @@ transporter.verify((error, success) => {
   }
 });
 
+/**
+ * Envoie un email de bienvenue à un nouvel utilisateur
+ */
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
+  // Vérification des prérequis
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn(`⚠️ Envoi annulé (config manquante) pour ${to}`);
     return { success: false, error: 'Configuration email manquante' };

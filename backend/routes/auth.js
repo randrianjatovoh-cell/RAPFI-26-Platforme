@@ -1,4 +1,3 @@
-// backend/routes/auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -58,7 +57,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// ---------- REGISTER (Admin uniquement) ----------
+// ---------- REGISTER ----------
 router.post('/register', authenticateToken, authorize('Admin'), async (req, res) => {
   try {
     const { nom, prenom, eglise, district, federation, responsable, email, password, fonction } = req.body;
@@ -89,7 +88,7 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
     let emailSent = false;
     let emailError = null;
     try {
-      console.log(`📧 Tentative d'envoi d'email à ${email}...`);
+      console.log(`📧 Tentative d'envoi d'email à ${email} (utilisateur : ${nom})...`);
       const result = await sendWelcomeEmail(email, nom, email, password);
       if (result.success) {
         emailSent = true;
@@ -110,12 +109,12 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
       emailError: emailError || undefined
     });
   } catch (err) {
-    console.error('Erreur création utilisateur :', err);
+    console.error('❌ Erreur création utilisateur :', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ---------- LISTE DES UTILISATEURS (Admin) ----------
+// ---------- LISTE DES UTILISATEURS ----------
 router.get('/users', authenticateToken, authorize('Admin'), async (req, res) => {
   try {
     const users = await getAllUsers();
