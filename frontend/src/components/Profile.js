@@ -3,8 +3,8 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 
 export default function Profile({ onClose }) {
-  const { user: contextUser, updateUser } = useUser();
-  // ⚠️ Utiliser un état local pour les données du profil, initialisé avec les données du contexte
+  const { user: contextUser, updateUser, fetchUser } = useUser();
+  // État local pour les données du profil
   const [user, setUser] = useState(contextUser);
   const [photo, setPhoto] = useState(contextUser?.photo || '');
   const [message, setMessage] = useState('');
@@ -21,7 +21,7 @@ export default function Profile({ onClose }) {
 
   const isAdmin = user?.fonction === 'Admin';
 
-  // ✅ Charger les données fraîches de l'utilisateur au montage
+  // Charger les données fraîches de l'utilisateur au montage et à chaque ouverture
   useEffect(() => {
     async function loadUserData() {
       try {
@@ -173,6 +173,8 @@ export default function Profile({ onClose }) {
       setOriginalAdresse(adresse);
       setOriginalContact(contact);
       updateUser({ adresse, contact });
+      // Recharger complètement l'utilisateur depuis le serveur pour être sûr
+      await fetchUser();
       setMessage('Adresse et contact mis à jour !');
       setMessageType('success');
       setTimeout(() => setMessage(''), 3000);

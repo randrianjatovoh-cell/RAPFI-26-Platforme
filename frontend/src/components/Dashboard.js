@@ -1,5 +1,5 @@
 // src/components/Dashboard.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, escapeHtml } from '../services/helpers';
@@ -50,13 +50,42 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // ---- Fonction de chargement des données (UNIFORMISÉE) ----
+  // Référence pour annuler les requêtes en cours
+  const abortControllerRef = useRef(null);
+
+  // Cache simple pour éviter de recharger les mêmes données
+  const cacheRef = useRef({});
+
+  // ---- Fonction de chargement des données (OPTIMISÉE) ----
   const loadData = useCallback(async () => {
+    // Annuler les requêtes précédentes
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setLoading(true);
     setError(null);
 
     try {
       const yearStr = selectedYear.toString();
+      const cacheKey = `${yearStr}_${user?.id}_${eglise}`;
+      
+      // Vérifier le cache
+      if (cacheRef.current[cacheKey]) {
+        const cached = cacheRef.current[cacheKey];
+        setAnnualData(cached.annualData || annualData);
+        setDistrictData(cached.districtData || []);
+        setFederationData(cached.federationData || []);
+        setLoading(false);
+        return;
+      }
+
+      const months = [
+        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+      ];
 
       if (isAncienOrTresorier) {
         const egliseNom = user.eglise;
@@ -66,30 +95,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
-        const months = [
-          'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-        ];
-
-        const monthlyData = months.map((month) => ({
-          month,
-          totalA: 0,
-          dime: 0,
-          other: 0,
-          totalB: 0,
-          totalExpenses: 0,
-          income: 0
-        }));
-
-        let totalA = 0;
-        let totalB = 0;
-        let totalIncome = 0;
-        let totalExpenses = 0;
-
-        for (let idx = 0; idx < months.length; idx++) {
+        // ✅ Optimisation : toutes les requêtes en parallèle
+        const monthPromises = months.map(async (month, idx) => {
           const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
-
-          const glData = await api.getGL(monthId, null, null, egliseNom);
+          const [glData, expensesList] = await Promise.all([
+            api.getGL(monthId, null, null, egliseNom),
+            api.getDepenses(monthId, null, null, egliseNom)
+          ]);
+          
           let monthTotalA = 0;
           let monthDime = 0;
           let monthOther = 0;
@@ -120,23 +133,53 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             }
           }
 
-          const expensesList = await api.getDepenses(monthId, null, null, egliseNom);
           const monthExpenses = expensesList.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-          monthlyData[idx].totalA = monthTotalA;
-          monthlyData[idx].dime = monthDime;
-          monthlyData[idx].other = monthOther;
-          monthlyData[idx].totalB = monthTotalB;
-          monthlyData[idx].totalExpenses = monthExpenses;
-          monthlyData[idx].income = monthIncome;
+          return {
+            month,
+            monthTotalA,
+            monthDime,
+            monthOther,
+            monthTotalB,
+            monthExpenses,
+            monthIncome,
+            idx
+          };
+        });
 
-          totalA += monthTotalA;
-          totalB += monthTotalB;
-          totalIncome += monthIncome;
-          totalExpenses += monthExpenses;
-        }
+        const results = await Promise.all(monthPromises);
 
-        // Calcul du solde initial (volaSisaTeoAloha)
+        const monthlyData = months.map((month, idx) => ({
+          month,
+          totalA: 0,
+          dime: 0,
+          other: 0,
+          totalB: 0,
+          totalExpenses: 0,
+          income: 0
+        }));
+
+        let totalA = 0;
+        let totalB = 0;
+        let totalIncome = 0;
+        let totalExpenses = 0;
+
+        results.forEach((res) => {
+          const idx = res.idx;
+          monthlyData[idx].totalA = res.monthTotalA;
+          monthlyData[idx].dime = res.monthDime;
+          monthlyData[idx].other = res.monthOther;
+          monthlyData[idx].totalB = res.monthTotalB;
+          monthlyData[idx].totalExpenses = res.monthExpenses;
+          monthlyData[idx].income = res.monthIncome;
+
+          totalA += res.monthTotalA;
+          totalB += res.monthTotalB;
+          totalIncome += res.monthIncome;
+          totalExpenses += res.monthExpenses;
+        });
+
+        // Calcul du solde initial
         let volaSisaTeoAloha = 0;
 
         try {
@@ -156,7 +199,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           try {
             const prevYear = (selectedYear - 1).toString();
             const decMonthId = `${prevYear}-12`;
-            const decGL = await api.getGL(decMonthId, null, null, egliseNom);
+            const [decGL, decExpenses] = await Promise.all([
+              api.getGL(decMonthId, null, null, egliseNom),
+              api.getDepenses(decMonthId, null, null, egliseNom)
+            ]);
             let decTotalB = 0;
             if (decGL) {
               for (let s = 1; s <= 5; s++) {
@@ -166,7 +212,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
-            const decExpenses = await api.getDepenses(decMonthId, null, null, egliseNom);
             const decTotalExpenses = decExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
             volaSisaTeoAloha = decTotalB - decTotalExpenses;
           } catch (err) {
@@ -189,17 +234,20 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         const volaNivoaka = totalExpenses;
         const volaAfindra = volaSisaTeoAloha + volaNiditra - volaNivoaka;
 
-        setAnnualData({
+        const newAnnualData = {
           totalA,
           volaSisaTeoAloha,
           volaNiditra,
           volaNivoaka,
           volaAfindra,
           monthlyData
-        });
+        };
+        setAnnualData(newAnnualData);
+        
+        // Mettre en cache
+        cacheRef.current[cacheKey] = { annualData: newAnnualData };
 
       } else if (isPasteur) {
-        // Pasteur : on filtre par l'église sélectionnée
         const district = user.district;
         if (!district) {
           setError("Votre compte n'est pas associé à un district.");
@@ -207,12 +255,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
-        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-
         if (eglise) {
-          // Une seule église sélectionnée
+          // Une seule église
           const egliseData = { eglise, monthly: {}, totalDime: 0, totalA: 0 };
-          for (let idx = 0; idx < months.length; idx++) {
+          
+          const monthPromises = months.map(async (month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
             const glData = await api.getGL(monthId, null, null, eglise);
             let dime = 0, totalA = 0;
@@ -226,23 +273,32 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
-            egliseData.monthly[months[idx]] = { dime, totalA };
+            return { month, dime, totalA };
+          });
+
+          const results = await Promise.all(monthPromises);
+          results.forEach(({ month, dime, totalA }) => {
+            egliseData.monthly[month] = { dime, totalA };
             egliseData.totalDime += dime;
             egliseData.totalA += totalA;
-          }
-          setDistrictData([egliseData]);
+          });
+
+          const newDistrictData = [egliseData];
+          setDistrictData(newDistrictData);
+          cacheRef.current[cacheKey] = { districtData: newDistrictData };
         } else {
-          // Aucune église sélectionnée : on charge toutes celles du district (mais le pasteur peut en choisir une via le formulaire)
+          // Toutes les églises du district
           const eglisesList = await api.getEglisesByDistrict(district);
           if (eglisesList.length === 0) {
             setError("Aucune église trouvée pour ce district.");
             setLoading(false);
             return;
           }
-          const districtDataTemp = [];
-          for (const egliseNom of eglisesList) {
+
+          const districtPromises = eglisesList.map(async (egliseNom) => {
             const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
-            for (let idx = 0; idx < months.length; idx++) {
+            
+            const monthPromises = months.map(async (month, idx) => {
               const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
               const glData = await api.getGL(monthId, null, null, egliseNom);
               let dime = 0, totalA = 0;
@@ -256,17 +312,24 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   }
                 }
               }
-              egliseData.monthly[months[idx]] = { dime, totalA };
+              return { month, dime, totalA };
+            });
+
+            const results = await Promise.all(monthPromises);
+            results.forEach(({ month, dime, totalA }) => {
+              egliseData.monthly[month] = { dime, totalA };
               egliseData.totalDime += dime;
               egliseData.totalA += totalA;
-            }
-            districtDataTemp.push(egliseData);
-          }
-          setDistrictData(districtDataTemp);
+            });
+            return egliseData;
+          });
+
+          const newDistrictData = await Promise.all(districtPromises);
+          setDistrictData(newDistrictData);
+          cacheRef.current[cacheKey] = { districtData: newDistrictData };
         }
 
       } else if (isVerificateur) {
-        // Vérificateur : inchangé
         const federation = user.federation;
         if (!federation) {
           setError("Votre compte n'est pas associé à une fédération.");
@@ -281,12 +344,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
-        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-        const federationDataTemp = [];
-
-        for (const egliseNom of fedEglisesList) {
+        const fedPromises = fedEglisesList.map(async (egliseNom) => {
           const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
-          for (let idx = 0; idx < months.length; idx++) {
+          
+          const monthPromises = months.map(async (month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
             const glData = await api.getGL(monthId);
             let dime = 0, totalA = 0;
@@ -300,34 +361,50 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
-            egliseData.monthly[months[idx]] = { dime, totalA };
+            return { month, dime, totalA };
+          });
+
+          const results = await Promise.all(monthPromises);
+          results.forEach(({ month, dime, totalA }) => {
+            egliseData.monthly[month] = { dime, totalA };
             egliseData.totalDime += dime;
             egliseData.totalA += totalA;
-          }
-          federationDataTemp.push(egliseData);
-        }
+          });
+          return egliseData;
+        });
 
-        setFederationData(federationDataTemp);
+        const newFederationData = await Promise.all(fedPromises);
+        setFederationData(newFederationData);
+        cacheRef.current[cacheKey] = { federationData: newFederationData };
       }
 
     } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('Requête annulée');
+        return;
+      }
       console.error('Dashboard: Erreur globale', err);
       setError(err.message || 'Erreur de chargement des données');
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === abortController) {
+        setLoading(false);
+      }
     }
   }, [user, selectedYear, isAncienOrTresorier, isPasteur, isVerificateur, eglise]);
 
   // Rechargement quand l'église ou l'année change
   useEffect(() => {
-    if (eglise || isPasteur) {
+    if (eglise || isPasteur || isVerificateur) {
       loadData();
     }
   }, [eglise, selectedYear, loadData]);
 
   const refresh = useCallback(() => {
+    // Invalider le cache pour le recharger
+    const cacheKey = `${selectedYear}_${user?.id}_${eglise}`;
+    delete cacheRef.current[cacheKey];
     setRefreshKey(prev => prev + 1);
-  }, []);
+  }, [selectedYear, user?.id, eglise]);
 
   useEffect(() => {
     window.addEventListener('data-updated', refresh);
@@ -338,7 +415,20 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     loadData();
   }, [loadData, refreshKey]);
 
+  // Nettoyer les requêtes en cours lors du démontage
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // =================== RENDU ===================
+  // ... (le reste du code est inchangé, je le recopie ici pour être complet)
+  // Mais pour ne pas saturer la réponse, je vais laisser le rendu existant,
+  // car il n'a pas été modifié.
+  // Je vais le recopier entièrement ci-dessous :
 
   // ----- ANCIEN / TRÉSORIER (UNIFORMISÉ) -----
   const renderAncienDashboard = () => {

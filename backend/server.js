@@ -12,15 +12,27 @@ const app = express();
 // Trust proxy pour Render
 app.set('trust proxy', true);
 
-// CORS : autoriser toutes les origines (pour le moment)
-const allowedOrigin = '*';
-app.use(cors({
-  origin: allowedOrigin,
+// ✅ CORS restreint en production
+const allowedOrigins = [
+  'https://rapfi-26-platforme.vercel.app',
+  'https://rapfi-26-platforme-git-main-randrianjatovoh-cell.vercel.app',
+  'http://localhost:3000'
+];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-app.options('*', cors());
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Middleware pour logger les requêtes entrantes
 app.use((req, res, next) => {
@@ -37,6 +49,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
+// ✅ Rate limiting global pour les routes de modification
 if (process.env.NODE_ENV === 'production') {
   const maxGlobal = parseInt(process.env.RATE_LIMIT_MAX) || 200;
   const globalLimiter = rateLimit({
@@ -48,16 +61,12 @@ if (process.env.NODE_ENV === 'production') {
   });
 
   app.use('/api', (req, res, next) => {
-    const exemptedPaths = [
-      '/api/config', '/api/months', '/api/eglises',
-      '/api/reports', '/api/frais', '/api/depenses', '/api/gl'
-    ];
-    if (req.method === 'GET' && exemptedPaths.some(p => req.path.startsWith(p))) {
-      return next();
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+      return globalLimiter(req, res, next);
     }
-    return globalLimiter(req, res, next);
+    next();
   });
-  console.log(`🔒 Rate Limiting activé : ${maxGlobal} requêtes / 15 min (GET lecture exemptées)`);
+  console.log(`🔒 Rate Limiting activé : ${maxGlobal} requêtes / 15 min pour les modifications`);
 } else {
   console.log('⚠️ Rate Limiting global désactivé en développement.');
 }
@@ -67,7 +76,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------- Routes de test et health check ----------
+// ---------- Routes de test ----------
 app.get('/healthz', (req, res) => {
   res.status(200).send('OK');
 });
@@ -116,6 +125,7 @@ const start = async () => {
     app.listen(port, '0.0.0.0', () => {
       console.log(`✅ Backend démarré sur le port ${port}`);
       console.log(`   Environnement : ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   CORS autorise : ${allowedOrigins.join(', ')}`);
     });
   } catch (err) {
     console.error('❌ Erreur au démarrage :', err);

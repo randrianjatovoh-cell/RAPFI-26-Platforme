@@ -7,6 +7,7 @@ function generateRandomPassword() {
 }
 
 export default function UsersManagement() {
+  const { user: currentUser, fetchUser } = useUser(); // Ajout fetchUser
   const [users, setUsers] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -166,14 +167,17 @@ export default function UsersManagement() {
         }
         await api.updateUser(editingId, updateData);
         setMessage(`Utilisateur modifié. ${formData.motDePasse && editingUser?.fonction !== 'Admin' ? `Nouveau mot de passe: ${formData.motDePasse}` : ''}`);
+        
+        // ✅ Si l'utilisateur modifié est l'utilisateur connecté, recharger le contexte
+        if (editingId === currentUser?.id) {
+          await fetchUser();
+        }
       } else {
         await api.register(cleanUser);
         setMessage(`Utilisateur ajouté. Mot de passe: ${newPassword}`);
       }
       resetForm();
-      // ✅ Recharger immédiatement la liste
       await loadUsers();
-      // Mettre à jour les listes déroulantes
       const allUsers = await api.getAllUsers();
       const districts = [...new Set(allUsers.map(u => u.district).filter(d => d))];
       const eglises = [...new Set(allUsers.map(u => u.eglise).filter(e => e))];
@@ -216,6 +220,9 @@ export default function UsersManagement() {
       await api.updateUserPassword(user.id, newPass);
       setMessage(`Nouveau mot de passe pour ${user.nom}: ${newPass}`);
       await loadUsers();
+      if (user.id === currentUser?.id) {
+        await fetchUser(); // Recharger le contexte si c'est l'utilisateur connecté
+      }
     } catch (err) {
       setMessage(`Erreur : ${err.message}`);
     }

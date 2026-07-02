@@ -1,4 +1,3 @@
-// src/context/UserContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { api, getAuthToken, setAuthToken } from '../services/api';
 
@@ -10,7 +9,6 @@ export function UserProvider({ children }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Vérifier si un token existe
     const token = getAuthToken();
     if (token) {
       fetchUser();
@@ -25,7 +23,6 @@ export function UserProvider({ children }) {
       setUser(userData);
     } catch (err) {
       console.error('Erreur chargement utilisateur :', err);
-      // Si le token est invalide, on le supprime
       setAuthToken(null);
       setUser(null);
       setError(err.message);
@@ -52,7 +49,7 @@ export function UserProvider({ children }) {
   };
 
   const updateUser = (updatedUser) => {
-    setUser(updatedUser);
+    setUser(prev => ({ ...prev, ...updatedUser }));
   };
 
   const value = {
