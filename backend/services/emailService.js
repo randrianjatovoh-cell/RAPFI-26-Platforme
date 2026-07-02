@@ -1,61 +1,38 @@
-const nodemailer = require('nodemailer');
-const sgMail = require('@sendgrid/mail');
+// Utilisation du SDK officiel Brevo
+const Brevo = require('@getbrevo/brevo');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-const provider = process.env.EMAIL_PROVIDER || 'sendgrid'; // 'gmail' ou 'sendgrid'
 
-let transporter = null;
-let sendgridConfigured = false;
+// Configuration du client Brevo
+const defaultClient = Brevo.ApiClient.instance;
+const apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
-// Configuration du provider
-if (provider === 'gmail') {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('⚠️ Variables EMAIL_USER ou EMAIL_PASS non définies pour Gmail.');
-  } else {
-    transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
-    transporter.verify((error, success) => {
-      if (error) {
-        console.error('❌ Échec de la connexion au serveur Gmail :', error.message);
-      } else {
-        console.log(`✅ Connexion SMTP Gmail réussie (expéditeur : ${process.env.EMAIL_USER})`);
-      }
-    });
-  }
-} else if (provider === 'sendgrid') {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('⚠️ SENDGRID_API_KEY non définie. L\'envoi d\'email avec SendGrid est désactivé.');
-  } else {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    sendgridConfigured = true;
-    console.log(`✅ SendGrid configuré avec succès (from: ${process.env.SENDGRID_FROM_EMAIL || 'non défini'})`);
-  }
-} else {
-  console.warn(`⚠️ Provider ${provider} non reconnu. Utilisation de SendGrid par défaut.`);
-  if (process.env.SENDGRID_API_KEY) {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    sendgridConfigured = true;
-    console.log('✅ SendGrid configuré avec succès.');
-  }
-}
+const apiInstance = new Brevo.TransactionalEmailsApi();
 
-/**
- * Envoie un email de bienvenue
- */
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
+  // Vérifier que l'email est valide
   if (!to || !to.includes('@')) {
     console.warn(`⚠️ Adresse email invalide : ${to}`);
     return { success: false, error: 'Adresse email invalide' };
+  }
+
+  // Vérifier que la clé API est définie
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('⚠️ BREVO_API_KEY non définie, passage en mode fichier.');
+    // Mode fichier de secours
+    const fs = require('fs');
+    const path = require('path');
+    const logEntry = `
+[${new Date().toISOString()}] Email à envoyer à ${to}
+Nom: ${nom}
+Email: ${email}
+Mot de passe: ${plainPassword}
+---\n`;
+    const logFile = path.join(__dirname, '../emails.log');
+    fs.appendFileSync(logFile, logEntry);
+    console.log(`📝 Email enregistré dans le fichier (${to})`);
+    return { success: true, logged: true };
   }
 
   const subject = 'Bienvenue sur la plateforme RAPFI EGLISE';
@@ -73,7 +50,6 @@ async function sendWelcomeEmail(to, nom, email, plainPassword) {
           Accéder à la plateforme
         </a>
       </p>
-      <p>Ou copiez ce lien dans votre navigateur : <br> <a href="${platformUrl}">${platformUrl}</a></p>
       <p>Nous vous recommandons de changer votre mot de passe lors de votre première connexion.</p>
       <p style="margin-top: 30px; text-align: center; color: #666; font-size: 12px;">
         Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
@@ -82,36 +58,23 @@ async function sendWelcomeEmail(to, nom, email, plainPassword) {
     </div>
   `;
 
+  // Création de l'email à envoyer
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+  sendSmtpEmail.sender = {
+    name: 'RAPFI EGLISE',
+    email: process.env.BREVO_FROM_EMAIL || 'plateformerapfi@gmail.com'
+  };
+  sendSmtpEmail.to = [{ email: to }];
+
   try {
-    if (provider === 'gmail' && transporter) {
-      const info = await transporter.sendMail({
-        from: `"RAPFI EGLISE" <${process.env.EMAIL_USER}>`,
-        to,
-        subject,
-        html,
-      });
-      console.log(`✅ Email envoyé via Gmail à ${to} (Message-ID: ${info.messageId})`);
-      return { success: true, info };
-    } else if (provider === 'sendgrid' && sendgridConfigured) {
-      const fromEmail = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER || 'plateformerapfi@gmail.com';
-      const msg = {
-        to,
-        from: fromEmail,
-        subject,
-        html,
-      };
-      await sgMail.send(msg);
-      console.log(`✅ Email envoyé via SendGrid à ${to}`);
-      return { success: true };
-    } else {
-      // Fallback : on simule l'envoi pour éviter de bloquer
-      console.warn(`⚠️ Aucun service d'email configuré. Envoi simulé à ${to}`);
-      console.log(`🔹 Simulated email to ${to}:\n${html}`);
-      return { success: false, error: 'Aucun service email configuré' };
-    }
+    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`✅ Email envoyé via Brevo à ${to} (id: ${response.messageId})`);
+    return { success: true, response };
   } catch (error) {
-    console.error(`❌ Échec de l'envoi d'email à ${to} :`, error.message);
-    if (error.response) console.error('   Réponse :', error.response);
+    console.error(`❌ Échec Brevo :`, error.message);
+    if (error.response) console.error('   Réponse :', error.response.body);
     throw error;
   }
 }
