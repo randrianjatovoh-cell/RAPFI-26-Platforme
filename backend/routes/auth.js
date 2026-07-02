@@ -53,6 +53,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('❌ Erreur login :', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -87,18 +88,22 @@ router.post('/register', authenticateToken, authorize('Admin'), async (req, res)
       plain_password: password
     });
 
-    // 🔥 ENVOI D'EMAIL DE BIENVENUE (en arrière‑plan, sans bloquer la réponse)
+    // 🔥 ENVOI D'EMAIL DE BIENVENUE (avec logs améliorés)
     try {
+      console.log(`📧 Tentative d'envoi d'email à ${email}...`);
       await sendWelcomeEmail(email, nom, email, password);
       console.log(`✅ Email de bienvenue envoyé à ${email}`);
     } catch (emailErr) {
-      console.error('❌ Erreur lors de l\'envoi de l\'email :', emailErr);
+      console.error(`❌ Erreur lors de l'envoi de l'email à ${email} :`, emailErr.message);
+      if (emailErr.response) {
+        console.error('   Détails SMTP :', emailErr.response);
+      }
       // On ne bloque pas la réponse en cas d'échec de l'email
     }
 
     res.status(201).json({ id, message: 'Utilisateur créé avec succès.' });
   } catch (err) {
-    console.error('Erreur création utilisateur :', err);
+    console.error('❌ Erreur création utilisateur :', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -109,7 +114,7 @@ router.get('/users', authenticateToken, authorize('Admin'), async (req, res) => 
     const users = await getAllUsers();
     res.json(users);
   } catch (err) {
-    console.error('Erreur dans /auth/users :', err);
+    console.error('❌ Erreur dans /auth/users :', err);
     res.status(500).json({ error: 'Erreur serveur lors du chargement des utilisateurs' });
   }
 });
