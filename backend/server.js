@@ -6,12 +6,12 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const { initDb } = require('./db');
 const { createAdminIfNotExists } = require('./models');
-const { sendWelcomeEmail } = require('./services/emailService'); // ← AJOUT
 
 const app = express();
 
-// Trust proxy pour Render
-app.set('trust proxy', true);
+// ⚡ Correction du trust proxy pour éviter l'erreur rate limiting
+// Sur Render, on peut le définir à false ou à un proxy spécifique.
+app.set('trust proxy', false); // Désactive la confiance proxy (plus sécurisé pour le rate limiting)
 
 // CORS restreint en production
 const allowedOrigins = [
@@ -45,7 +45,8 @@ app.use((req, res, next) => {
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 30,
-  message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' }
+  message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' },
+  trustProxy: false, // Désactiver l'utilisation du proxy pour l'IP
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -57,7 +58,8 @@ if (process.env.NODE_ENV === 'production') {
     max: maxGlobal,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Trop de requêtes effectuées. Veuillez réessayer dans 15 minutes.' }
+    message: { error: 'Trop de requêtes effectuées. Veuillez réessayer dans 15 minutes.' },
+    trustProxy: false,
   });
 
   app.use('/api', (req, res, next) => {
@@ -87,16 +89,6 @@ app.get('/', (req, res) => {
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend OK' });
-});
-
-// 🔥 ROUTE DE TEST POUR L'EMAIL (à supprimer après validation)
-app.get('/api/test-email', async (req, res) => {
-  try {
-    const result = await sendWelcomeEmail('votre-email-de-test@gmail.com', 'Test', 'test@example.com', 'password123');
-    res.json({ success: true, result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // ---------- Routes API ----------

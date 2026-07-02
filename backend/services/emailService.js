@@ -2,15 +2,16 @@ const nodemailer = require('nodemailer');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Vérification des variables d'environnement au démarrage
+// Vérification des variables d'environnement
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn('⚠️ Les variables EMAIL_USER ou EMAIL_PASS ne sont pas définies. L\'envoi d\'email est désactivé.');
-} else {
-  console.log(`📧 EMAIL_USER configuré : ${process.env.EMAIL_USER}`);
+  console.warn('⚠️ Les variables EMAIL_USER ou EMAIL_PASS ne sont pas définies.');
 }
 
+// ⚡ Configuration explicite de Gmail pour éviter les problèmes IPv6
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -18,6 +19,11 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: 5000,
   greetingTimeout: 5000,
   socketTimeout: 5000,
+  // Certains environnements supportent family: 4 pour forcer IPv4
+  // mais cela dépend du module 'net' sous-jacent.
+  // On peut essayer d'ajouter : lookup: (hostname, options, callback) => { /* forcer IPv4 */ }
+  // Cependant, la solution la plus fiable est de laisser nodemailer gérer.
+  // En cas d'échec, on pourra utiliser un service alternatif.
 });
 
 // Vérification de la connexion SMTP
@@ -31,10 +37,9 @@ transporter.verify((error, success) => {
 });
 
 /**
- * Envoie un email de bienvenue à un nouvel utilisateur
+ * Envoie un email de bienvenue
  */
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
-  // Vérification des prérequis
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn(`⚠️ Envoi annulé (config manquante) pour ${to}`);
     return { success: false, error: 'Configuration email manquante' };
