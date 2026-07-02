@@ -21,7 +21,7 @@ app.options('*', cors());
 
 // ---------- Rate Limiting ----------
 const authLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
+  windowMs: 5 * 60 * 1000,
   max: 30,
   message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' }
 });
