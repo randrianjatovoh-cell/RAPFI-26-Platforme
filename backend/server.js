@@ -9,11 +9,11 @@ const { createAdminIfNotExists } = require('./models');
 
 const app = express();
 
-// 👇 Correction : trust proxy pour Render
+// ✅ Correction : trust proxy pour Render
 app.set('trust proxy', true);
 
-// ---------- CORS ----------
-const allowedOrigin = process.env.FRONTEND_URL || '*';
+// ✅ CORS : autoriser toutes les origines (temporaire ou définitif)
+const allowedOrigin = '*';
 app.use(cors({
   origin: allowedOrigin,
   credentials: true,
