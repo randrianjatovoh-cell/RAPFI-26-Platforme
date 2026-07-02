@@ -9,6 +9,9 @@ const { createAdminIfNotExists } = require('./models');
 
 const app = express();
 
+// 👇 Correction : trust proxy pour Render
+app.set('trust proxy', true);
+
 // ---------- CORS ----------
 const allowedOrigin = process.env.FRONTEND_URL || '*';
 app.use(cors({
@@ -59,17 +62,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ---------- Routes de test et health check ----------
-// Health check pour Render (indispensable)
 app.get('/healthz', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Route racine
 app.get('/', (req, res) => {
   res.json({ message: 'Backend is alive' });
 });
 
-// Route de test API
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend OK' });
 });
