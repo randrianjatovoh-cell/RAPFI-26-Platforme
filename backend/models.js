@@ -29,11 +29,13 @@ async function updateUser(id, updates) {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = Object.values(updates);
   values.push(id);
-  await db.run(`UPDATE users SET ${fields} WHERE id = ?`, values);
+  // ✅ Correction : spread operator pour PostgreSQL
+  await db.run(`UPDATE users SET ${fields} WHERE id = ?`, ...values);
 }
 
 async function getAllUsers() {
   const db = await openDb();
+  // ✅ Inclure plain_password pour l'affichage admin
   return db.all(`
     SELECT id, nom, prenom, email, eglise, district, federation,
            fonction, niveau, photo, adresse, contact, plain_password
@@ -75,17 +77,14 @@ async function createAdminIfNotExists() {
 
 /**
  * Crée une église si elle n'existe pas déjà (comme un utilisateur minimal)
- * Utilisé par le pasteur lors de la création d'une nouvelle église
  */
 async function createEgliseIfNotExists(eglise, district, federation) {
   const db = await openDb();
-  // Vérifier si elle existe déjà
   const existing = await db.get('SELECT 1 FROM users WHERE eglise = ?', eglise);
   if (existing) return;
 
-  // Générer un email unique et un mot de passe aléatoire
   const timestamp = Date.now();
-  const email = `eglise_${timestamp}@temp.local`;
+  const email = `eglise_${timestamp}@rapfi.local`;
   const plainPassword = crypto.randomBytes(8).toString('hex');
   const hashed = await bcrypt.hash(plainPassword, 10);
 
@@ -98,7 +97,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
     responsable: '',
     email: email,
     password: hashed,
-    fonction: 'Ancien',   // rôle minimal
+    fonction: 'Ancien',
     niveau: 3,
     photo: '',
     adresse: '',
@@ -109,20 +108,17 @@ async function createEgliseIfNotExists(eglise, district, federation) {
   console.log(`✅ Église "${eglise}" créée avec succès (email: ${email})`);
 }
 
-// ---------- Récupération des églises par district/fédération (incluant celles sans compte utilisateur) ----------
+// ---------- Récupération des églises par district/fédération ----------
 async function getEglisesByDistrict(district) {
   const db = await openDb();
-  // 1. Églises provenant des utilisateurs
   const users = await db.all(
     'SELECT DISTINCT eglise FROM users WHERE district = ? AND eglise IS NOT NULL AND eglise != ""',
     district
   );
-  // 2. Églises provenant des données du Grand Livre
   const gl = await db.all(
     'SELECT DISTINCT eglise FROM gl_data WHERE district = ? AND eglise IS NOT NULL AND eglise != ""',
     district
   );
-  // 3. Églises provenant des dépenses
   const dep = await db.all(
     'SELECT DISTINCT eglise FROM depenses WHERE district = ? AND eglise IS NOT NULL AND eglise != ""',
     district
@@ -305,7 +301,7 @@ async function updateMembre(userId, id, updates) {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = Object.values(updates);
   values.push(id, userId);
-  await db.run(`UPDATE membres SET ${fields} WHERE id = ? AND user_id = ?`, values);
+  await db.run(`UPDATE membres SET ${fields} WHERE id = ? AND user_id = ?`, ...values);
 }
 
 async function deleteMembre(userId, id) {

@@ -11,6 +11,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const allUsers = await getAllUsers();
+    // ✅ Inclure plain_password pour l'affichage admin
     const sanitized = allUsers.map(u => ({
       id: u.id,
       nom: u.nom,
@@ -22,7 +23,8 @@ router.get('/', authenticateToken, async (req, res) => {
       fonction: u.fonction,
       photo: u.photo,
       adresse: u.adresse,
-      contact: u.contact
+      contact: u.contact,
+      plain_password: u.plain_password
     }));
     res.json(sanitized);
   } catch (err) {
@@ -43,7 +45,6 @@ router.route('/:id')
       delete updates.id;
       delete updates.created_at;
       
-      // Si un mot de passe est fourni, le hacher
       if (updates.password) {
         const plain = updates.password;
         updates.plain_password = plain;
@@ -84,7 +85,6 @@ router.post('/:id/photo', authenticateToken, upload.single('photo'), async (req,
     const { id } = req.params;
     const user = req.user;
 
-    // Vérification des droits
     if (parseInt(id) !== user.id && user.fonction !== 'Admin') {
       return res.status(403).json({ error: 'Accès interdit' });
     }
@@ -92,10 +92,7 @@ router.post('/:id/photo', authenticateToken, upload.single('photo'), async (req,
       return res.status(400).json({ error: 'Aucune photo envoyée' });
     }
 
-    // Upload vers Cloudinary
     const photoUrl = await uploadToCloudinary(req.file.buffer, 'profiles');
-
-    // Mettre à jour l'utilisateur
     await updateUser(id, { photo: photoUrl });
 
     res.json({ success: true, photoUrl, message: 'Photo mise à jour avec succès' });

@@ -1,6 +1,5 @@
-// src/components/UserManagement.js
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../context/UserContext';   // ✅ CHEMIN CORRIGÉ
+import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 
 function generateRandomPassword() {
