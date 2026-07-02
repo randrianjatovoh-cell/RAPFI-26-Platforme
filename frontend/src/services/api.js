@@ -1,5 +1,6 @@
 // src/services/api.js
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// ⚠️ URL fixée en dur pour contourner le problème de variable d'environnement
+const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 
@@ -9,7 +10,6 @@ class ApiService {
     this.onUnauthorized = null;
   }
 
-  // Permet à l'application de réagir à une déconnexion automatique
   setOnUnauthorized(callback) {
     this.onUnauthorized = callback;
   }
@@ -50,7 +50,6 @@ class ApiService {
         const errorData = await response.json().catch(() => ({}));
         const error = new Error(errorData.error || `HTTP error ${response.status}`);
         error.status = response.status;
-        // Si 401 ou 403, on supprime le token et on notifie
         if (response.status === 401 || response.status === 403) {
           this.setAuthToken(null);
           if (this.onUnauthorized) {
@@ -111,7 +110,6 @@ class ApiService {
     });
   }
 
-  // Upload photo (méthode générique)
   async uploadPhoto(id, file) {
     const formData = new FormData();
     formData.append('photo', file);
@@ -131,12 +129,10 @@ class ApiService {
     return response.json();
   }
 
-  // Alias pour plus de clarté dans Profile.js
   async uploadUserPhoto(id, file) {
     return this.uploadPhoto(id, file);
   }
 
-  // Changement de mot de passe (route dédiée)
   async updateUserPassword(id, password) {
     return this.request(`/users/${id}/password`, {
       method: 'PUT',
