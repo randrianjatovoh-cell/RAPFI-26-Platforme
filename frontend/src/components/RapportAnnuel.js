@@ -146,6 +146,11 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
             income += e.b9 || 0;
           }
         }
+        // 🔥 Récupérer les frais (saram-pandefasana) pour ce mois
+        const fraisVal = await api.getFrais(monthKey, eglise);
+        // Déduire les frais du montant des offrandes (Fanatitra)
+        fanatitra = Math.max(0, fanatitra - fraisVal); // éviter les valeurs négatives
+
         const expensesList = await api.getDepenses(monthKey, null, null, eglise);
         const totalExpenses = expensesList.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
         const existingReport = await api.getMonthlyReport(monthKey, eglise);
