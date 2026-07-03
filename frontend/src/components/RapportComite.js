@@ -53,8 +53,6 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   }
 
-  const updateReference = (index, field, value) => { /* lecture seule */ };
-
   async function loadData() {
     if (!currentMonth || !eglise) {
       setLoading(false);
@@ -62,7 +60,20 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     }
     setLoading(true);
     try {
-      const r = await api.getMonthlyReport(currentMonth, eglise);
+      let r = await api.getMonthlyReport(currentMonth, eglise);
+      
+      // 🔥 Si le rapport n'existe pas, on le recrée automatiquement
+      if (!r) {
+        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
+        try {
+          r = await api.rebuildMonthlyReport(currentMonth, eglise);
+          console.log('✅ Rapport recréé avec succès');
+        } catch (rebuildErr) {
+          console.error('❌ Échec de la recréation du rapport :', rebuildErr);
+          // On laisse r = null, le message "Aucun rapport" s'affichera
+        }
+      }
+
       setReport(r);
 
       if (r && r.soraBolaLinesJson) {
