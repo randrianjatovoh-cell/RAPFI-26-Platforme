@@ -51,7 +51,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
       fanatitra: 0,
       totalA: 0,
       receiptNumber: '',
-      income: 0,
+      income: 0,      // correspond au total B (b9 + b10)
       expenses: 0,
       note: '',
       balance: 0
@@ -61,7 +61,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     totalTithe: 0,
     totalFanatitra: 0,
     totalA: 0,
-    totalIncome: 0,
+    totalIncome: 0,   // somme des total B annuels
     totalExpenses: 0
   });
   const [endOfYear, setEndOfYear] = useState({
@@ -86,6 +86,15 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
   useEffect(() => {
     if (eglise) loadYearlyData();
   }, [selectedYear, eglise]);
+
+  // 🔥 Rechargement automatique après modification (ex: sauvegarde des frais)
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      if (eglise) loadYearlyData();
+    };
+    window.addEventListener('data-updated', handleDataUpdate);
+    return () => window.removeEventListener('data-updated', handleDataUpdate);
+  }, [eglise, selectedYear]);
 
   async function loadYearlyData() {
     if (!eglise) {
@@ -137,19 +146,18 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         const month = MONTHS_LIST[i];
         const monthKey = `${selectedYear}-${month.id}`;
         const glData = await api.getGL(monthKey, null, null, eglise) || {};
-        let tithe = 0, fanatitra = 0, income = 0;
+        let tithe = 0, fanatitra = 0, income = 0; // income = total B (b9 + b10)
         for (let s = 1; s <= 5; s++) {
           const entries = glData[s] || [];
           for (const e of entries) {
             tithe += e.f1 || 0;
             fanatitra += (e.f2||0)+(e.f3||0)+(e.f4||0)+(e.f5||0)+(e.f6||0)+(e.f7||0)+(e.f8||0);
-            income += e.b9 || 0;
+            // 🔥 Correction : le total B est b9 + b10
+            income += (e.b9 || 0) + (e.b10 || 0);
           }
         }
-        // 🔥 Récupérer les frais (saram-pandefasana) pour ce mois
-        const fraisVal = await api.getFrais(monthKey, eglise);
-        // Déduire les frais du montant des offrandes (Fanatitra)
-        fanatitra = Math.max(0, fanatitra - fraisVal); // éviter les valeurs négatives
+        // Les frais (saram-pandefasana) ne sont pas déduits ici car ils concernent la partie A
+        // Le Dashboard les déduit déjà pour l'affichage.
 
         const expensesList = await api.getDepenses(monthKey, null, null, eglise);
         const totalExpenses = expensesList.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);

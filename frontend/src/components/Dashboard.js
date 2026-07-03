@@ -400,7 +400,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }, [loadData, refreshKey]);
 
   // =================== RENDU ===================
-  // (Le rendu est inchangé, identique à votre version)
   // ----- ANCIEN / TRÉSORIER -----
   const renderAncienDashboard = () => {
     const { totalA, volaSisaTeoAloha, volaNiditra, volaNivoaka, volaAfindra, monthlyData } = annualData;
