@@ -1,6 +1,12 @@
-const axios = require('axios');
+const mailjet = require('mailjet');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// Configuration Mailjet
+const mailjetClient = mailjet.connect(
+  process.env.MAILJET_API_KEY,
+  process.env.MAILJET_SECRET_KEY
+);
 
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
   if (!to || !to.includes('@')) {
@@ -8,9 +14,9 @@ async function sendWelcomeEmail(to, nom, email, plainPassword) {
     return { success: false, error: 'Adresse email invalide' };
   }
 
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    console.warn('⚠️ BREVO_API_KEY non définie, passage en mode fichier.');
+  // Si les clés Mailjet ne sont pas définies, on passe en mode fichier
+  if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+    console.warn('⚠️ Clés Mailjet non définies, passage en mode fichier.');
     const fs = require('fs');
     const path = require('path');
     const logEntry = `
@@ -48,33 +54,43 @@ Mot de passe: ${plainPassword}
     </div>
   `;
 
-  const data = {
-    sender: {
-      name: 'RAPFI EGLISE',
-      email: process.env.BREVO_FROM_EMAIL || 'plateformerapfi@gmail.com'
-    },
-    to: [{ email: to }],
-    subject: subject,
-    htmlContent: html,
-  };
-
   try {
-    const response = await axios.post('https://api.brevo.com/v3/smtp/email', data, {
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': apiKey,
-      },
-      timeout: 10000,
+    const request = mailjetClient.post('send', { version: 'v3.1' }).request({
+      Messages: [
+        {
+          From: {
+            Email: process.env.MAILJET_FROM_EMAIL || 'plateformerapfi@gmail.com',
+            Name: 'RAPFI EGLISE',
+          },
+          To: [{ Email: to }],
+          Subject: subject,
+          HTMLPart: html,
+        },
+      ],
     });
-    console.log(`✅ Email envoyé via Brevo à ${to} (id: ${response.data.messageId})`);
-    return { success: true, response: response.data };
+
+    const response = await request;
+    console.log(`✅ Email envoyé via Mailjet à ${to}`);
+    return { success: true, response };
   } catch (error) {
-    console.error(`❌ Échec Brevo :`, error.message);
+    console.error(`❌ Échec Mailjet :`, error.message);
     if (error.response) {
       console.error('   Statut :', error.response.status);
-      console.error('   Réponse :', error.response.data);
+      console.error('   Message :', error.response.data);
     }
-    throw error;
+    // Fallback mode fichier
+    console.warn(`📝 Fallback : enregistrement de l'email dans le fichier pour ${to}`);
+    const fs = require('fs');
+    const path = require('path');
+    const logEntry = `
+[${new Date().toISOString()}] Email à envoyer à ${to} (après échec Mailjet)
+Nom: ${nom}
+Email: ${email}
+Mot de passe: ${plainPassword}
+---\n`;
+    const logFile = path.join(__dirname, '../emails.log');
+    fs.appendFileSync(logFile, logEntry);
+    return { success: true, logged: true };
   }
 }
 
