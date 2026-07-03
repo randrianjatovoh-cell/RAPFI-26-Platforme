@@ -44,7 +44,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     volaNiditra: 0,
     volaNivoaka: 0,
     volaAfindra: 0,
-    monthlyData: [] // [{ month, totalA, dime, other }]
+    monthlyData: []
   });
 
   const [districtData, setDistrictData] = useState([]);
@@ -79,7 +79,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           let monthDime = 0;
           let monthOther = 0;
           let monthTotalB = 0;
-          let monthIncome = 0;
+          let monthIncome = 0; // sera la somme de b9 + b10 (total B)
 
           if (glData) {
             for (let s = 1; s <= 5; s++) {
@@ -100,7 +100,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 monthOther += f2 + f3 + f4 + f5 + f6 + f7 + f8;
                 monthTotalA += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
                 monthTotalB += b9 + b10;
-                monthIncome += b9;
+                // 🔥 Correction : volaNiditra = total B = b9 + b10
+                monthIncome += b9 + b10;
               }
             }
           }
@@ -121,7 +122,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             monthOther,
             monthTotalB,
             monthExpenses,
-            monthIncome,
+            monthIncome, // maintenant b9+b10
             idx
           };
         });
@@ -141,7 +142,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
         let totalA = 0;
         let totalB = 0;
-        let totalIncome = 0;
+        let totalIncome = 0; // somme des b9+b10
         let totalExpenses = 0;
 
         // Remplir monthlyData avec les résultats
@@ -209,6 +210,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           }
         }
 
+        // volaNiditra = totalIncome (b9+b10), volaNivoaka = totalExpenses
         const volaNiditra = totalIncome;
         const volaNivoaka = totalExpenses;
         const volaAfindra = volaSisaTeoAloha + volaNiditra - volaNivoaka;
@@ -378,7 +380,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   // 🔥 Écouter les mises à jour des frais (depuis RecapGL)
   useEffect(() => {
     const handleFraisUpdate = () => {
-      // Rafraîchir les données
       setRefreshKey(prev => prev + 1);
     };
     window.addEventListener('frais-updated', handleFraisUpdate);
@@ -407,7 +408,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     const pieData = [
       { name: 'Reste', value: volaSisaTeoAloha !== 0 ? Math.abs(volaSisaTeoAloha) : 0.001 },
       { name: 'Entrées', value: volaNiditra !== 0 ? Math.abs(volaNiditra) : 0.001 },
-      { name: 'Sorties Eglise', value: volaNivoaka !== 0 ? Math.abs(volaNivoaka) : 0.001 }
+      { name: 'Sorties', value: volaNivoaka !== 0 ? Math.abs(volaNivoaka) : 0.001 }
     ];
     const pieColors = ['#f59e0b', '#3b82f6', '#ef4444'];
 
@@ -419,19 +420,19 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             <div className="text-xl font-bold text-blue-700">{formatMontant(totalA) || '0'} Ar</div>
           </div>
           <div className="bg-yellow-50 p-3 rounded-lg shadow border-l-4 border-yellow-500">
-            <div className="text-xs text-yellow-600 uppercase font-semibold">Reste ({selectedYear - 1})</div>
+            <div className="text-xs text-yellow-600 uppercase font-semibold">RESTE (précédent)</div>
             <div className="text-xl font-bold text-yellow-700">{formatMontant(volaSisaTeoAloha) || '0'} Ar</div>
           </div>
           <div className="bg-green-50 p-3 rounded-lg shadow border-l-4 border-green-500">
-            <div className="text-xs text-green-600 uppercase font-semibold">Entrées ({selectedYear})</div>
+            <div className="text-xs text-green-600 uppercase font-semibold">ENTRÉES (Église)</div>
             <div className="text-xl font-bold text-green-700">{formatMontant(volaNiditra) || '0'} Ar</div>
           </div>
           <div className="bg-red-50 p-3 rounded-lg shadow border-l-4 border-red-500">
-            <div className="text-xs text-red-600 uppercase font-semibold">Sorties Eglise ({selectedYear})</div>
+            <div className="text-xs text-red-600 uppercase font-semibold">SORTIES (Église)</div>
             <div className="text-xl font-bold text-red-700">{formatMontant(volaNivoaka) || '0'} Ar</div>
           </div>
           <div className="bg-purple-50 p-3 rounded-lg shadow border-l-4 border-purple-500">
-            <div className="text-xs text-purple-600 uppercase font-semibold">Église ({selectedYear + 1})</div>
+            <div className="text-xs text-purple-600 uppercase font-semibold">EGLISE (suivant)</div>
             <div className="text-xl font-bold text-purple-700">{formatMontant(volaAfindra) || '0'} Ar</div>
           </div>
         </div>
