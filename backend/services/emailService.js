@@ -66,11 +66,8 @@ Mot de passe: ${plainPassword}
             To: [{ Email: to }],
             Subject: subject,
             HTMLPart: html,
-            Headers: {
-              'List-Unsubscribe': `<mailto:${process.env.MAILJET_FROM_EMAIL || 'plateformerapfi@gmail.com'}?subject=unsubscribe>`,
-              'X-Mailjet-TrackOpen': '1',
-              'X-Mailjet-TrackClick': '1',
-            },
+            // ⚠️ Suppression des en-têtes personnalisés pour éviter l'erreur 400
+            // Les en-têtes X-Mailjet-* sont gérés automatiquement par Mailjet
           },
         ],
       });
