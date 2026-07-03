@@ -1,11 +1,12 @@
-const mailjet = require('mailjet');
+const mailjet = require('node-mailjet');
 
 const platformUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Configuration Mailjet
-const mailjetClient = mailjet.connect(
+// Configuration Mailjet (API v3.1)
+const mailjetClient = mailjet.apiConnect(
   process.env.MAILJET_API_KEY,
-  process.env.MAILJET_SECRET_KEY
+  process.env.MAILJET_SECRET_KEY,
+  { options: { version: 'v3.1' } }
 );
 
 async function sendWelcomeEmail(to, nom, email, plainPassword) {
@@ -55,19 +56,21 @@ Mot de passe: ${plainPassword}
   `;
 
   try {
-    const request = mailjetClient.post('send', { version: 'v3.1' }).request({
-      Messages: [
-        {
-          From: {
-            Email: process.env.MAILJET_FROM_EMAIL || 'plateformerapfi@gmail.com',
-            Name: 'RAPFI EGLISE',
+    const request = mailjetClient
+      .post('send', { version: 'v3.1' })
+      .request({
+        Messages: [
+          {
+            From: {
+              Email: process.env.MAILJET_FROM_EMAIL || 'plateformerapfi@gmail.com',
+              Name: 'RAPFI EGLISE',
+            },
+            To: [{ Email: to }],
+            Subject: subject,
+            HTMLPart: html,
           },
-          To: [{ Email: to }],
-          Subject: subject,
-          HTMLPart: html,
-        },
-      ],
-    });
+        ],
+      });
 
     const response = await request;
     console.log(`✅ Email envoyé via Mailjet à ${to}`);
