@@ -1,4 +1,3 @@
-// src/components/RecapGL.js
 import React, { useEffect, useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -17,6 +16,34 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
   const district = user?.district || '';
   const federation = user?.federation || '';
   const inputRef = useRef(null);
+
+  // Sauvegarde automatique des frais
+  useEffect(() => {
+    const saveFrais = async () => {
+      if (readOnly || !currentMonth || !eglise) return;
+      const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
+      setFraisState(num);
+      try {
+        await api.setFrais(currentMonth, eglise, num);
+        if (refreshAll && typeof refreshAll === 'function') refreshAll();
+      } catch (err) {
+        console.error('Erreur sauvegarde frais :', err);
+      }
+    };
+
+    // Sauvegarde après chaque changement (délai)
+    const timer = setTimeout(saveFrais, 500);
+    return () => clearTimeout(timer);
+  }, [fraisDisplay, currentMonth, eglise, readOnly, refreshAll]);
+
+  // Sauvegarde au démontage
+  useEffect(() => {
+    return () => {
+      if (readOnly || !currentMonth || !eglise) return;
+      const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
+      api.setFrais(currentMonth, eglise, num).catch(err => console.error('Erreur sauvegarde frais au démontage:', err));
+    };
+  }, [fraisDisplay, currentMonth, eglise, readOnly]);
 
   useEffect(() => {
     if (currentMonth && eglise) loadData();
@@ -146,35 +173,15 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
 
       <style>{`
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 0.1cm;
-          }
-          body, .recap-print {
-            font-size: 8pt !important;
-            line-height: 1 !important;
-          }
+          @page { size: A4 landscape; margin: 0.1cm; }
+          body, .recap-print { font-size: 8pt !important; line-height: 1 !important; }
           .no-print { display: none !important; }
-          table {
-            font-size: 7pt !important;
-            page-break-inside: auto !important;
-          }
-          th, td {
-            padding: 1px 2px !important;
-          }
-          .border, .border-black {
-            border-color: #000 !important;
-            border-width: 0.3pt !important;
-          }
-          .recap-print .text-sm {
-            font-size: 7pt !important;
-          }
-          .recap-print .text-xs {
-            font-size: 6pt !important;
-          }
-          .recap-print .text-lg {
-            font-size: 9pt !important;
-          }
+          table { font-size: 7pt !important; page-break-inside: auto !important; }
+          th, td { padding: 1px 2px !important; }
+          .border, .border-black { border-color: #000 !important; border-width: 0.3pt !important; }
+          .recap-print .text-sm { font-size: 7pt !important; }
+          .recap-print .text-xs { font-size: 6pt !important; }
+          .recap-print .text-lg { font-size: 9pt !important; }
           .col-num { width: 25px; }
           .col-name { width: 100px; }
           .col-rosia { width: 60px; }
@@ -183,62 +190,22 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
           .col-eglise { min-width: 30px; }
           .recap-print .mb-2 { margin-bottom: 0.1cm !important; }
           .recap-print .mt-2 { margin-top: 0.1cm !important; }
-          .separator-line {
-            background-color: #000 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
+          .separator-line { background-color: #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
-        .recap-print td, .recap-print th {
-          padding: 2px 4px;
-        }
-        .rosia-col {
-          background-color: #e5e7eb !important;
-          color: #6b7280;
-          text-align: center;
-          font-style: italic;
-          cursor: not-allowed;
-        }
-        .rosia-col::before {
-          content: "—";
-        }
-        .rosia-col span {
-          display: none;
-        }
-        .recap-print .text-sm {
-          font-size: 0.875rem;
-        }
-        .recap-print .text-xs {
-          font-size: 0.75rem;
-        }
-        .recap-print .text-lg {
-          font-size: 1.125rem;
-        }
-        .recap-print td, .recap-print th {
-          padding: 0.25rem 0.4rem;
-        }
-        .recap-print .mb-2 {
-          margin-bottom: 0.25rem;
-        }
-        .recap-print .mt-2 {
-          margin-top: 0.25rem;
-        }
-        .recap-print .mt-1 {
-          margin-top: 0.1rem;
-        }
-        .recap-print .gap-2 {
-          gap: 0.2rem;
-        }
-        .recap-print .gap-3 {
-          gap: 0.3rem;
-        }
-        .separator-line {
-          width: 1px;
-          height: 50px;
-          background-color: #000;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
+        .recap-print td, .recap-print th { padding: 2px 4px; }
+        .rosia-col { background-color: #e5e7eb !important; color: #6b7280; text-align: center; font-style: italic; cursor: not-allowed; }
+        .rosia-col::before { content: "—"; }
+        .rosia-col span { display: none; }
+        .recap-print .text-sm { font-size: 0.875rem; }
+        .recap-print .text-xs { font-size: 0.75rem; }
+        .recap-print .text-lg { font-size: 1.125rem; }
+        .recap-print td, .recap-print th { padding: 0.25rem 0.4rem; }
+        .recap-print .mb-2 { margin-bottom: 0.25rem; }
+        .recap-print .mt-2 { margin-top: 0.25rem; }
+        .recap-print .mt-1 { margin-top: 0.1rem; }
+        .recap-print .gap-2 { gap: 0.2rem; }
+        .recap-print .gap-3 { gap: 0.3rem; }
+        .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       `}</style>
 
       <div className="recap-print">
@@ -258,18 +225,14 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
             <div className="font-bold text-sm">"IZAY OLONA MAHATOKY TOKOA DIA HO BE FITAHIANA"</div>
             <div className="text-xs">Ohabolana 28:20a</div>
           </div>
-          <div className="text-right text-sm no-print" style={{ width: '80px' }}>
-            {/* espace réservé pour alignement */}
-          </div>
+          <div className="text-right text-sm no-print" style={{ width: '80px' }}></div>
         </div>
 
-        {/* Ligne 1 : Eglise (gauche) et Takelaka (droite) */}
         <div className="flex justify-between items-center text-xs mb-1">
           <div><strong>Eglise :</strong> {escapeHtml(displayEglise)}</div>
           <div><strong>Takelaka :</strong> RÉCAP</div>
         </div>
 
-        {/* Ligne 2 : District (gauche) et Volana sy Taona (droite) */}
         <div className="flex justify-between items-center text-xs mb-1">
           <div><strong>District :</strong> {escapeHtml(displayDistrict)}</div>
           <div><strong>Volana sy Taona :</strong> {formatMonthYear(currentMonth)}</div>

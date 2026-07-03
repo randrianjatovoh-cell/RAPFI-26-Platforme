@@ -1,4 +1,3 @@
-// src/components/RapportMensuel.js
 import React, { useEffect, useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -61,7 +60,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const { canViewEglise, canEditEglise, isReadOnly: isGlobalReadOnly } = usePermissions();
   const user = contextUser;
   
-  // 🔥 Utiliser selectedEglise s'il est fourni, sinon user.eglise
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
   
@@ -102,7 +100,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const datePickerRefs = useRef({});
 
-  // Mode lecture seule
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
     if (readOnly) return true;
@@ -127,9 +124,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setLoading(true);
     setError(null);
     try {
-      // 🔥 Passer l'église en paramètre
-      const r = await api.getMonthlyReport(currentMonth, eglise);
+      let r = await api.getMonthlyReport(currentMonth, eglise);
+      // Si le rapport est absent, on le recrée
+      if (!r) {
+        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
+        try {
+          r = await api.rebuildMonthlyReport(currentMonth, eglise);
+          console.log('✅ Rapport recréé avec succès');
+        } catch (rebuildErr) {
+          console.error('❌ Erreur lors du rebuild :', rebuildErr);
+        }
+      }
       setReport(r);
+
       if (r) {
         if (r.sabbath_dates) {
           try {
@@ -168,6 +175,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch {}
         }
       }
+
+      // Charger les frais
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setSaramPandefasana(fraisVal);
 
@@ -365,99 +374,34 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .rapport-mensuel input { font-family: inherit; font-size: inherit; }
         .rapport-mensuel .border-black { border-color: #000 !important; }
         .rapport-mensuel .protected-cell { background-color: #f9f9f9; }
-        .separator-line {
-          width: 1px;
-          height: 50px;
-          background-color: #000;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
+        .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         @media print {
-          @page { 
-            size: A4 portrait; 
-            margin: 0.1cm;
-          }
-          body, .rapport-mensuel { 
-            font-size: 7.5pt !important; 
-            line-height: 1.15 !important; 
-          }
+          @page { size: A4 portrait; margin: 0.1cm; }
+          body, .rapport-mensuel { font-size: 7.5pt !important; line-height: 1.15 !important; }
           .no-print { display: none !important; }
-          .border, .border-black { 
-            border-color: #000 !important; 
-            border-width: 0.5pt !important; 
-          }
+          .border, .border-black { border-color: #000 !important; border-width: 0.5pt !important; }
           th, td { padding: 1px 3px !important; }
-          input:not([type="checkbox"]):not([type="radio"]) { 
-            border: none !important; 
-            background: transparent !important; 
-            padding: 0 !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
-            font-size: 7.5pt !important;
-          }
-          input[type="checkbox"] {
-            appearance: auto !important;
-            -webkit-appearance: checkbox !important;
-            width: 12px !important;
-            height: 12px !important;
-            margin: 0 4px 0 0 !important;
-            display: inline-block !important;
-            opacity: 1 !important;
-            border: 1px solid #000 !important;
-            background: #fff !important;
-            flex-shrink: 0;
-          }
-          table { 
-            page-break-inside: auto !important; 
-          }
+          input:not([type="checkbox"]):not([type="radio"]) { border: none !important; background: transparent !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important; font-size: 7.5pt !important; }
+          input[type="checkbox"] { appearance: auto !important; -webkit-appearance: checkbox !important; width: 12px !important; height: 12px !important; margin: 0 4px 0 0 !important; display: inline-block !important; opacity: 1 !important; border: 1px solid #000 !important; background: #fff !important; flex-shrink: 0; }
+          table { page-break-inside: auto !important; }
           .rapport-mensuel .mb-2 { margin-bottom: 0.1cm !important; }
           .rapport-mensuel .mt-1 { margin-top: 0.05cm !important; }
           .rapport-mensuel .mt-2 { margin-top: 0.1cm !important; }
           .rapport-mensuel .gap-1 { gap: 0.05cm !important; }
           .rapport-mensuel .p-1 { padding: 1px !important; }
-
           .cheque-table { table-layout: fixed !important; width: 100% !important; }
           .cheque-table .cheque-col { width: 70% !important; }
           .cheque-table .sora-col { width: 30% !important; }
           .cheque-table th, .cheque-table td { padding: 1px 3px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           .cheque-table input { width: 100% !important; box-sizing: border-box !important; border: none !important; background: transparent !important; padding: 0 2px !important; text-align: left !important; }
           .cheque-table .sora-bola-col input { text-align: right !important; }
-
-          .table-volam-piangonana {
-            table-layout: fixed !important;
-            width: 100% !important;
-          }
-          .table-volam-piangonana td {
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-          }
-          .table-volam-piangonana th {
-            white-space: normal !important;
-            word-break: break-word !important;
-          }
-          .table-volam-piangonana th:nth-child(1),
-          .table-volam-piangonana td:nth-child(1) {
-            width: 28% !important;
-          }
-          .table-volam-piangonana th:nth-child(2),
-          .table-volam-piangonana td:nth-child(2),
-          .table-volam-piangonana th:nth-child(3),
-          .table-volam-piangonana td:nth-child(3),
-          .table-volam-piangonana th:nth-child(4),
-          .table-volam-piangonana td:nth-child(4),
-          .table-volam-piangonana th:nth-child(5),
-          .table-volam-piangonana td:nth-child(5),
-          .table-volam-piangonana th:nth-child(6),
-          .table-volam-piangonana td:nth-child(6) {
-            width: 11% !important;
-          }
-          .table-volam-piangonana th:nth-child(7),
-          .table-volam-piangonana td:nth-child(7) {
-            width: 17% !important;
-          }
+          .table-volam-piangonana { table-layout: fixed !important; width: 100% !important; }
+          .table-volam-piangonana td { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+          .table-volam-piangonana th { white-space: normal !important; word-break: break-word !important; }
+          .table-volam-piangonana th:nth-child(1), .table-volam-piangonana td:nth-child(1) { width: 28% !important; }
+          .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
+          .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
         }
-
         .cheque-table { table-layout: fixed; width: 100%; }
         .cheque-col { width: 70%; }
         .sora-col { width: 30%; }
@@ -465,11 +409,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .cheque-col input:focus, .sora-col input:focus { outline: 2px solid #1a3c6e; }
         .cheque-table td, .cheque-table th { word-wrap: break-word; overflow-wrap: break-word; text-align: center; }
         .cheque-table .sora-bola-col input { text-align: right; }
-
         .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .checkbox-group input[type="checkbox"] { margin: 0; flex-shrink: 0; }
         .checkbox-group .label { margin-left: 2px; }
-
         .date-input { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
         .date-input:focus { outline: 2px solid #1a3c6e; }
         .date-input::placeholder { color: transparent !important; }
@@ -508,7 +450,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </div>
       </div>
 
-      {/* Le reste du composant reste inchangé */}
       <h3 className="font-bold mt-1">I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA</h3>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-black">

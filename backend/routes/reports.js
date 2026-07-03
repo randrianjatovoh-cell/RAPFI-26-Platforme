@@ -5,7 +5,7 @@ const {
   updateReportField, 
   upsertMonthlyReport, 
   getAllUsers,
-  computeAndSaveMonthlyReports  // IMPORTANT : ajouté pour le rebuild
+  computeAndSaveMonthlyReports
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
 
@@ -22,16 +22,14 @@ router.get('/monthly/:month/:eglise', checkAccess, async (req, res) => {
   }
 });
 
-// 🔥 Route pour forcer le recalcul d'un rapport mensuel (utilisé par le frontend)
+// 🔥 Route pour forcer le recalcul d'un rapport mensuel
 router.post('/rebuild', checkAccess, async (req, res) => {
   try {
     const { month, eglise } = req.body;
     if (!month || !eglise) {
       return res.status(400).json({ error: 'Month and eglise are required' });
     }
-    // Recalculer le rapport
     await computeAndSaveMonthlyReports(month, eglise);
-    // Récupérer le rapport fraîchement créé
     const report = await getMonthlyReport(month, eglise);
     res.json(report);
   } catch (err) {
@@ -40,13 +38,29 @@ router.post('/rebuild', checkAccess, async (req, res) => {
   }
 });
 
-// Mettre à jour un champ du rapport
+// Mettre à jour un champ du rapport (avec création automatique si le rapport n'existe pas)
 router.put('/field', checkAccess, async (req, res) => {
   try {
     const { month, eglise, field, value } = req.body;
+
+    // 1. Vérifier si le rapport existe
+    let report = await getMonthlyReport(month, eglise);
+    if (!report) {
+      // 🔥 Le rapport n'existe pas : on le recrée à partir des données GL existantes
+      await computeAndSaveMonthlyReports(month, eglise);
+      report = await getMonthlyReport(month, eglise);
+      if (!report) {
+        // Si malgré tout le rapport est toujours null, on crée un squelette vide
+        await upsertMonthlyReport(month, eglise, {});
+        report = await getMonthlyReport(month, eglise);
+      }
+    }
+
+    // 2. Mettre à jour le champ
     await updateReportField(month, eglise, field, value);
     res.json({ success: true });
   } catch (err) {
+    console.error('Erreur updateReportField:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -78,7 +92,7 @@ router.get('/eglise/:eglise', checkAccess, async (req, res) => {
   }
 });
 
-// Récupérer les rapports d'un district – avec vérification que l'utilisateur a le droit
+// Récupérer les rapports d'un district
 router.get('/district/:district', async (req, res) => {
   try {
     const user = req.user;
@@ -106,7 +120,7 @@ router.get('/district/:district', async (req, res) => {
   }
 });
 
-// Récupérer les rapports d'une fédération – avec vérification
+// Récupérer les rapports d'une fédération
 router.get('/federation/:federation', async (req, res) => {
   try {
     const user = req.user;
