@@ -105,6 +105,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             }
           }
 
+          // 🔥 Récupérer les frais (saram-pandefasana) pour ce mois
+          const fraisVal = await api.getFrais(monthId, egliseNom);
+          // Déduire les frais du total A et des offrandes (other)
+          monthTotalA = Math.max(0, monthTotalA - fraisVal);
+          monthOther = Math.max(0, monthOther - fraisVal);
+
           const expensesList = await api.getDepenses(monthId, null, null, egliseNom);
           const monthExpenses = expensesList.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
@@ -228,6 +234,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
         if (eglise) {
+          // Une seule église sélectionnée
           const monthPromises = months.map(async (month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
             const glData = await api.getGL(monthId, null, null, eglise);
@@ -242,6 +249,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
+            // 🔥 Récupérer les frais et les déduire de totalA
+            const fraisVal = await api.getFrais(monthId, eglise);
+            totalA = Math.max(0, totalA - fraisVal);
             return { month, dime, totalA };
           });
 
@@ -254,6 +264,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           });
           setDistrictData([egliseData]);
         } else {
+          // Aucune église sélectionnée : on charge toutes celles du district
           const eglisesList = await api.getEglisesByDistrict(district);
           if (eglisesList.length === 0) {
             setError("Aucune église trouvée pour ce district.");
@@ -277,6 +288,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   }
                 }
               }
+              // 🔥 Récupérer les frais et les déduire de totalA
+              const fraisVal = await api.getFrais(monthId, egliseNom);
+              totalA = Math.max(0, totalA - fraisVal);
               return { month, dime, totalA };
             });
 
@@ -327,6 +341,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
+            // 🔥 Récupérer les frais pour cette église et ce mois
+            const fraisVal = await api.getFrais(monthId, egliseNom);
+            totalA = Math.max(0, totalA - fraisVal);
             return { month, dime, totalA };
           });
 
@@ -373,8 +390,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
   // =================== RENDU ===================
   // (La partie rendu reste inchangée, identique à votre version originale)
-  // Je la garde pour être complet, mais elle n'a pas été modifiée.
-
   // ----- ANCIEN / TRÉSORIER -----
   const renderAncienDashboard = () => {
     const { totalA, volaSisaTeoAloha, volaNiditra, volaNivoaka, volaAfindra, monthlyData } = annualData;
