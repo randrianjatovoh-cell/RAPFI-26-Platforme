@@ -19,13 +19,8 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
   const [closingBalanceChurch, setClosingBalanceChurch] = useState(0);
   const [closingBalanceSpecial, setClosingBalanceSpecial] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [references, setReferences] = useState(() => {
-    const saved = localStorage.getItem(`references_${currentMonth}_${eglise}`);
-    if (saved) {
-      try { return JSON.parse(saved); } catch(e) { return Array(6).fill({ date: '', soraBola: '', rosia: '' }); }
-    }
-    return Array(6).fill({ date: '', soraBola: '', rosia: '' });
-  });
+  const [references, setReferences] = useState(Array(6).fill({ date: '', soraBola: '', rosia: '' }));
+  const [hasReport, setHasReport] = useState(false);
 
   function parseDateString(dateStr) {
     if (!dateStr) return null;
@@ -60,64 +55,109 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     }
     setLoading(true);
     try {
+      // 1. Charger le rapport s'il existe
       let r = await api.getMonthlyReport(currentMonth, eglise);
-      
-      // 🔥 Si le rapport n'existe pas, on le recrée automatiquement
-      if (!r) {
+      if (r) {
+        setHasReport(true);
+        setReport(r);
+        // Extraire les références du rapport
+        if (r.soraBolaLinesJson) {
+          try {
+            const parsed = JSON.parse(r.soraBolaLinesJson);
+            let chequeArr = [];
+            let soraArr = [];
+            if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
+              chequeArr = parsed.cheque || [];
+              soraArr = parsed.soraBola || [];
+            } else if (Array.isArray(parsed)) {
+              soraArr = parsed;
+            }
+            const newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
+            const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
+            for (let i = 0; i < maxLines; i++) {
+              const chequeStr = chequeArr[i] || '';
+              const soraAmount = soraArr[i] || '';
+              let dateFormatted = '';
+              let ref = '';
+              if (chequeStr) {
+                const duIndex = chequeStr.indexOf(' du ');
+                if (duIndex !== -1) {
+                  ref = chequeStr.substring(0, duIndex).trim();
+                  let datePart = chequeStr.substring(duIndex + 4).trim();
+                  const dateObj = parseDateString(datePart);
+                  if (dateObj) {
+                    dateFormatted = formatLongDateFromDate(dateObj);
+                  } else {
+                    dateFormatted = datePart;
+                  }
+                } else {
+                  ref = chequeStr;
+                }
+              }
+              newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
+            }
+            setReferences(newRefs);
+          } catch(e) {
+            console.warn("Erreur parsing soraBolaLinesJson:", e);
+          }
+        }
+      } else {
+        // 🔥 Essayer de recréer le rapport
         console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
         try {
           r = await api.rebuildMonthlyReport(currentMonth, eglise);
-          console.log('✅ Rapport recréé avec succès');
-        } catch (rebuildErr) {
-          console.error('❌ Échec de la recréation du rapport :', rebuildErr);
-          // On laisse r = null, le message "Aucun rapport" s'affichera
-        }
-      }
-
-      setReport(r);
-
-      if (r && r.soraBolaLinesJson) {
-        try {
-          const parsed = JSON.parse(r.soraBolaLinesJson);
-          let chequeArr = [];
-          let soraArr = [];
-          if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
-            chequeArr = parsed.cheque || [];
-            soraArr = parsed.soraBola || [];
-          } else if (Array.isArray(parsed)) {
-            soraArr = parsed;
-          }
-          const newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
-          const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
-          for (let i = 0; i < maxLines; i++) {
-            const chequeStr = chequeArr[i] || '';
-            const soraAmount = soraArr[i] || '';
-            let dateFormatted = '';
-            let ref = '';
-            if (chequeStr) {
-              const duIndex = chequeStr.indexOf(' du ');
-              if (duIndex !== -1) {
-                ref = chequeStr.substring(0, duIndex).trim();
-                let datePart = chequeStr.substring(duIndex + 4).trim();
-                const dateObj = parseDateString(datePart);
-                if (dateObj) {
-                  dateFormatted = formatLongDateFromDate(dateObj);
-                } else {
-                  dateFormatted = datePart;
+          if (r) {
+            setHasReport(true);
+            setReport(r);
+            // Même extraction des références...
+            if (r.soraBolaLinesJson) {
+              try {
+                const parsed = JSON.parse(r.soraBolaLinesJson);
+                let chequeArr = [];
+                let soraArr = [];
+                if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
+                  chequeArr = parsed.cheque || [];
+                  soraArr = parsed.soraBola || [];
+                } else if (Array.isArray(parsed)) {
+                  soraArr = parsed;
                 }
-              } else {
-                ref = chequeStr;
-              }
+                const newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
+                const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
+                for (let i = 0; i < maxLines; i++) {
+                  const chequeStr = chequeArr[i] || '';
+                  const soraAmount = soraArr[i] || '';
+                  let dateFormatted = '';
+                  let ref = '';
+                  if (chequeStr) {
+                    const duIndex = chequeStr.indexOf(' du ');
+                    if (duIndex !== -1) {
+                      ref = chequeStr.substring(0, duIndex).trim();
+                      let datePart = chequeStr.substring(duIndex + 4).trim();
+                      const dateObj = parseDateString(datePart);
+                      if (dateObj) {
+                        dateFormatted = formatLongDateFromDate(dateObj);
+                      } else {
+                        dateFormatted = datePart;
+                      }
+                    } else {
+                      ref = chequeStr;
+                    }
+                  }
+                  newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
+                }
+                setReferences(newRefs);
+              } catch(e) {}
             }
-            newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
+            console.log('✅ Rapport recréé avec succès');
+          } else {
+            console.warn('⚠️ Échec de la recréation du rapport');
           }
-          setReferences(newRefs);
-          localStorage.setItem(`references_${currentMonth}_${eglise}`, JSON.stringify(newRefs));
-        } catch(e) {
-          console.warn("Erreur lors du parsing de soraBolaLinesJson:", e);
+        } catch (rebuildErr) {
+          console.error('❌ Erreur lors du rebuild :', rebuildErr);
         }
       }
 
+      // 2. Charger les données GL et dépenses (toujours nécessaires)
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const categoryTotals = { f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0 };
       let b9=0, b10=0;
@@ -174,19 +214,19 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     return () => window.removeEventListener('expenses-updated', handleExpensesUpdate);
   }, [currentMonth, eglise]);
 
+  // Restaurer references depuis localStorage si disponible
   useEffect(() => {
     if (currentMonth && eglise) {
       const saved = localStorage.getItem(`references_${currentMonth}_${eglise}`);
       if (saved) try { setReferences(JSON.parse(saved)); } catch(e) {}
-      else setReferences(Array(6).fill({ date: '', soraBola: '', rosia: '' }));
     }
   }, [currentMonth, eglise]);
 
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (loading) return <div className="text-center p-4">Chargement du rapport...</div>;
-  if (!report) return <div className="text-center p-4">Aucun rapport trouvé pour ce mois et cette église. Veuillez d'abord enregistrer des données via le formulaire.</div>;
 
+  // On affiche toujours le tableau, même sans rapport
   const displayEglise = capitalizeFirstLetter(eglise);
   const displayDistrict = capitalizeFirstLetter(district);
   const displayFederation = (federation || '').toUpperCase();
@@ -207,65 +247,23 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     <div className="p-2 print-container">
       <style>{`
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 0;
-          }
-          body, .print-container {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .print-container {
-            padding: 2px !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          table, th, td {
-            page-break-inside: avoid !important;
-          }
-          .border, .border-black {
-            border-color: #000 !important;
-            border-width: 0.4pt !important;
-          }
-          th, td {
-            padding: 1px 2px !important;
-            font-size: 7pt !important;
-          }
-          input {
-            border: none !important;
-            background: transparent !important;
-          }
-          body, .print-container, div, p, span, strong, td, th {
-            font-size: 8pt !important;
-          }
-          .mb-4, .mt-2, .mt-6 {
-            margin-bottom: 2px !important;
-            margin-top: 2px !important;
-          }
-          .text-sm {
-            font-size: 8pt !important;
-          }
-          .text-xs {
-            font-size: 7pt !important;
-          }
-          .text-lg {
-            font-size: 10pt !important;
-          }
-          .text-xl {
-            font-size: 12pt !important;
-          }
-          .text-center {
-            text-align: center !important;
-          }
+          @page { size: A4 landscape; margin: 0; }
+          body, .print-container { margin: 0 !important; padding: 0 !important; }
+          .print-container { padding: 2px !important; }
+          .no-print { display: none !important; }
+          table, th, td { page-break-inside: avoid !important; }
+          .border, .border-black { border-color: #000 !important; border-width: 0.4pt !important; }
+          th, td { padding: 1px 2px !important; font-size: 7pt !important; }
+          input { border: none !important; background: transparent !important; }
+          body, .print-container, div, p, span, strong, td, th { font-size: 8pt !important; }
+          .mb-4, .mt-2, .mt-6 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .text-sm { font-size: 8pt !important; }
+          .text-xs { font-size: 7pt !important; }
+          .text-lg { font-size: 10pt !important; }
+          .text-xl { font-size: 12pt !important; }
+          .text-center { text-align: center !important; }
         }
-        .separator-line {
-          width: 1px;
-          height: 50px;
-          background-color: #000;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
+        .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       `}</style>
 
       {/* EN-TÊTE AVEC LOGOS */}
