@@ -19,7 +19,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     );
   }
 
-  // Découpage en groupes de 4 pour l'affichage (2 colonnes)
+  // Découpage en groupes de 4 pour l'impression (2 colonnes x 2 lignes)
   const chunkSize = 4;
   const receiptChunks = [];
   for (let i = 0; i < validEntries.length; i += chunkSize) {
@@ -72,7 +72,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
 
     return (
       <div key={key} className="receipt">
-        {/* Nouvel en-tête avec logos */}
         <div className="receipt-header">
           <div className="header-top">
             <div className="logo-title-group">
@@ -167,27 +166,36 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     );
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="receipts-container">
-      <div className="receipts-header flex justify-between items-center mb-4 p-3 bg-gray-100 rounded">
+      {/* En-tête avec les boutons (masqué à l'impression) */}
+      <div className="receipts-header no-print flex justify-between items-center mb-4 p-3 bg-gray-100 rounded">
         <h2 className="text-xl font-bold">Reçus personnels - {monthName} - {sabbathLabel}</h2>
         <div className="flex gap-2">
           <button onClick={onClose} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
             <i className="fas fa-arrow-left mr-2"></i> Retour
           </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 opacity-50 cursor-not-allowed">
-            <i className="fas fa-print mr-2"></i> Imprimer (désactivé)
+          <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <i className="fas fa-print mr-2"></i> Imprimer
           </button>
         </div>
       </div>
 
+      {/* Pages d'impression : chaque chunk de 4 reçus = une page */}
       {receiptChunks.map((chunk, chunkIndex) => (
-        <div key={chunkIndex} className="receipts-grid">
-          {chunk.map((entry, idx) => renderReceipt(entry, chunkIndex * chunkSize + idx))}
+        <div key={chunkIndex} className="print-page">
+          <div className="receipts-grid">
+            {chunk.map((entry, idx) => renderReceipt(entry, chunkIndex * chunkSize + idx))}
+          </div>
         </div>
       ))}
 
       <style>{`
+        /* --- Styles pour l'écran --- */
         .receipts-container {
           margin-top: 1rem;
           padding: 0 0.5rem;
@@ -401,6 +409,106 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           margin-bottom: 0;
           padding-bottom: 0;
           line-height: 1.1;
+        }
+
+        /* --- Styles d'impression : 4 reçus par page A4 --- */
+        @media print {
+          /* Supprimer les marges et fonds */
+          @page {
+            size: A4;
+            margin: 5mm;
+          }
+          body {
+            background: white;
+            margin: 0;
+            padding: 0;
+          }
+          /* Masquer les éléments non imprimables */
+          .no-print {
+            display: none !important;
+          }
+          /* Chaque page = un chunk */
+          .print-page {
+            page-break-after: always;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+          }
+          .print-page:last-child {
+            page-break-after: avoid;
+          }
+          /* Grille 2x2 remplissant la page */
+          .receipts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2mm;
+            height: 100%;
+            width: 100%;
+            box-sizing: border-box;
+          }
+          .receipt {
+            border: 1px solid #000;
+            padding: 1mm 1.5mm;
+            font-size: 7px;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            background: white;
+          }
+          /* Ajustements pour que tout tienne */
+          .church-titles .church-line,
+          .church-titles .sabbath-line,
+          .church-titles .federation-line {
+            font-size: 7px;
+          }
+          .header-logo {
+            height: 18px;
+          }
+          .rosia-number {
+            font-size: 7px;
+          }
+          .receipt-title {
+            font-size: 7px;
+          }
+          .verse {
+            font-size: 5px;
+          }
+          .member-info {
+            font-size: 6px;
+          }
+          .amount-row {
+            font-size: 6px;
+          }
+          .receipt-table {
+            font-size: 5px;
+          }
+          .receipt-table td {
+            padding: 0.3px 0.8px;
+          }
+          .signature-placeholder {
+            font-size: 4.5px;
+          }
+          .footer-note {
+            font-size: 4.5px;
+          }
+          /* Supprimer les marges internes superflues */
+          .receipt-body {
+            flex: 1;
+          }
+          .title-box {
+            padding: 0.5px 2px;
+          }
+          .member-line .label {
+            min-width: 35px;
+          }
+          .member-line .district-label {
+            min-width: 25px;
+          }
         }
       `}</style>
     </div>
