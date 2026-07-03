@@ -71,7 +71,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
         ];
 
-        // ✅ Optimisation : Promise.all pour paralléliser les requêtes
         const monthPromises = months.map(async (month, idx) => {
           const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
           const glData = await api.getGL(monthId, null, null, egliseNom);
@@ -79,7 +78,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           let monthDime = 0;
           let monthOther = 0;
           let monthTotalB = 0;
-          let monthIncome = 0; // sera la somme de b9 + b10 (total B)
+          let monthIncome = 0; // total B = b9 + b10
 
           if (glData) {
             for (let s = 1; s <= 5; s++) {
@@ -100,15 +99,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 monthOther += f2 + f3 + f4 + f5 + f6 + f7 + f8;
                 monthTotalA += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
                 monthTotalB += b9 + b10;
-                // 🔥 Correction : volaNiditra = total B = b9 + b10
-                monthIncome += b9 + b10;
+                monthIncome += b9 + b10; // 🔥 total B
               }
             }
           }
 
-          // 🔥 Récupérer les frais (saram-pandefasana) pour ce mois
+          // Frais déduits du total A et des offrandes
           const fraisVal = await api.getFrais(monthId, egliseNom);
-          // Déduire les frais du total A et des offrandes (other)
           monthTotalA = Math.max(0, monthTotalA - fraisVal);
           monthOther = Math.max(0, monthOther - fraisVal);
 
@@ -122,14 +119,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             monthOther,
             monthTotalB,
             monthExpenses,
-            monthIncome, // maintenant b9+b10
+            monthIncome,
             idx
           };
         });
 
         const results = await Promise.all(monthPromises);
 
-        // Initialisation du tableau
         const monthlyData = months.map((month, idx) => ({
           month,
           totalA: 0,
@@ -142,10 +138,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
         let totalA = 0;
         let totalB = 0;
-        let totalIncome = 0; // somme des b9+b10
+        let totalIncome = 0;
         let totalExpenses = 0;
 
-        // Remplir monthlyData avec les résultats
         results.forEach((res) => {
           const idx = res.idx;
           monthlyData[idx].totalA = res.monthTotalA;
@@ -161,9 +156,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           totalExpenses += res.monthExpenses;
         });
 
-        // Calcul du solde initial (volaSisaTeoAloha)
+        // Solde initial
         let volaSisaTeoAloha = 0;
-
         try {
           const janMonthId = `${yearStr}-01`;
           const janReport = await api.getMonthlyReport(janMonthId, egliseNom);
@@ -210,7 +204,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           }
         }
 
-        // volaNiditra = totalIncome (b9+b10), volaNivoaka = totalExpenses
         const volaNiditra = totalIncome;
         const volaNivoaka = totalExpenses;
         const volaAfindra = volaSisaTeoAloha + volaNiditra - volaNivoaka;
@@ -225,18 +218,16 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         });
 
       } else if (isPasteur) {
-        // ✅ Optimisation : Promise.all pour le pasteur
+        // ... (code inchangé)
         const district = user.district;
         if (!district) {
           setError("Votre compte n'est pas associé à un district.");
           setLoading(false);
           return;
         }
-
         const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
         if (eglise) {
-          // Une seule église sélectionnée
           const monthPromises = months.map(async (month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
             const glData = await api.getGL(monthId, null, null, eglise);
@@ -251,12 +242,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
-            // 🔥 Récupérer les frais et les déduire de totalA
             const fraisVal = await api.getFrais(monthId, eglise);
             totalA = Math.max(0, totalA - fraisVal);
             return { month, dime, totalA };
           });
-
           const results = await Promise.all(monthPromises);
           const egliseData = { eglise, monthly: {}, totalDime: 0, totalA: 0 };
           results.forEach(({ month, dime, totalA }) => {
@@ -266,14 +255,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           });
           setDistrictData([egliseData]);
         } else {
-          // Aucune église sélectionnée : on charge toutes celles du district
           const eglisesList = await api.getEglisesByDistrict(district);
           if (eglisesList.length === 0) {
             setError("Aucune église trouvée pour ce district.");
             setLoading(false);
             return;
           }
-
           const districtPromises = eglisesList.map(async (egliseNom) => {
             const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
             const monthPromises = months.map(async (month, idx) => {
@@ -290,12 +277,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   }
                 }
               }
-              // 🔥 Récupérer les frais et les déduire de totalA
               const fraisVal = await api.getFrais(monthId, egliseNom);
               totalA = Math.max(0, totalA - fraisVal);
               return { month, dime, totalA };
             });
-
             const results = await Promise.all(monthPromises);
             results.forEach(({ month, dime, totalA }) => {
               egliseData.monthly[month] = { dime, totalA };
@@ -304,29 +289,25 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             });
             return egliseData;
           });
-
           const districtDataTemp = await Promise.all(districtPromises);
           setDistrictData(districtDataTemp);
         }
 
       } else if (isVerificateur) {
-        // ✅ Optimisation : Promise.all pour le vérificateur
+        // ... (code inchangé)
         const federation = user.federation;
         if (!federation) {
           setError("Votre compte n'est pas associé à une fédération.");
           setLoading(false);
           return;
         }
-
         const fedEglisesList = await api.getEglisesByFederation(federation);
         if (fedEglisesList.length === 0) {
           setError("Aucune église trouvée pour cette fédération.");
           setLoading(false);
           return;
         }
-
         const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-
         const fedPromises = fedEglisesList.map(async (egliseNom) => {
           const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
           const monthPromises = months.map(async (month, idx) => {
@@ -343,12 +324,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 }
               }
             }
-            // 🔥 Récupérer les frais pour cette église et ce mois
             const fraisVal = await api.getFrais(monthId, egliseNom);
             totalA = Math.max(0, totalA - fraisVal);
             return { month, dime, totalA };
           });
-
           const results = await Promise.all(monthPromises);
           results.forEach(({ month, dime, totalA }) => {
             egliseData.monthly[month] = { dime, totalA };
@@ -357,7 +336,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           });
           return egliseData;
         });
-
         const federationDataTemp = await Promise.all(fedPromises);
         setFederationData(federationDataTemp);
       }
@@ -370,14 +348,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     }
   }, [user, selectedYear, isAncienOrTresorier, isPasteur, isVerificateur, eglise]);
 
-  // Rechargement quand l'église ou l'année change
   useEffect(() => {
     if (eglise || isPasteur) {
       loadData();
     }
   }, [eglise, selectedYear, loadData]);
 
-  // 🔥 Écouter les mises à jour des frais (depuis RecapGL)
+  // Écouter les mises à jour des frais
   useEffect(() => {
     const handleFraisUpdate = () => {
       setRefreshKey(prev => prev + 1);
@@ -386,7 +363,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     return () => window.removeEventListener('frais-updated', handleFraisUpdate);
   }, []);
 
-  // Rechargement sur événement data-updated (global)
   const refresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
@@ -401,7 +377,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }, [loadData, refreshKey]);
 
   // =================== RENDU ===================
-  // ----- ANCIEN / TRÉSORIER -----
+
+  // ----- ANCIEN / TRÉSORIER (avec les nouveaux titres) -----
   const renderAncienDashboard = () => {
     const { totalA, volaSisaTeoAloha, volaNiditra, volaNivoaka, volaAfindra, monthlyData } = annualData;
 
@@ -438,8 +415,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 no-print">
-          <div className="bg-white p-3 rounded shadow" style={{ height: 300 }}>
-            <p className="text-center font-medium text-sm">Évolution de la Dîme et des Offrandes</p>
+          {/* Graphique courbes - avec titre FEDERATION */}
+          <div className="bg-white p-3 rounded shadow" style={{ height: 320 }}>
+            <div className="text-center mb-1">
+              <div className="font-bold text-base uppercase text-gray-700">FEDERATION</div>
+              <div className="text-sm font-medium text-gray-600">Évolution de la Dîme et des Offrandes</div>
+            </div>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -453,8 +434,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-3 rounded shadow" style={{ height: 300 }}>
-            <p className="text-center font-medium text-sm">Répartition Reste / Entrées / Sorties</p>
+
+          {/* Graphique secteurs - avec titre EGLISE LOCALE */}
+          <div className="bg-white p-3 rounded shadow" style={{ height: 320 }}>
+            <div className="text-center mb-1">
+              <div className="font-bold text-base uppercase text-gray-700">EGLISE LOCALE</div>
+              <div className="text-sm font-medium text-gray-600">Répartition Reste / Entrées / Sorties</div>
+            </div>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
