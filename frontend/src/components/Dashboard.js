@@ -375,6 +375,17 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     }
   }, [eglise, selectedYear, loadData]);
 
+  // 🔥 Écouter les mises à jour des frais (depuis RecapGL)
+  useEffect(() => {
+    const handleFraisUpdate = () => {
+      // Rafraîchir les données
+      setRefreshKey(prev => prev + 1);
+    };
+    window.addEventListener('frais-updated', handleFraisUpdate);
+    return () => window.removeEventListener('frais-updated', handleFraisUpdate);
+  }, []);
+
+  // Rechargement sur événement data-updated (global)
   const refresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
@@ -389,7 +400,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }, [loadData, refreshKey]);
 
   // =================== RENDU ===================
-  // (La partie rendu reste inchangée, identique à votre version originale)
+  // (Le rendu est inchangé, identique à votre version)
   // ----- ANCIEN / TRÉSORIER -----
   const renderAncienDashboard = () => {
     const { totalA, volaSisaTeoAloha, volaNiditra, volaNivoaka, volaAfindra, monthlyData } = annualData;
