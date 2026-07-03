@@ -29,13 +29,11 @@ async function updateUser(id, updates) {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = Object.values(updates);
   values.push(id);
-  // ✅ Correction : spread operator
   await db.run(`UPDATE users SET ${fields} WHERE id = ?`, ...values);
 }
 
 async function getAllUsers() {
   const db = await openDb();
-  // ✅ Inclure plain_password pour l'affichage dans le tableau utilisateur
   return db.all(`
     SELECT id, nom, prenom, email, eglise, district, federation,
            fonction, niveau, photo, adresse, contact, plain_password
@@ -298,7 +296,6 @@ async function updateMembre(userId, id, updates) {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = Object.values(updates);
   values.push(id, userId);
-  // ✅ Correction : spread operator
   await db.run(`UPDATE membres SET ${fields} WHERE id = ? AND user_id = ?`, ...values);
 }
 
@@ -358,16 +355,17 @@ async function updateReportField(month, eglise, field, value) {
   await db.run(`UPDATE monthly_reports SET ${field} = ? WHERE month_id = ? AND eglise = ?`, value, month, eglise);
 }
 
+// 🔥 CORRECTION : filtrer les clés pour éviter la duplication
 async function upsertMonthlyReport(month, eglise, data) {
   const db = await openDb();
-  const keys = Object.keys(data);
+  // Filtrer les clés pour exclure month_id et eglise (déjà passés en paramètres)
+  const keys = Object.keys(data).filter(k => k !== 'month_id' && k !== 'eglise');
   const columns = ['month_id', 'eglise', ...keys];
-  const values = [month, eglise, ...Object.values(data)];
+  const values = [month, eglise, ...keys.map(k => data[k])];
 
   if (db.isPostgres) {
     const placeholders = keys.map((_, i) => `$${i + 3}`).join(', ');
     const updateSet = keys.map(k => `${k} = EXCLUDED.${k}`).join(', ');
-    // ✅ Correction : utiliser $1 et $2 au lieu de $$1 et $$2
     const sql = `
       INSERT INTO monthly_reports (${columns.join(', ')})
       VALUES ($1, $2, ${placeholders})
@@ -436,8 +434,8 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   const balanceChurch = totalB - totalExpenses;
 
   const report = {
-    month_id: monthId,
-    eglise,
+    // On ne met PAS month_id ni eglise dans data pour éviter la duplication
+    // Ces champs sont passés séparément dans upsertMonthlyReport
     sabbath_dates: JSON.stringify(sabbathDates),
     totalA,
     totalB,
@@ -530,7 +528,6 @@ async function getUserLogs(limit = 100, offset = 0) {
     ORDER BY timestamp DESC
     LIMIT ? OFFSET ?
   `;
-  // ✅ Correction : spread operator
   return db.all(query, limit, offset);
 }
 
