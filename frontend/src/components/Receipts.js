@@ -72,12 +72,27 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
 
     return (
       <div key={key} className="receipt">
+        {/* Nouvel en-tête avec logos */}
         <div className="receipt-header">
           <div className="header-top">
-            <div className="church-info">
-              <div className="church-line">FIANGONANA ADVANTISTA</div>
-              <div className="sabbath-line">MITANDRINA NY ANDRO FAHA-FITO</div>
-              <div className="federation-line">{federation || 'FEDERASIONA'}</div>
+            <div className="logo-title-group">
+              <img 
+                src="/FINANCE.png" 
+                alt="Finance" 
+                className="header-logo" 
+                onError={(e) => e.target.style.display = 'none'} 
+              />
+              <img 
+                src="/Noir.png" 
+                alt="Noir" 
+                className="header-logo" 
+                onError={(e) => e.target.style.display = 'none'} 
+              />
+              <div className="church-titles">
+                <div className="church-line">FIANGONANA ADVANTISTA</div>
+                <div className="sabbath-line">MITANDRINA NY ANDRO FAHA-FITO</div>
+                <div className="federation-line">{federation || 'FEDERASIONA'}</div>
+              </div>
             </div>
             <div className="rosia-number">ROSIA N° {rosiaNumber}</div>
           </div>
@@ -160,7 +175,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           <button onClick={onClose} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
             <i className="fas fa-arrow-left mr-2"></i> Retour
           </button>
-          {/* Bouton imprimer conservé mais sans action (fonctionnalité retirée) */}
           <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 opacity-50 cursor-not-allowed">
             <i className="fas fa-print mr-2"></i> Imprimer (désactivé)
           </button>
@@ -209,17 +223,28 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .header-top {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
+          align-items: center;
         }
-        .church-info {
-          text-align: left;
+        .logo-title-group {
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
-        .church-info .church-line,
-        .church-info .sabbath-line,
-        .church-info .federation-line {
+        .header-logo {
+          height: 25px;
+          width: auto;
+        }
+        .church-titles {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.1;
+          margin-left: 2px;
+        }
+        .church-titles .church-line,
+        .church-titles .sabbath-line,
+        .church-titles .federation-line {
           font-weight: bold;
           font-size: 8.5px;
-          line-height: 1.1;
           margin: 0;
           padding: 0;
         }
