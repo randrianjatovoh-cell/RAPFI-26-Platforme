@@ -234,6 +234,14 @@ class ApiService {
     return this.request(`/reports/monthly/${month}/${eglise}`);
   }
 
+  // 🔥 NOUVELLE MÉTHODE : forcer le recalcul du rapport
+  async rebuildMonthlyReport(month, eglise) {
+    return this.request('/reports/rebuild', {
+      method: 'POST',
+      body: JSON.stringify({ month, eglise }),
+    });
+  }
+
   async updateSabbathDate(month, eglise, sabbathIndex, date) {
     return this.request('/reports/sabbath-date', {
       method: 'PUT',

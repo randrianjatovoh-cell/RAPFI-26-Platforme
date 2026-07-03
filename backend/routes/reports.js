@@ -4,7 +4,8 @@ const {
   getMonthlyReport, 
   updateReportField, 
   upsertMonthlyReport, 
-  getAllUsers 
+  getAllUsers,
+  computeAndSaveMonthlyReports  // IMPORTANT : ajouté pour le rebuild
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
 
@@ -17,6 +18,24 @@ router.get('/monthly/:month/:eglise', checkAccess, async (req, res) => {
     const report = await getMonthlyReport(req.params.month, req.params.eglise);
     res.json(report || null);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 🔥 Route pour forcer le recalcul d'un rapport mensuel (utilisé par le frontend)
+router.post('/rebuild', checkAccess, async (req, res) => {
+  try {
+    const { month, eglise } = req.body;
+    if (!month || !eglise) {
+      return res.status(400).json({ error: 'Month and eglise are required' });
+    }
+    // Recalculer le rapport
+    await computeAndSaveMonthlyReports(month, eglise);
+    // Récupérer le rapport fraîchement créé
+    const report = await getMonthlyReport(month, eglise);
+    res.json(report);
+  } catch (err) {
+    console.error('Erreur lors du rebuild du rapport :', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -64,7 +83,6 @@ router.get('/district/:district', async (req, res) => {
   try {
     const user = req.user;
     const requestedDistrict = req.params.district;
-    // Admin peut tout voir, Pasteur ne voit que son district, Vérificateur ne voit pas les districts (seulement fédération)
     if (user.fonction === 'Admin') {
       // autorisé
     } else if (user.fonction === 'Pasteur') {
@@ -95,7 +113,6 @@ router.get('/federation/:federation', async (req, res) => {
     const requestedFederation = req.params.federation;
     const { year, month } = req.query;
 
-    // Admin peut tout voir, Vérificateur ne voit que sa fédération, Pasteur ne voit pas les fédérations
     if (user.fonction === 'Admin') {
       // autorisé
     } else if (user.fonction === 'Vérificateur') {
