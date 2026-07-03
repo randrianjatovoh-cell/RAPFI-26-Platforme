@@ -19,8 +19,8 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     );
   }
 
-  // 🔥 Groupes de 6 pour l'impression (2 colonnes × 3 lignes)
-  const chunkSize = 6;
+  // Groupes de 4 pour l'impression (2 colonnes × 2 lignes)
+  const chunkSize = 4;
   const receiptChunks = [];
   for (let i = 0; i < validEntries.length; i += chunkSize) {
     receiptChunks.push(validEntries.slice(i, i + chunkSize));
@@ -172,7 +172,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
 
   return (
     <div className="receipts-container">
-      {/* En-tête avec les boutons (masqué à l'impression) */}
       <div className="receipts-header no-print flex justify-between items-center mb-4 p-3 bg-gray-100 rounded">
         <h2 className="text-xl font-bold">Reçus personnels - {monthName} - {sabbathLabel}</h2>
         <div className="flex gap-2">
@@ -185,7 +184,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         </div>
       </div>
 
-      {/* Pages d'impression : chaque chunk de 6 reçus = une page */}
       {receiptChunks.map((chunk, chunkIndex) => (
         <div key={chunkIndex} className="print-page">
           <div className="receipts-grid">
@@ -195,7 +193,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
       ))}
 
       <style>{`
-        /* --- Styles pour l'écran --- */
+        /* --- Styles écran --- */
         .receipts-container {
           margin-top: 1rem;
           padding: 0 0.5rem;
@@ -411,11 +409,11 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           line-height: 1.1;
         }
 
-        /* --- Styles d'impression : 6 reçus par page A4 (2 colonnes × 3 lignes) --- */
+        /* --- Styles d'impression : 4 reçus par page A4 paysage (2x2) --- */
         @media print {
           @page {
-            size: A4;
-            margin: 4mm;
+            size: A4 landscape;
+            margin: 3mm;
           }
           body {
             background: white;
@@ -428,6 +426,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .print-page {
             page-break-after: always;
             height: 100vh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -437,64 +436,58 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .print-page:last-child {
             page-break-after: avoid;
           }
-          /* Grille 2 colonnes × 3 lignes */
           .receipts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr 1fr;
-            gap: 1.5mm;
+            grid-template-rows: 1fr 1fr;
+            gap: 1mm;
             height: 100%;
             width: 100%;
             box-sizing: border-box;
+            padding: 1mm;
           }
           .receipt {
-            border: 1px solid #000;
+            border: 0.5px solid #000;
             padding: 0.8mm 1mm;
-            font-size: 6.2px;
+            font-size: 8px; /* taille normale */
             height: 100%;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             background: white;
           }
-          /* Réduire encore plus les tailles pour 6 */
-          .church-titles .church-line,
-          .church-titles .sabbath-line,
-          .church-titles .federation-line {
-            font-size: 6px;
+          /* Réduire les espaces internes */
+          .receipt-header {
+            padding-bottom: 0.3mm;
+            margin-bottom: 0.3mm;
           }
           .header-logo {
             height: 14px;
           }
+          .church-titles .church-line,
+          .church-titles .sabbath-line,
+          .church-titles .federation-line {
+            font-size: 7px;
+          }
           .rosia-number {
-            font-size: 6px;
-          }
-          .receipt-title {
-            font-size: 6.5px;
-          }
-          .verse {
-            font-size: 4.5px;
-          }
-          .member-info {
-            font-size: 5.5px;
-          }
-          .amount-row {
-            font-size: 5.5px;
-          }
-          .receipt-table {
-            font-size: 4.8px;
-          }
-          .receipt-table td {
-            padding: 0.2px 0.6px;
-          }
-          .signature-placeholder {
-            font-size: 4px;
-          }
-          .footer-note {
-            font-size: 4px;
+            font-size: 7px;
           }
           .title-box {
-            padding: 0.3px 1.5px;
+            padding: 0.3mm 1mm;
+            margin-bottom: 0.3mm;
+          }
+          .receipt-title {
+            font-size: 7.5px;
+          }
+          .verse {
+            font-size: 5px;
+          }
+          .member-info {
+            font-size: 6.5px;
+            margin: 0.3mm 0;
+          }
+          .member-line {
+            gap: 0.1rem;
           }
           .member-line .label {
             min-width: 30px;
@@ -502,8 +495,39 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .member-line .district-label {
             min-width: 20px;
           }
+          .amount-row {
+            font-size: 6.5px;
+            margin: 0.3mm 0;
+            padding-bottom: 0.3mm;
+          }
+          .receipt-table {
+            font-size: 5.8px;
+            margin: 0.3mm 0;
+          }
+          .receipt-table td {
+            padding: 0.2mm 0.5mm;
+            line-height: 1;
+          }
+          .receipt-table .title-cell,
+          .receipt-table .category-cell {
+            padding-left: 1.5px;
+          }
+          .receipt-table .amount-cell,
+          .receipt-table .total-cell {
+            padding-right: 1.5px;
+          }
+          .signature-placeholder {
+            font-size: 4.5px;
+          }
+          .footer-note {
+            font-size: 4.5px;
+            margin-top: 0.3mm;
+            padding-top: 0.3mm;
+          }
+          /* Supprimer les marges inutiles */
           .receipt-body {
             flex: 1;
+            justify-content: flex-start;
           }
         }
       `}</style>
