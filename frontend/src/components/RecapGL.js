@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
+// src/components/RecapGL.js
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, formatNumber, nombreEnLettresCapitalized, escapeHtml, capitalizeFirstLetter } from '../services/helpers';
@@ -16,53 +17,13 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
   const district = user?.district || '';
   const federation = user?.federation || '';
   const inputRef = useRef(null);
-  const lastSavedFrais = useRef(null);
-  const saveTimeoutRef = useRef(null);
 
-  // Sauvegarde automatique (sans refreshAll)
-  useEffect(() => {
-    if (readOnly || !currentMonth || !eglise) return;
-
-    const saveFrais = async () => {
-      const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
-      if (lastSavedFrais.current === num) return;
-      
-      try {
-        await api.saveFrais(currentMonth, eglise, num);
-        lastSavedFrais.current = num;
-        // ✅ On ne refreshAll plus ici pour éviter les boucles
-        // On notifie seulement via un événement personnalisé
-        window.dispatchEvent(new CustomEvent('frais-updated', { detail: { month: currentMonth, eglise, frais: num } }));
-      } catch (err) {
-        console.error('Erreur sauvegarde frais :', err);
-      }
-    };
-
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(saveFrais, 500);
-
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [fraisDisplay, currentMonth, eglise, readOnly]);
-
-  // Écouter les mises à jour externes (ex: depuis un autre onglet)
-  useEffect(() => {
-    const handleFraisUpdate = (e) => {
-      if (e.detail && e.detail.eglise === eglise && e.detail.month === currentMonth) {
-        loadData();
-      }
-    };
-    window.addEventListener('frais-updated', handleFraisUpdate);
-    return () => window.removeEventListener('frais-updated', handleFraisUpdate);
-  }, [currentMonth, eglise]);
-
-  useEffect(() => {
-    if (currentMonth && eglise) loadData();
-    else setLoading(false);
-  }, [currentMonth, refreshAll, eglise]);
-
-  async function loadData() {
+  // Chargement des données (dépend uniquement du mois et de l'église)
+  const loadData = useCallback(async () => {
+    if (!currentMonth || !eglise) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
@@ -105,20 +66,37 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
 
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setFraisState(fraisVal);
-      const displayVal = fraisVal ? formatNumber(fraisVal) : '0';
-      setFraisDisplay(displayVal);
-      lastSavedFrais.current = fraisVal;
+      setFraisDisplay(fraisVal ? formatNumber(fraisVal) : '0');
     } catch (err) {
       console.error('Erreur chargement RecapGL:', err);
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentMonth, eglise]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]); // loadData est stable grâce à useCallback
 
   const formatWithSpaces = (num) => {
     if (num === undefined || num === null) return '0';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   };
+
+  // Sauvegarde des frais (appelée uniquement sur blur ou Enter)
+  const saveFrais = useCallback(async () => {
+    if (readOnly || !currentMonth || !eglise) return;
+    const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
+    setFraisState(num);
+    try {
+      // ✅ Correction du nom de méthode
+      await api.saveFrais(currentMonth, eglise, num);
+      // Notifier les autres composants (sans recharger tout)
+      window.dispatchEvent(new CustomEvent('frais-updated', { detail: { month: currentMonth, eglise, frais: num } }));
+    } catch (err) {
+      console.error('Erreur sauvegarde frais :', err);
+    }
+  }, [currentMonth, eglise, fraisDisplay, readOnly]);
 
   const handleFraisChange = (e) => {
     if (readOnly) return;
@@ -131,17 +109,7 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
 
   const handleFraisBlur = async () => {
     if (readOnly) return;
-    const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
-    setFraisState(num);
-    setFraisDisplay(formatWithSpaces(num));
-    try {
-      await api.saveFrais(currentMonth, eglise, num);
-      lastSavedFrais.current = num;
-      window.dispatchEvent(new CustomEvent('frais-updated', { detail: { month: currentMonth, eglise, frais: num } }));
-      if (refreshAll && typeof refreshAll === 'function') refreshAll();
-    } catch (err) {
-      console.error('Erreur sauvegarde frais (blur):', err);
-    }
+    await saveFrais();
   };
 
   const handleFraisKeyDown = (e) => {
