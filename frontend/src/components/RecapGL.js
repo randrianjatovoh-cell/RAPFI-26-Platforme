@@ -16,35 +16,35 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
   const district = user?.district || '';
   const federation = user?.federation || '';
   const inputRef = useRef(null);
+  const lastSavedFrais = useRef(null);
 
-  // Sauvegarde automatique des frais
+  // Sauvegarde automatique des frais avec debounce
   useEffect(() => {
+    let timeoutId = null;
+
     const saveFrais = async () => {
       if (readOnly || !currentMonth || !eglise) return;
       const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
+      // Éviter les sauvegardes inutiles si la valeur n'a pas changé
+      if (lastSavedFrais.current === num) return;
+      
       setFraisState(num);
       try {
-        // ✅ Correction : utiliser saveFrais (et non setFrais)
         await api.saveFrais(currentMonth, eglise, num);
+        lastSavedFrais.current = num;
         if (refreshAll && typeof refreshAll === 'function') refreshAll();
       } catch (err) {
         console.error('Erreur sauvegarde frais :', err);
       }
     };
 
-    const timer = setTimeout(saveFrais, 500);
-    return () => clearTimeout(timer);
-  }, [fraisDisplay, currentMonth, eglise, readOnly, refreshAll]);
+    // Délai de 500ms après le dernier changement
+    timeoutId = setTimeout(saveFrais, 500);
 
-  // Sauvegarde au démontage
-  useEffect(() => {
     return () => {
-      if (readOnly || !currentMonth || !eglise) return;
-      const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
-      // ✅ Correction : utiliser saveFrais
-      api.saveFrais(currentMonth, eglise, num).catch(err => console.error('Erreur sauvegarde frais au démontage:', err));
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [fraisDisplay, currentMonth, eglise, readOnly]);
+  }, [fraisDisplay, currentMonth, eglise, readOnly, refreshAll]);
 
   useEffect(() => {
     if (currentMonth && eglise) loadData();
@@ -94,7 +94,9 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
 
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setFraisState(fraisVal);
-      setFraisDisplay(fraisVal ? formatNumber(fraisVal) : '0');
+      const displayVal = fraisVal ? formatNumber(fraisVal) : '0';
+      setFraisDisplay(displayVal);
+      lastSavedFrais.current = fraisVal;
     } catch (err) {
       console.error('Erreur chargement RecapGL:', err);
     } finally {
@@ -121,8 +123,13 @@ export default function RecapGL({ currentMonth, refreshAll, user: propUser, sele
     const num = parseInt(fraisDisplay.replace(/\s/g, ''), 10) || 0;
     setFraisState(num);
     setFraisDisplay(formatWithSpaces(num));
-    await api.saveFrais(currentMonth, eglise, num);
-    if (refreshAll && typeof refreshAll === 'function') refreshAll();
+    try {
+      await api.saveFrais(currentMonth, eglise, num);
+      lastSavedFrais.current = num;
+      if (refreshAll && typeof refreshAll === 'function') refreshAll();
+    } catch (err) {
+      console.error('Erreur sauvegarde frais (blur):', err);
+    }
   };
 
   const handleFraisKeyDown = (e) => {
