@@ -19,8 +19,8 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     );
   }
 
-  // Découpage en groupes de 4 pour l'impression (2 colonnes x 2 lignes)
-  const chunkSize = 4;
+  // 🔥 Groupes de 6 pour l'impression (2 colonnes × 3 lignes)
+  const chunkSize = 6;
   const receiptChunks = [];
   for (let i = 0; i < validEntries.length; i += chunkSize) {
     receiptChunks.push(validEntries.slice(i, i + chunkSize));
@@ -185,7 +185,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         </div>
       </div>
 
-      {/* Pages d'impression : chaque chunk de 4 reçus = une page */}
+      {/* Pages d'impression : chaque chunk de 6 reçus = une page */}
       {receiptChunks.map((chunk, chunkIndex) => (
         <div key={chunkIndex} className="print-page">
           <div className="receipts-grid">
@@ -411,23 +411,20 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           line-height: 1.1;
         }
 
-        /* --- Styles d'impression : 4 reçus par page A4 --- */
+        /* --- Styles d'impression : 6 reçus par page A4 (2 colonnes × 3 lignes) --- */
         @media print {
-          /* Supprimer les marges et fonds */
           @page {
             size: A4;
-            margin: 5mm;
+            margin: 4mm;
           }
           body {
             background: white;
             margin: 0;
             padding: 0;
           }
-          /* Masquer les éléments non imprimables */
           .no-print {
             display: none !important;
           }
-          /* Chaque page = un chunk */
           .print-page {
             page-break-after: always;
             height: 100vh;
@@ -440,74 +437,73 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .print-page:last-child {
             page-break-after: avoid;
           }
-          /* Grille 2x2 remplissant la page */
+          /* Grille 2 colonnes × 3 lignes */
           .receipts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 2mm;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 1.5mm;
             height: 100%;
             width: 100%;
             box-sizing: border-box;
           }
           .receipt {
             border: 1px solid #000;
-            padding: 1mm 1.5mm;
-            font-size: 7px;
+            padding: 0.8mm 1mm;
+            font-size: 6.2px;
             height: 100%;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             background: white;
           }
-          /* Ajustements pour que tout tienne */
+          /* Réduire encore plus les tailles pour 6 */
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
-            font-size: 7px;
+            font-size: 6px;
           }
           .header-logo {
-            height: 18px;
+            height: 14px;
           }
           .rosia-number {
-            font-size: 7px;
+            font-size: 6px;
           }
           .receipt-title {
-            font-size: 7px;
+            font-size: 6.5px;
           }
           .verse {
-            font-size: 5px;
+            font-size: 4.5px;
           }
           .member-info {
-            font-size: 6px;
+            font-size: 5.5px;
           }
           .amount-row {
-            font-size: 6px;
+            font-size: 5.5px;
           }
           .receipt-table {
-            font-size: 5px;
+            font-size: 4.8px;
           }
           .receipt-table td {
-            padding: 0.3px 0.8px;
+            padding: 0.2px 0.6px;
           }
           .signature-placeholder {
-            font-size: 4.5px;
+            font-size: 4px;
           }
           .footer-note {
-            font-size: 4.5px;
-          }
-          /* Supprimer les marges internes superflues */
-          .receipt-body {
-            flex: 1;
+            font-size: 4px;
           }
           .title-box {
-            padding: 0.5px 2px;
+            padding: 0.3px 1.5px;
           }
           .member-line .label {
-            min-width: 35px;
+            min-width: 30px;
           }
           .member-line .district-label {
-            min-width: 25px;
+            min-width: 20px;
+          }
+          .receipt-body {
+            flex: 1;
           }
         }
       `}</style>
