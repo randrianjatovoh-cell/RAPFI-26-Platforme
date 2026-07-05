@@ -3,7 +3,6 @@ import React from 'react';
 import { formatNumber, nombreEnLettresCapitalized } from '../services/helpers';
 
 export default function Receipts({ entries, eglise, district, federation, sabbathDate, monthId, sabbathIndex, onClose }) {
-  // Filtrer les entrées ayant au moins un montant
   const validEntries = entries.filter(e => e.memberName && (
     (e.f1 || 0) + (e.f2 || 0) + (e.f3 || 0) + (e.f4 || 0) +
     (e.f5 || 0) + (e.f6 || 0) + (e.f7 || 0) + (e.f8 || 0) +
@@ -19,7 +18,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     );
   }
 
-  // Groupes de 4 pour l'impression (2 colonnes × 2 lignes)
   const chunkSize = 4;
   const receiptChunks = [];
   for (let i = 0; i < validEntries.length; i += chunkSize) {
@@ -413,7 +411,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         @media print {
           @page {
             size: A4 landscape;
-            margin: 3mm;
+            margin: 2mm;
           }
           body {
             background: white;
@@ -448,43 +446,42 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           }
           .receipt {
             border: 0.5px solid #000;
-            padding: 0.8mm 1mm;
-            font-size: 8px; /* taille normale */
+            padding: 0.5mm 0.8mm;
+            font-size: 12px;
             height: 100%;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             background: white;
           }
-          /* Réduire les espaces internes */
           .receipt-header {
-            padding-bottom: 0.3mm;
-            margin-bottom: 0.3mm;
+            padding-bottom: 0.2mm;
+            margin-bottom: 0.2mm;
           }
           .header-logo {
-            height: 14px;
+            height: 16px;
           }
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
-            font-size: 7px;
+            font-size: 10px;
           }
           .rosia-number {
-            font-size: 7px;
+            font-size: 10px;
           }
           .title-box {
-            padding: 0.3mm 1mm;
-            margin-bottom: 0.3mm;
+            padding: 0.2mm 0.8mm;
+            margin-bottom: 0.2mm;
           }
           .receipt-title {
-            font-size: 7.5px;
+            font-size: 10.5px;
           }
           .verse {
-            font-size: 5px;
+            font-size: 8px;
           }
           .member-info {
-            font-size: 6.5px;
-            margin: 0.3mm 0;
+            font-size: 9.5px;
+            margin: 0.2mm 0;
           }
           .member-line {
             gap: 0.1rem;
@@ -496,13 +493,13 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             min-width: 20px;
           }
           .amount-row {
-            font-size: 6.5px;
-            margin: 0.3mm 0;
-            padding-bottom: 0.3mm;
+            font-size: 9.5px;
+            margin: 0.2mm 0;
+            padding-bottom: 0.2mm;
           }
           .receipt-table {
-            font-size: 5.8px;
-            margin: 0.3mm 0;
+            font-size: 9px;
+            margin: 0.2mm 0;
           }
           .receipt-table td {
             padding: 0.2mm 0.5mm;
@@ -517,14 +514,13 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             padding-right: 1.5px;
           }
           .signature-placeholder {
-            font-size: 4.5px;
+            font-size: 7.5px;
           }
           .footer-note {
-            font-size: 4.5px;
-            margin-top: 0.3mm;
-            padding-top: 0.3mm;
+            font-size: 7.5px;
+            margin-top: 0.2mm;
+            padding-top: 0.2mm;
           }
-          /* Supprimer les marges inutiles */
           .receipt-body {
             flex: 1;
             justify-content: flex-start;
