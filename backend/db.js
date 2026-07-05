@@ -1,3 +1,4 @@
+// backend/db.js
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const fs = require('fs');
@@ -23,7 +24,6 @@ function createPgWrapper(pool) {
   return {
     // ✅ run accepte soit des arguments séparés, soit un tableau
     async run(sql, ...params) {
-      // Si params est un tableau de un élément qui est lui-même un tableau, on le déplie
       if (params.length === 1 && Array.isArray(params[0])) {
         params = params[0];
       }
@@ -222,14 +222,16 @@ async function initDb() {
     );
     CREATE TABLE IF NOT EXISTS user_logs (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER,
+      user_id INTEGER NOT NULL,
       userName TEXT,
       userFonction TEXT,
-      date TEXT,
+      date TEXT NOT NULL,
       timestamp BIGINT,
       ip TEXT,
       userAgent TEXT
     );
+    CREATE INDEX IF NOT EXISTS idx_user_logs_user_id ON user_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_logs_date ON user_logs(date);
     CREATE TABLE IF NOT EXISTS members_stats (
       memberName TEXT PRIMARY KEY,
       totalTithe INTEGER,
@@ -286,7 +288,18 @@ async function initDb() {
       PRIMARY KEY (month_id, eglise)
     );
     CREATE TABLE IF NOT EXISTS frais (month_id TEXT, eglise TEXT, amount INTEGER, PRIMARY KEY (month_id, eglise));
-    CREATE TABLE IF NOT EXISTS user_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, userName TEXT, userFonction TEXT, date TEXT, timestamp INTEGER, ip TEXT, userAgent TEXT);
+    CREATE TABLE IF NOT EXISTS user_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      userName TEXT,
+      userFonction TEXT,
+      date TEXT NOT NULL,
+      timestamp INTEGER,
+      ip TEXT,
+      userAgent TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_logs_user_id ON user_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_logs_date ON user_logs(date);
     CREATE TABLE IF NOT EXISTS members_stats (memberName TEXT PRIMARY KEY, totalTithe INTEGER, participations INTEGER, lastMonth TEXT);
   `;
 
