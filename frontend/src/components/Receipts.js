@@ -47,6 +47,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     const b9 = entry.b9 || 0;
     const b10 = entry.b10 || 0;
 
+    // Lignes du tableau (4 colonnes)
     const rows = [
       { label: 'Sekoly Sabata / S. faha-13', miakatra: f2, mijanona: b9 },
       { label: 'Fanambinana', miakatra: f3, mijanona: 0 },
@@ -119,41 +120,40 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             <div className="amount-right"><span className="label">An-tsoratra :</span> <span className="value">{totalLetters} Ar</span></div>
           </div>
 
+          {/* Tableau avec 4 colonnes */}
           <table className="receipt-table">
-            <tbody>
+            <thead>
               <tr>
-                <td className="title-cell">AMPAHAFOLONY</td>
-                <td className="amount-cell border-right-cell" colSpan="2">{formatNumber(f1)}</td>
-                <td className="signature-cell"></td>
+                <th className="title-cell" colSpan="2">AMPAHAFOLONY</th>
+                <th className="header-cell">Fanatitra Miakatra</th>
+                <th className="header-cell">Fanatitra Mijanona</th>
               </tr>
               <tr>
-                <td className="title-cell">FANATITRA</td>
-                <td className="header-cell">Fanatitra Miakatra</td>
-                <td className="header-cell">Fanatitra Mijanona</td>
-                <td className="signature-cell"></td>
+                <th className="title-cell" colSpan="2">FANATITRA</th>
+                <th className="header-cell"></th>
+                <th className="header-cell"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="title-cell" colSpan="2">AMPAHAFOLONY</td>
+                <td className="amount-cell" colSpan="2">{formatNumber(f1)}</td>
               </tr>
               {rows.map((row, idx) => (
                 <tr key={idx}>
-                  <td className="category-cell">{row.label}</td>
+                  <td className="category-cell" colSpan="2">{row.label}</td>
                   <td className="amount-cell">{formatNumber(row.miakatra)}</td>
                   <td className="amount-cell">{formatNumber(row.mijanona)}</td>
-                  <td className="signature-cell">
-                    {row.label === 'Fanambinana' && <div className="signature-placeholder">Sonian'ny mpitahiry vola</div>}
-                    {row.label === 'Manokana 2' && <div className="signature-placeholder">_______________</div>}
-                    {row.label === 'Manokana 3' && <div className="signature-placeholder">Daty : {dateStr}</div>}
-                  </td>
                 </tr>
               ))}
-              <tr>
-                <td className="title-cell">Tontalin'ny fanatitra</td>
+              <tr className="total-row">
+                <td className="title-cell" colSpan="2">Tontalin'ny fanatitra</td>
                 <td className="total-cell">{formatNumber(totalMiakatra)}</td>
                 <td className="total-cell">{formatNumber(totalMijanona)}</td>
-                <td className="signature-cell"></td>
               </tr>
-              <tr>
-                <td className="title-cell">Tontalin'ny vola narotsaka</td>
-                <td className="total-cell border-right-cell" colSpan="2">{formatNumber(totalNarotsaka)}</td>
-                <td className="signature-cell"></td>
+              <tr className="total-row">
+                <td className="title-cell" colSpan="2">Tontalin'ny vola narotsaka</td>
+                <td className="total-cell" colSpan="2">{formatNumber(totalNarotsaka)}</td>
               </tr>
             </tbody>
           </table>
@@ -191,7 +191,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
       ))}
 
       <style>{`
-        /* --- Styles écran (tailles augmentées) --- */
+        /* --- Styles écran --- */
         .receipts-container {
           margin-top: 1rem;
           padding: 0 0.5rem;
@@ -336,29 +336,12 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           line-height: 1.2;
           border-spacing: 0;
         }
+        .receipt-table th,
         .receipt-table td {
           border: 1px solid #000;
-          border-right: none;
-          border-top: 1px solid #000;
-          border-bottom: 1px solid #000;
           padding: 1px 2px;
           text-align: center;
           vertical-align: middle;
-          margin: 0;
-          line-height: 1.2;
-        }
-        .receipt-table td:first-child {
-          border-left: 1px solid #000;
-        }
-        .receipt-table td:nth-child(3) {
-          border-right: 1px solid #000;
-        }
-        .receipt-table td:last-child {
-          border: none !important;
-          background: transparent;
-        }
-        .receipt-table .border-right-cell {
-          border-right: 1px solid #000 !important;
         }
         .receipt-table .title-cell {
           text-align: left;
@@ -372,7 +355,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         }
         .receipt-table .category-cell {
           text-align: left;
-          font-weight: bold;
           padding-left: 4px;
         }
         .receipt-table .amount-cell {
@@ -384,16 +366,9 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           font-weight: bold;
           padding-right: 4px;
         }
-        .receipt-table .signature-cell {
-          text-align: center;
-          font-size: 7px;
-          min-width: 28px;
-          border: none !important;
-          padding: 1px 0;
-        }
-        .signature-placeholder {
-          font-size: 7px;
-          color: #333;
+        .receipt-table .total-row td {
+          font-weight: bold;
+          background: #f9f9f9;
         }
         .footer-note {
           text-align: left;
@@ -411,7 +386,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         @media print {
           @page {
             size: A4 landscape;
-            margin: 0.5mm; /* Marges encore plus réduites */
+            margin: 0.5mm;
           }
           body {
             background: white;
@@ -438,16 +413,16 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 0.2mm; /* Espacement minimal */
+            gap: 0.2mm;
             height: 100%;
             width: 100%;
             box-sizing: border-box;
-            padding: 0.2mm; /* Padding externe minimal */
+            padding: 0.2mm;
           }
           .receipt {
             border: 0.5px solid #000;
-            padding: 0.1mm 0.1mm; /* Padding interne ultra-réduit */
-            font-size: 14px; /* Légère réduction pour gagner de la place */
+            padding: 0.1mm 0.1mm;
+            font-size: 13px;
             height: 100%;
             box-sizing: border-box;
             display: flex;
@@ -459,29 +434,29 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             margin-bottom: 0.1mm;
           }
           .header-logo {
-            height: 14px; /* Logos réduits pour gagner de la place */
+            height: 13px;
           }
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
-            font-size: 9px; /* Réduit pour gagner de la place */
+            font-size: 8.5px;
             line-height: 1.0;
           }
           .rosia-number {
-            font-size: 9px;
+            font-size: 8.5px;
           }
           .title-box {
             padding: 0.05mm 0.2mm;
             margin-bottom: 0.05mm;
           }
           .receipt-title {
-            font-size: 10px;
+            font-size: 9.5px;
           }
           .verse {
-            font-size: 6.5px;
+            font-size: 6px;
           }
           .member-info {
-            font-size: 9px;
+            font-size: 8.5px;
             margin: 0.05mm 0;
           }
           .member-line {
@@ -489,58 +464,56 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           }
           .member-line .label {
             min-width: 12px;
-            font-size: 8px;
+            font-size: 7.5px;
           }
           .member-line .district-label {
             min-width: 8px;
-            font-size: 8px;
+            font-size: 7.5px;
           }
           .member-line .value {
-            font-size: 8px;
+            font-size: 7.5px;
           }
           .amount-row {
-            font-size: 9px;
+            font-size: 8.5px;
             margin: 0.05mm 0;
             padding-bottom: 0.05mm;
           }
           .amount-row .label {
-            font-size: 8px;
+            font-size: 7.5px;
           }
           .amount-row .value {
-            font-size: 8px;
+            font-size: 7.5px;
           }
           .receipt-table {
-            font-size: 8px;
+            font-size: 7.5px;
             margin: 0.05mm 0;
           }
+          .receipt-table th,
           .receipt-table td {
             padding: 0.05mm 0.1mm;
             line-height: 1.0;
           }
           .receipt-table .title-cell {
-            font-size: 8px;
+            font-size: 7px;
             padding-left: 0.5px;
           }
           .receipt-table .category-cell {
-            font-size: 7px;
+            font-size: 6.5px;
             padding-left: 0.5px;
           }
           .receipt-table .header-cell {
-            font-size: 7px;
+            font-size: 6.5px;
           }
           .receipt-table .amount-cell {
-            font-size: 7px;
+            font-size: 6.5px;
             padding-right: 0.5px;
           }
           .receipt-table .total-cell {
-            font-size: 7px;
+            font-size: 6.5px;
             padding-right: 0.5px;
           }
-          .signature-placeholder {
-            font-size: 6px;
-          }
           .footer-note {
-            font-size: 6px;
+            font-size: 5.5px;
             margin-top: 0.05mm;
             padding-top: 0.05mm;
           }
