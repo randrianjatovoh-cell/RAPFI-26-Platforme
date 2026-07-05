@@ -120,7 +120,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             <span className="value">{formatNumber(totalNarotsaka)} Ar</span>
           </div>
 
-          {/* Tableau 3 colonnes avec largeurs fixes */}
+          {/* Tableau 3 colonnes avec largeurs fixes en impression */}
           <table className="receipt-table">
             <thead>
               <tr>
@@ -229,7 +229,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .amount-row { display: flex; justify-content: flex-start; gap: 0.8rem; font-size: 16px; font-weight: bold; margin: 4px 0; border-bottom: 1px solid #000; padding-bottom: 4px; }
         .amount-row .label { font-weight: bold; }
         .amount-row .value { font-weight: bold; }
-        .receipt-table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 4px 0; line-height: 1.3; border-spacing: 0; table-layout: fixed; }
+        .receipt-table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 4px 0; line-height: 1.3; border-spacing: 0; table-layout: auto; }
         .receipt-table th, .receipt-table td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
         .receipt-table .title-cell { text-align: left; font-weight: bold; padding-left: 6px; }
         .receipt-table .header-cell { text-align: center; font-weight: bold; background: #f0f0f0; }
@@ -241,10 +241,13 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
 
         /* --- Impression : 4 reçus par page A4 paysage — COMPRESSION TOTALE --- */
         @media print {
-          html, body { margin: 0; padding: 0; }
-          @page { size: A4 landscape; margin: 0; }
-          body { background: white; margin: 0; padding: 0; }
+          /* 1. Supprimer TOUTES les marges et paddings */
+          html, body { margin: 0 !important; padding: 0 !important; }
+          * { margin: 0 !important; padding: 0 !important; }
+          @page { size: A4 landscape; margin: 0 !important; }
+          body { background: white; }
           .no-print { display: none !important; }
+          
           .print-page {
             page-break-after: always;
             height: 100vh;
@@ -252,25 +255,27 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             display: flex;
             flex-direction: column;
             justify-content: center;
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print-page:last-child { page-break-after: avoid; }
+          
+          .receipts-container { margin: 0 !important; padding: 0 !important; }
           .receipts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 0;
+            gap: 0 !important;
             height: 100%;
             width: 100%;
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          .receipts-container { margin: 0; padding: 0; }
+          
           .receipt {
             border: 0.3px solid #000;
-            padding: 0;
-            margin: 0;
+            padding: 0 !important;
+            margin: 0 !important;
             font-size: 36px;
             height: 100%;
             width: 100%;
@@ -278,75 +283,75 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             display: flex;
             flex-direction: column;
             background: white;
-            line-height: 0.75; /* interligne ultra-serré */
+            line-height: 0.7 !important;
           }
-          .receipt-header { padding: 0; margin: 0; border-bottom: none !important; }
-          .header-top { padding: 0; margin: 0; gap: 0; }
-          .logo-title-group { gap: 0; margin: 0; padding: 0; }
-          .header-logo { height: 18px; margin: 0; padding: 0; }
-          .church-titles { margin: 0; padding: 0; line-height: 0.8; }
+          .receipt-header { padding: 0 !important; margin: 0 !important; border-bottom: none !important; }
+          .header-top { padding: 0 !important; margin: 0 !important; gap: 0 !important; }
+          .logo-title-group { gap: 0 !important; margin: 0 !important; padding: 0 !important; }
+          .header-logo { height: 18px; margin: 0 !important; padding: 0 !important; }
+          .church-titles { margin: 0 !important; padding: 0 !important; line-height: 0.7 !important; }
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
             font-size: 18px;
-            margin: 0;
-            padding: 0;
-            line-height: 0.8;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 0.7 !important;
           }
-          .rosia-number { font-size: 18px; margin: 0; padding: 0; line-height: 0.8; }
-          .title-box { border: 0.5px solid #000; padding: 0; margin: 0; text-align: center; }
-          .receipt-title { font-size: 20px; margin: 0; padding: 0; letter-spacing: 0; line-height: 0.8; }
-          .verse { font-size: 13px; margin: 0; padding: 0; line-height: 0.8; }
-          .member-info { font-size: 18px; margin: 0; padding: 0; border-bottom: none !important; line-height: 0.8; }
-          .member-line { display: flex; align-items: center; gap: 0; margin: 0; padding: 0; flex-wrap: nowrap; line-height: 0.8; }
-          .member-line .label { font-size: 16px; min-width: auto; margin: 0; padding: 0; }
-          .member-line .district-label { font-size: 16px; min-width: auto; margin: 0; padding: 0; }
-          .member-line .value { font-size: 16px; margin: 0; padding: 0; }
-          .amount-row { display: flex; justify-content: flex-start; gap: 0; font-size: 18px; font-weight: bold; margin: 0; padding: 0; border-bottom: 0.5px solid #000; line-height: 0.8; }
-          .amount-row .label { font-size: 16px; margin: 0; padding: 0; }
-          .amount-row .value { font-size: 16px; margin: 0; padding: 0; }
+          .rosia-number { font-size: 18px; margin: 0 !important; padding: 0 !important; line-height: 0.7 !important; }
+          .title-box { border: 0.5px solid #000; padding: 0 !important; margin: 0 !important; text-align: center; }
+          .receipt-title { font-size: 20px; margin: 0 !important; padding: 0 !important; letter-spacing: 0; line-height: 0.7 !important; }
+          .verse { font-size: 13px; margin: 0 !important; padding: 0 !important; line-height: 0.7 !important; }
+          .member-info { font-size: 18px; margin: 0 !important; padding: 0 !important; border-bottom: none !important; line-height: 0.7 !important; }
+          .member-line { display: flex; align-items: center; gap: 0 !important; margin: 0 !important; padding: 0 !important; flex-wrap: nowrap; line-height: 0.7 !important; }
+          .member-line .label { font-size: 16px; min-width: auto; margin: 0 !important; padding: 0 !important; }
+          .member-line .district-label { font-size: 16px; min-width: auto; margin: 0 !important; padding: 0 !important; }
+          .member-line .value { font-size: 16px; margin: 0 !important; padding: 0 !important; }
+          .amount-row { display: flex; justify-content: flex-start; gap: 0 !important; font-size: 18px; font-weight: bold; margin: 0 !important; padding: 0 !important; border-bottom: 0.5px solid #000; line-height: 0.7 !important; }
+          .amount-row .label { font-size: 16px; margin: 0 !important; padding: 0 !important; }
+          .amount-row .value { font-size: 16px; margin: 0 !important; padding: 0 !important; }
           .receipt-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 15px;
-            margin: 0;
-            padding: 0;
-            line-height: 0.75;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 0.7 !important;
             border-spacing: 0;
-            table-layout: fixed;
+            table-layout: fixed !important;
           }
           .receipt-table th, 
           .receipt-table td {
             border: 0.5px solid #000;
-            padding: 0;
-            margin: 0;
+            padding: 0 !important;
+            margin: 0 !important;
             text-align: center;
             vertical-align: middle;
           }
           .receipt-table .title-cell {
             font-size: 14px;
-            padding-left: 0;
+            padding-left: 0 !important;
             text-align: left;
-            width: 40%;
+            width: 40% !important;
           }
           .receipt-table .category-cell {
             font-size: 13px;
-            padding-left: 0;
+            padding-left: 0 !important;
             text-align: left;
           }
           .receipt-table .header-cell {
             font-size: 14px;
-            width: 30%;
+            width: 30% !important;
           }
           .receipt-table .amount-cell {
             font-size: 14px;
-            padding-right: 0;
+            padding-right: 0 !important;
             text-align: right;
-            width: 30%;
+            width: 30% !important;
           }
           .receipt-table .total-cell {
             font-size: 14px;
-            padding-right: 0;
+            padding-right: 0 !important;
             text-align: right;
           }
           .receipt-table .total-row td {
@@ -355,17 +360,17 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           }
           .footer-note {
             font-size: 12px;
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
             border-top: 0.5px dotted #ccc;
             font-style: italic;
-            line-height: 0.8;
+            line-height: 0.7 !important;
           }
           .receipt-body {
             flex: 1;
             justify-content: flex-start;
-            padding: 0;
-            margin: 0;
+            padding: 0 !important;
+            margin: 0 !important;
           }
         }
       `}</style>
