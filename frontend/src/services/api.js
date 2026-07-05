@@ -1,3 +1,4 @@
+// frontend/src/services/api.js
 // ⚠️ URL forcée pour la production (Render)
 const API_URL = 'https://rapfi-backend.onrender.com/api';
 
@@ -109,7 +110,6 @@ class ApiService {
     });
   }
 
-  // ✅ Correction : accepter FormData directement
   async uploadPhoto(id, formData) {
     const url = `${API_URL}/users/${id}/photo`;
     console.log(`📤 Upload photo vers ${url}`);
@@ -234,7 +234,6 @@ class ApiService {
     return this.request(`/reports/monthly/${month}/${eglise}`);
   }
 
-  // 🔥 NOUVELLE MÉTHODE : forcer le recalcul du rapport
   async rebuildMonthlyReport(month, eglise) {
     return this.request('/reports/rebuild', {
       method: 'POST',
@@ -307,8 +306,14 @@ class ApiService {
     return this.request(`/logs?limit=${limit}&offset=${offset}`);
   }
 
-  async getUniqueVisitors() {
-    return this.request('/logs/unique');
+  // ✅ Méthodes ajoutées pour les statistiques
+  async getUserLogs() {
+    return this.getLogs(10000);
+  }
+
+  async getUniqueVisitorsCount() {
+    const data = await this.request('/logs/unique');
+    return data; // { count: ... }
   }
 
   async getVisitsPerUser() {

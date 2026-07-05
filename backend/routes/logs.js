@@ -1,53 +1,64 @@
 // backend/routes/logs.js
 const express = require('express');
-const { addUserLog, getUserLogs, getLogsCount, getUniqueVisitorsCount, getVisitsPerUser } = require('../models');
-const { authenticateToken, authorize } = require('../middleware/auth');
-
 const router = express.Router();
+const db = require('../db');
+const { authenticate, isAdmin } = require('../middleware/auth');
 
-router.post('/', async (req, res) => {
+// POST /api/logs – enregistrer une connexion (authentifié)
+router.post('/', authenticate, async (req, res) => {
   try {
     const { userId, userName, userFonction } = req.body;
-    const ip = req.ip || req.connection.remoteAddress || '';
-    const userAgent = req.headers['user-agent'] || '';
-    await addUserLog(userId, userName, userFonction, ip, userAgent);
-    res.json({ success: true });
+    if (!userId) {
+      return res.status(400).json({ error: 'userId requis' });
+    }
+    const date = new Date().toISOString();
+    await db.run(
+      'INSERT INTO user_logs (user_id, userName, userFonction, date) VALUES (?, ?, ?, ?)',
+      [userId, userName || 'Inconnu', userFonction || '', date]
+    );
+    res.status(201).json({ success: true });
   } catch (err) {
-    console.error('❌ Erreur addUserLog :', err);
-    res.status(500).json({ error: err.message });
+    console.error('Erreur insertion log:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'enregistrement du log' });
   }
 });
 
-router.get('/', authenticateToken, authorize('Admin'), async (req, res) => {
+// GET /api/logs – tous les logs (admin uniquement)
+router.get('/', authenticate, isAdmin, async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 100;
-    const offset = parseInt(req.query.offset) || 0;
-    const logs = await getUserLogs(limit, offset);
-    const total = await getLogsCount();
-    res.json({ logs, total });
+    const { limit = 10000, offset = 0 } = req.query;
+    const logs = await db.getAll(
+      'SELECT * FROM user_logs ORDER BY date DESC LIMIT ? OFFSET ?',
+      [Number(limit), Number(offset)]
+    );
+    res.json(logs);
   } catch (err) {
-    console.error('❌ Erreur getUserLogs :', err);
-    res.status(500).json({ error: err.message });
+    console.error('Erreur récupération logs:', err);
+    res.status(500).json({ error: 'Erreur lors de la récupération des logs' });
   }
 });
 
-router.get('/unique', authenticateToken, authorize('Admin'), async (req, res) => {
+// GET /api/logs/unique – nombre d'utilisateurs distincts
+router.get('/unique', authenticate, isAdmin, async (req, res) => {
   try {
-    const count = await getUniqueVisitorsCount();
-    res.json({ count });
+    const row = await db.get('SELECT COUNT(DISTINCT user_id) as count FROM user_logs');
+    res.json({ count: row.count || 0 });
   } catch (err) {
-    console.error('❌ Erreur getUniqueVisitorsCount :', err);
-    res.status(500).json({ error: err.message });
+    console.error('Erreur comptage unique:', err);
+    res.status(500).json({ error: 'Erreur lors du comptage des utilisateurs uniques' });
   }
 });
 
-router.get('/visits', authenticateToken, authorize('Admin'), async (req, res) => {
+// GET /api/logs/visits – nombre de visites par utilisateur
+router.get('/visits', authenticate, isAdmin, async (req, res) => {
   try {
-    const visits = await getVisitsPerUser();
+    const visits = await db.getAll(
+      'SELECT user_id, userName, COUNT(*) as count FROM user_logs GROUP BY user_id, userName ORDER BY count DESC'
+    );
     res.json(visits);
   } catch (err) {
-    console.error('❌ Erreur getVisitsPerUser :', err);
-    res.status(500).json({ error: err.message });
+    console.error('Erreur regroupement visites:', err);
+    res.status(500).json({ error: 'Erreur lors du regroupement des visites' });
   }
 });
 

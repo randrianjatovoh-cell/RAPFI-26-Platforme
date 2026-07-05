@@ -46,7 +46,7 @@ const authLimiter = rateLimit({
   max: 30,
   message: { error: 'Trop de tentatives de connexion. Veuillez réessayer dans 5 minutes.' },
   validate: {
-    trustProxy: false,   // éviter les erreurs
+    trustProxy: false,
     xForwardedForHeader: false,
   },
 });
@@ -107,7 +107,7 @@ app.use('/api/config', require('./routes/config'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/frais', require('./routes/frais'));
 app.use('/api/stats', require('./routes/stats'));
-app.use('/api/logs', require('./routes/logs'));
+app.use('/api/logs', require('./routes/logs'));  // ✅ Route des logs
 app.use('/api/eglises', require('./routes/eglises'));
 
 // ---------- Middleware de gestion d'erreurs ----------
