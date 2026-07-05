@@ -141,7 +141,7 @@ export default function Login({ onLogin }) {
             Scannez ce QR Code pour demander Login
           </p>
           <img
-            src="/QR_Code.png"
+            src="/QR_Code.png"   {/* ✅ Chemin public */}
             alt="QR Code Login"
             className="w-32 h-32 object-contain border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             onError={(e) => {
