@@ -127,7 +127,6 @@ export default function Login({ onLogin }) {
             </button>
           </div>
 
-          {/* Footer */}
           <div className="text-center text-xs text-gray-500 pt-4 border-t border-gray-200">
             <p>© 2026 Gestion des Dîmes et Offrandes</p>
             <p className="mt-1">Système sécurisé - Tous droits réservés à RH André</p>
@@ -141,7 +140,7 @@ export default function Login({ onLogin }) {
             Scannez ce QR Code pour demander Login
           </p>
           <img
-            src="/QR_Code.png"   {/* ✅ Chemin public */}
+            src="/QR_Code.png"
             alt="QR Code Login"
             className="w-32 h-32 object-contain border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             onError={(e) => {
