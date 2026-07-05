@@ -64,12 +64,12 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
       totalMiakatra += row.miakatra || 0;
       totalMijanona += row.mijanona || 0;
     });
-
     const totalFanatitra = totalMiakatra + totalMijanona;
     const totalNarotsaka = f1 + totalFanatitra;
 
     return (
       <div key={key} className="receipt">
+        {/* En-tête */}
         <div className="receipt-header">
           <div className="header-top">
             <div className="logo-title-group">
@@ -88,13 +88,14 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
               <div className="church-titles">
                 <div className="church-line">FIANGONANA ADVANTISTA</div>
                 <div className="sabbath-line">MITANDRINA NY ANDRO FAHA-FITO</div>
-                <div className="federation-line">{federation || 'FEDERASIONA'}</div>
+                <div className="federation-line">{federation || 'FÉDÉRATION'}</div>
               </div>
             </div>
             <div className="rosia-number">ROSIA N° {rosiaNumber}</div>
           </div>
         </div>
 
+        {/* Corps */}
         <div className="receipt-body">
           <div className="title-box">
             <div className="receipt-title">AMPAHAFOLONY SY FANATITRA HO AN'I JEHOVAH</div>
@@ -115,43 +116,47 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           </div>
 
           <div className="amount-row">
-            <div className="amount-left"><span className="label">Ny vola :</span> <span className="value">{formatNumber(totalNarotsaka)} Ar</span></div>
-            <div className="amount-right"><span className="label">An-tsoratra :</span> <span className="value">{totalLetters} Ar</span></div>
+            <span className="label">Ny vola :</span>
+            <span className="value">{formatNumber(totalNarotsaka)} Ar</span>
           </div>
 
-          {/* Tableau avec 4 colonnes */}
+          {/* Tableau 3 colonnes */}
           <table className="receipt-table">
             <thead>
               <tr>
-                <th className="title-cell" colSpan="2">AMPAHAFOLONY</th>
+                <th className="title-cell" colSpan="1">AMPAHAFOLONY</th>
                 <th className="header-cell">Fanatitra Miakatra</th>
                 <th className="header-cell">Fanatitra Mijanona</th>
               </tr>
               <tr>
-                <th className="title-cell" colSpan="2">FANATITRA</th>
+                <th className="title-cell" colSpan="1">FANATITRA</th>
                 <th className="header-cell"></th>
                 <th className="header-cell"></th>
               </tr>
             </thead>
             <tbody>
+              {/* Ligne AMPAHAFOLONY (dîme) */}
               <tr>
-                <td className="title-cell" colSpan="2">AMPAHAFOLONY</td>
+                <td className="title-cell">AMPAHAFOLONY</td>
                 <td className="amount-cell" colSpan="2">{formatNumber(f1)}</td>
               </tr>
+              {/* Lignes des catégories */}
               {rows.map((row, idx) => (
                 <tr key={idx}>
-                  <td className="category-cell" colSpan="2">{row.label}</td>
+                  <td className="category-cell">{row.label}</td>
                   <td className="amount-cell">{formatNumber(row.miakatra)}</td>
                   <td className="amount-cell">{formatNumber(row.mijanona)}</td>
                 </tr>
               ))}
+              {/* Total fanatitra */}
               <tr className="total-row">
-                <td className="title-cell" colSpan="2">Tontalin'ny fanatitra</td>
+                <td className="title-cell">Tontalin'ny fanatitra</td>
                 <td className="total-cell">{formatNumber(totalMiakatra)}</td>
                 <td className="total-cell">{formatNumber(totalMijanona)}</td>
               </tr>
+              {/* Total général */}
               <tr className="total-row">
-                <td className="title-cell" colSpan="2">Tontalin'ny vola narotsaka</td>
+                <td className="title-cell">Tontalin'ny vola narotsaka</td>
                 <td className="total-cell" colSpan="2">{formatNumber(totalNarotsaka)}</td>
               </tr>
             </tbody>
@@ -190,23 +195,10 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
       ))}
 
       <style>{`
-        /* --- Styles écran --- */
-        .receipts-container {
-          margin-top: 1rem;
-          padding: 0 0.5rem;
-        }
-        .receipts-header {
-          background: #f3f4f6;
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1rem;
-        }
-        .receipts-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.5rem;
-          margin-bottom: 0.5rem;
-        }
+        /* --- Styles écran (confort) --- */
+        .receipts-container { margin-top: 1rem; padding: 0 0.5rem; }
+        .receipts-header { background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .receipts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
         .receipt {
           border: 1.5px solid #000;
           padding: 0.3rem 0.5rem;
@@ -218,183 +210,44 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           flex-direction: column;
           height: 100%;
         }
-        .receipt-header {
-          border-bottom: none !important;
-          padding-bottom: 2px;
-          margin-bottom: 2px;
-        }
-        .header-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .logo-title-group {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .header-logo {
-          height: 30px;
-          width: auto;
-        }
-        .church-titles {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.2;
-          margin-left: 3px;
-        }
+        .receipt-header { border-bottom: none !important; padding-bottom: 2px; margin-bottom: 2px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .logo-title-group { display: flex; align-items: center; gap: 6px; }
+        .header-logo { height: 30px; width: auto; }
+        .church-titles { display: flex; flex-direction: column; line-height: 1.2; margin-left: 3px; }
         .church-titles .church-line,
         .church-titles .sabbath-line,
         .church-titles .federation-line {
-          font-weight: bold;
-          font-size: 11px;
-          margin: 0;
-          padding: 0;
+          font-weight: bold; font-size: 11px; margin: 0; padding: 0;
         }
-        .rosia-number {
-          font-weight: bold;
-          font-size: 11px;
-          text-align: right;
-          white-space: nowrap;
-        }
-        .receipt-body {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          justify-content: space-between;
-        }
-        .title-box {
-          border: 1px solid #000;
-          padding: 2px 4px;
-          margin-bottom: 2px;
-          text-align: center;
-        }
-        .receipt-title {
-          font-weight: bold;
-          font-size: 11px;
-          letter-spacing: 0.3px;
-          margin: 0;
-          padding: 0;
-        }
-        .verse {
-          font-style: italic;
-          font-size: 8px;
-          color: #333;
-          margin: 0;
-          padding: 0;
-        }
-        .member-info {
-          font-size: 10px;
-          margin: 2px 0;
-          border-bottom: none !important;
-          padding-bottom: 2px;
-        }
-        .member-line {
-          display: flex;
-          align-items: center;
-          gap: 0.3rem;
-          flex-wrap: wrap;
-          margin: 0;
-          padding: 0;
-        }
-        .member-line .label {
-          font-weight: bold;
-          min-width: 55px;
-          margin: 0;
-          padding: 0;
-        }
-        .member-line .district-label {
-          min-width: 40px;
-          margin-left: 0.3rem;
-        }
-        .member-line .value {
-          margin: 0;
-          padding: 0;
-        }
-        .amount-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 10px;
-          font-weight: bold;
-          margin: 2px 0;
-          border-bottom: 1px solid #000;
-          padding-bottom: 2px;
-        }
-        .amount-left, .amount-right {
-          margin: 0;
-          padding: 0;
-        }
-        .amount-right {
-          text-align: right;
-        }
-        .receipt-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 9px;
-          margin: 2px 0;
-          line-height: 1.2;
-          border-spacing: 0;
-        }
-        .receipt-table th,
-        .receipt-table td {
-          border: 1px solid #000;
-          padding: 1px 2px;
-          text-align: center;
-          vertical-align: middle;
-        }
-        .receipt-table .title-cell {
-          text-align: left;
-          font-weight: bold;
-          padding-left: 4px;
-        }
-        .receipt-table .header-cell {
-          text-align: center;
-          font-weight: bold;
-          background: #f0f0f0;
-        }
-        .receipt-table .category-cell {
-          text-align: left;
-          padding-left: 4px;
-        }
-        .receipt-table .amount-cell {
-          text-align: right;
-          padding-right: 4px;
-        }
-        .receipt-table .total-cell {
-          text-align: right;
-          font-weight: bold;
-          padding-right: 4px;
-        }
-        .receipt-table .total-row td {
-          font-weight: bold;
-          background: #f9f9f9;
-        }
-        .footer-note {
-          text-align: left;
-          font-size: 8px;
-          margin-top: 2px;
-          padding-top: 2px;
-          border-top: 1px dotted #ccc;
-          font-style: italic;
-          margin-bottom: 0;
-          padding-bottom: 0;
-          line-height: 1.2;
-        }
+        .rosia-number { font-weight: bold; font-size: 11px; text-align: right; white-space: nowrap; }
+        .receipt-body { display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
+        .title-box { border: 1px solid #000; padding: 2px 4px; margin-bottom: 2px; text-align: center; }
+        .receipt-title { font-weight: bold; font-size: 11px; letter-spacing: 0.3px; margin: 0; padding: 0; }
+        .verse { font-style: italic; font-size: 8px; color: #333; margin: 0; padding: 0; }
+        .member-info { font-size: 10px; margin: 2px 0; border-bottom: none !important; padding-bottom: 2px; }
+        .member-line { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin: 0; padding: 0; }
+        .member-line .label { font-weight: bold; min-width: 55px; margin: 0; padding: 0; }
+        .member-line .district-label { min-width: 40px; margin-left: 0.3rem; }
+        .member-line .value { margin: 0; padding: 0; }
+        .amount-row { display: flex; justify-content: flex-start; gap: 0.5rem; font-size: 10px; font-weight: bold; margin: 2px 0; border-bottom: 1px solid #000; padding-bottom: 2px; }
+        .amount-row .label { font-weight: bold; }
+        .amount-row .value { font-weight: bold; }
+        .receipt-table { width: 100%; border-collapse: collapse; font-size: 9px; margin: 2px 0; line-height: 1.2; border-spacing: 0; }
+        .receipt-table th, .receipt-table td { border: 1px solid #000; padding: 1px 2px; text-align: center; vertical-align: middle; }
+        .receipt-table .title-cell { text-align: left; font-weight: bold; padding-left: 4px; }
+        .receipt-table .header-cell { text-align: center; font-weight: bold; background: #f0f0f0; }
+        .receipt-table .category-cell { text-align: left; padding-left: 4px; }
+        .receipt-table .amount-cell { text-align: right; padding-right: 4px; }
+        .receipt-table .total-cell { text-align: right; font-weight: bold; padding-right: 4px; }
+        .receipt-table .total-row td { font-weight: bold; background: #f9f9f9; }
+        .footer-note { text-align: left; font-size: 8px; margin-top: 2px; padding-top: 2px; border-top: 1px dotted #ccc; font-style: italic; margin-bottom: 0; padding-bottom: 0; line-height: 1.2; }
 
-        /* --- Styles d'impression : 4 reçus par page A4 paysage (2x2) --- */
+        /* --- Impression : 4 reçus par page A4 paysage --- */
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 0.3mm;
-          }
-          body {
-            background: white;
-            margin: 0;
-            padding: 0;
-          }
-          .no-print {
-            display: none !important;
-          }
+          @page { size: A4 landscape; margin: 0.3mm; }
+          body { background: white; margin: 0; padding: 0; }
+          .no-print { display: none !important; }
           .print-page {
             page-break-after: always;
             height: 100vh;
@@ -405,9 +258,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             margin: 0;
             padding: 0;
           }
-          .print-page:last-child {
-            page-break-after: avoid;
-          }
+          .print-page:last-child { page-break-after: avoid; }
           .receipts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -421,105 +272,42 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .receipt {
             border: 0.5px solid #000;
             padding: 0.05mm 0.05mm;
-            font-size: 16px;
+            font-size: 16px; /* ← Taille de base augmentée */
             height: 100%;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             background: white;
           }
-          .receipt-header {
-            padding-bottom: 0.05mm;
-            margin-bottom: 0.05mm;
-          }
-          .header-logo {
-            height: 16px;
-          }
+          .receipt-header { padding-bottom: 0.05mm; margin-bottom: 0.05mm; }
+          .header-logo { height: 16px; }
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
             font-size: 10px;
             line-height: 1.0;
           }
-          .rosia-number {
-            font-size: 10px;
-          }
-          .title-box {
-            padding: 0.03mm 0.15mm;
-            margin-bottom: 0.03mm;
-          }
-          .receipt-title {
-            font-size: 11px;
-          }
-          .verse {
-            font-size: 7px;
-          }
-          .member-info {
-            font-size: 10px;
-            margin: 0.03mm 0;
-          }
-          .member-line {
-            gap: 0.02rem;
-          }
-          .member-line .label {
-            min-width: 10px;
-            font-size: 9px;
-          }
-          .member-line .district-label {
-            min-width: 6px;
-            font-size: 9px;
-          }
-          .member-line .value {
-            font-size: 9px;
-          }
-          .amount-row {
-            font-size: 10px;
-            margin: 0.03mm 0;
-            padding-bottom: 0.03mm;
-          }
-          .amount-row .label {
-            font-size: 9px;
-          }
-          .amount-row .value {
-            font-size: 9px;
-          }
-          .receipt-table {
-            font-size: 8.5px;
-            margin: 0.03mm 0;
-          }
-          .receipt-table th,
-          .receipt-table td {
-            padding: 0.03mm 0.08mm;
-            line-height: 1.0;
-          }
-          .receipt-table .title-cell {
-            font-size: 8px;
-            padding-left: 0.3px;
-          }
-          .receipt-table .category-cell {
-            font-size: 7.5px;
-            padding-left: 0.3px;
-          }
-          .receipt-table .header-cell {
-            font-size: 7.5px;
-          }
-          .receipt-table .amount-cell {
-            font-size: 7.5px;
-            padding-right: 0.3px;
-          }
-          .receipt-table .total-cell {
-            font-size: 7.5px;
-            padding-right: 0.3px;
-          }
-          .footer-note {
-            font-size: 6.5px;
-            margin-top: 0.03mm;
-            padding-top: 0.03mm;
-          }
-          .receipt-body {
-            flex: 1;
-            justify-content: flex-start;
-          }
+          .rosia-number { font-size: 10px; }
+          .title-box { padding: 0.03mm 0.15mm; margin-bottom: 0.03mm; }
+          .receipt-title { font-size: 11px; }
+          .verse { font-size: 7px; }
+          .member-info { font-size: 10px; margin: 0.03mm 0; }
+          .member-line { gap: 0.02rem; }
+          .member-line .label { min-width: 10px; font-size: 9px; }
+          .member-line .district-label { min-width: 6px; font-size: 9px; }
+          .member-line .value { font-size: 9px; }
+          .amount-row { font-size: 10px; margin: 0.03mm 0; padding-bottom: 0.03mm; }
+          .amount-row .label { font-size: 9px; }
+          .amount-row .value { font-size: 9px; }
+          .receipt-table { font-size: 8.5px; margin: 0.03mm 0; }
+          .receipt-table th, .receipt-table td { padding: 0.03mm 0.08mm; line-height: 1.0; }
+          .receipt-table .title-cell { font-size: 8px; padding-left: 0.3px; }
+          .receipt-table .category-cell { font-size: 7.5px; padding-left: 0.3px; }
+          .receipt-table .header-cell { font-size: 7.5px; }
+          .receipt-table .amount-cell { font-size: 7.5px; padding-right: 0.3px; }
+          .receipt-table .total-cell { font-size: 7.5px; padding-right: 0.3px; }
+          .footer-note { font-size: 6.5px; margin-top: 0.03mm; padding-top: 0.03mm; }
+          .receipt-body { flex: 1; justify-content: flex-start; }
         }
       `}</style>
     </div>
