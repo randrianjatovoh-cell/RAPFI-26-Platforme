@@ -47,7 +47,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
     const b9 = entry.b9 || 0;
     const b10 = entry.b10 || 0;
 
-    // Lignes du tableau (4 colonnes)
     const rows = [
       { label: 'Sekoly Sabata / S. faha-13', miakatra: f2, mijanona: b9 },
       { label: 'Fanambinana', miakatra: f3, mijanona: 0 },
@@ -211,7 +210,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .receipt {
           border: 1.5px solid #000;
           padding: 0.3rem 0.5rem;
-          font-size: 11px;
+          font-size: 12px;
           font-family: 'Times New Roman', serif;
           background: #fff;
           box-sizing: border-box;
@@ -235,7 +234,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           gap: 6px;
         }
         .header-logo {
-          height: 28px;
+          height: 30px;
           width: auto;
         }
         .church-titles {
@@ -248,13 +247,13 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .church-titles .sabbath-line,
         .church-titles .federation-line {
           font-weight: bold;
-          font-size: 10px;
+          font-size: 11px;
           margin: 0;
           padding: 0;
         }
         .rosia-number {
           font-weight: bold;
-          font-size: 10px;
+          font-size: 11px;
           text-align: right;
           white-space: nowrap;
         }
@@ -272,7 +271,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         }
         .receipt-title {
           font-weight: bold;
-          font-size: 10px;
+          font-size: 11px;
           letter-spacing: 0.3px;
           margin: 0;
           padding: 0;
@@ -285,7 +284,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           padding: 0;
         }
         .member-info {
-          font-size: 9px;
+          font-size: 10px;
           margin: 2px 0;
           border-bottom: none !important;
           padding-bottom: 2px;
@@ -315,7 +314,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .amount-row {
           display: flex;
           justify-content: space-between;
-          font-size: 9px;
+          font-size: 10px;
           font-weight: bold;
           margin: 2px 0;
           border-bottom: 1px solid #000;
@@ -331,7 +330,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .receipt-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 8px;
+          font-size: 9px;
           margin: 2px 0;
           line-height: 1.2;
           border-spacing: 0;
@@ -372,7 +371,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         }
         .footer-note {
           text-align: left;
-          font-size: 7px;
+          font-size: 8px;
           margin-top: 2px;
           padding-top: 2px;
           border-top: 1px dotted #ccc;
@@ -386,7 +385,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         @media print {
           @page {
             size: A4 landscape;
-            margin: 0.5mm;
+            margin: 0.3mm;
           }
           body {
             background: white;
@@ -413,16 +412,16 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 0.2mm;
+            gap: 0.15mm;
             height: 100%;
             width: 100%;
             box-sizing: border-box;
-            padding: 0.2mm;
+            padding: 0.15mm;
           }
           .receipt {
             border: 0.5px solid #000;
-            padding: 0.1mm 0.1mm;
-            font-size: 13px;
+            padding: 0.05mm 0.05mm;
+            font-size: 16px;
             height: 100%;
             box-sizing: border-box;
             display: flex;
@@ -430,92 +429,92 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             background: white;
           }
           .receipt-header {
-            padding-bottom: 0.1mm;
-            margin-bottom: 0.1mm;
+            padding-bottom: 0.05mm;
+            margin-bottom: 0.05mm;
           }
           .header-logo {
-            height: 13px;
+            height: 16px;
           }
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
-            font-size: 8.5px;
+            font-size: 10px;
             line-height: 1.0;
           }
           .rosia-number {
-            font-size: 8.5px;
+            font-size: 10px;
           }
           .title-box {
-            padding: 0.05mm 0.2mm;
-            margin-bottom: 0.05mm;
+            padding: 0.03mm 0.15mm;
+            margin-bottom: 0.03mm;
           }
           .receipt-title {
-            font-size: 9.5px;
+            font-size: 11px;
           }
           .verse {
-            font-size: 6px;
+            font-size: 7px;
           }
           .member-info {
-            font-size: 8.5px;
-            margin: 0.05mm 0;
+            font-size: 10px;
+            margin: 0.03mm 0;
           }
           .member-line {
-            gap: 0.03rem;
+            gap: 0.02rem;
           }
           .member-line .label {
-            min-width: 12px;
-            font-size: 7.5px;
+            min-width: 10px;
+            font-size: 9px;
           }
           .member-line .district-label {
-            min-width: 8px;
-            font-size: 7.5px;
+            min-width: 6px;
+            font-size: 9px;
           }
           .member-line .value {
-            font-size: 7.5px;
+            font-size: 9px;
           }
           .amount-row {
-            font-size: 8.5px;
-            margin: 0.05mm 0;
-            padding-bottom: 0.05mm;
+            font-size: 10px;
+            margin: 0.03mm 0;
+            padding-bottom: 0.03mm;
           }
           .amount-row .label {
-            font-size: 7.5px;
+            font-size: 9px;
           }
           .amount-row .value {
-            font-size: 7.5px;
+            font-size: 9px;
           }
           .receipt-table {
-            font-size: 7.5px;
-            margin: 0.05mm 0;
+            font-size: 8.5px;
+            margin: 0.03mm 0;
           }
           .receipt-table th,
           .receipt-table td {
-            padding: 0.05mm 0.1mm;
+            padding: 0.03mm 0.08mm;
             line-height: 1.0;
           }
           .receipt-table .title-cell {
-            font-size: 7px;
-            padding-left: 0.5px;
+            font-size: 8px;
+            padding-left: 0.3px;
           }
           .receipt-table .category-cell {
-            font-size: 6.5px;
-            padding-left: 0.5px;
+            font-size: 7.5px;
+            padding-left: 0.3px;
           }
           .receipt-table .header-cell {
-            font-size: 6.5px;
+            font-size: 7.5px;
           }
           .receipt-table .amount-cell {
-            font-size: 6.5px;
-            padding-right: 0.5px;
+            font-size: 7.5px;
+            padding-right: 0.3px;
           }
           .receipt-table .total-cell {
-            font-size: 6.5px;
-            padding-right: 0.5px;
+            font-size: 7.5px;
+            padding-right: 0.3px;
           }
           .footer-note {
-            font-size: 5.5px;
-            margin-top: 0.05mm;
-            padding-top: 0.05mm;
+            font-size: 6.5px;
+            margin-top: 0.03mm;
+            padding-top: 0.03mm;
           }
           .receipt-body {
             flex: 1;
