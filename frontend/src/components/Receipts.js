@@ -120,18 +120,18 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             <span className="value">{formatNumber(totalNarotsaka)} Ar</span>
           </div>
 
-          {/* Tableau 3 colonnes avec largeurs fixes en impression */}
+          {/* Tableau 3 colonnes (sans largeurs fixes) */}
           <table className="receipt-table">
             <thead>
               <tr>
-                <th className="title-cell" style={{ width: '40%' }}>AMPAHAFOLONY</th>
-                <th className="header-cell" style={{ width: '30%' }}>Fanatitra Miakatra</th>
-                <th className="header-cell" style={{ width: '30%' }}>Fanatitra Mijanona</th>
+                <th className="title-cell">AMPAHAFOLONY</th>
+                <th className="header-cell">Fanatitra Miakatra</th>
+                <th className="header-cell">Fanatitra Mijanona</th>
               </tr>
               <tr>
-                <th className="title-cell" style={{ width: '40%' }}>FANATITRA</th>
-                <th className="header-cell" style={{ width: '30%' }}></th>
-                <th className="header-cell" style={{ width: '30%' }}></th>
+                <th className="title-cell">FANATITRA</th>
+                <th className="header-cell"></th>
+                <th className="header-cell"></th>
               </tr>
             </thead>
             <tbody>
@@ -239,13 +239,25 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .receipt-table .total-row td { font-weight: bold; background: #f9f9f9; }
         .footer-note { text-align: left; font-size: 14px; margin-top: 4px; padding-top: 4px; border-top: 1px dotted #ccc; font-style: italic; margin-bottom: 0; padding-bottom: 0; line-height: 1.3; }
 
-        /* --- Impression : 4 reçus par page A4 paysage — COMPRESSION TOTALE --- */
+        /* --- Impression : 4 reçus par page A4 paysage — MARGES ZÉRO --- */
         @media print {
-          /* 1. Supprimer TOUTES les marges et paddings */
-          html, body { margin: 0 !important; padding: 0 !important; }
-          * { margin: 0 !important; padding: 0 !important; }
-          @page { size: A4 landscape; margin: 0 !important; }
-          body { background: white; }
+          /* Réinitialisation totale */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
+          }
+          * {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+          }
+          @page {
+            size: A4 landscape;
+            margin: 0 !important;
+          }
           .no-print { display: none !important; }
           
           .print-page {
@@ -255,19 +267,26 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             display: flex;
             flex-direction: column;
             justify-content: center;
+            align-items: center;
             margin: 0 !important;
             padding: 0 !important;
           }
           .print-page:last-child { page-break-after: avoid; }
           
-          .receipts-container { margin: 0 !important; padding: 0 !important; }
+          .receipts-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+          }
+          
           .receipts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             gap: 0 !important;
-            height: 100%;
-            width: 100%;
+            height: 100% !important;
+            width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
           }
@@ -277,13 +296,14 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             padding: 0 !important;
             margin: 0 !important;
             font-size: 36px;
-            height: 100%;
-            width: 100%;
+            height: 100% !important;
+            width: 100% !important;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             background: white;
             line-height: 0.7 !important;
+            overflow: hidden; /* éviter tout débordement */
           }
           .receipt-header { padding: 0 !important; margin: 0 !important; border-bottom: none !important; }
           .header-top { padding: 0 !important; margin: 0 !important; gap: 0 !important; }
@@ -311,14 +331,14 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .amount-row .label { font-size: 16px; margin: 0 !important; padding: 0 !important; }
           .amount-row .value { font-size: 16px; margin: 0 !important; padding: 0 !important; }
           .receipt-table {
-            width: 100%;
+            width: 100% !important;
             border-collapse: collapse;
             font-size: 15px;
             margin: 0 !important;
             padding: 0 !important;
             line-height: 0.7 !important;
             border-spacing: 0;
-            table-layout: fixed !important;
+            table-layout: auto !important;
           }
           .receipt-table th, 
           .receipt-table td {
@@ -332,7 +352,6 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             font-size: 14px;
             padding-left: 0 !important;
             text-align: left;
-            width: 40% !important;
           }
           .receipt-table .category-cell {
             font-size: 13px;
@@ -341,13 +360,11 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           }
           .receipt-table .header-cell {
             font-size: 14px;
-            width: 30% !important;
           }
           .receipt-table .amount-cell {
             font-size: 14px;
             padding-right: 0 !important;
             text-align: right;
-            width: 30% !important;
           }
           .receipt-table .total-cell {
             font-size: 14px;
