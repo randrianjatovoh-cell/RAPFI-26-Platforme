@@ -134,24 +134,21 @@ export default function Login({ onLogin }) {
           </div>
         </form>
 
-        {/* QR Code pour contacter le responsable */}
+        {/* QR Code pour demander Login */}
         <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col items-center">
           <p className="text-sm text-gray-700 font-medium mb-2">
             <i className="fas fa-qrcode mr-2 text-amber-500"></i>
-            Scannez ce QR Code pour contacter le responsable
+            Scannez ce QR Code pour demander Login
           </p>
           <img
-            src="/qr.png"
-            alt="QR Code contact"
+            src="/QR_Code.png"
+            alt="QR Code Login"
             className="w-32 h-32 object-contain border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="16" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
             }}
           />
-          <p className="mt-2 text-xs text-gray-500">
-            Pour toute assistance, envoyez un message via WhatsApp ou SMS
-          </p>
         </div>
       </div>
     </div>
