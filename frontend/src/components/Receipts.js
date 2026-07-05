@@ -243,7 +243,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
         .receipt-table .total-row td { font-weight: bold; background: #f9f9f9; }
         .footer-note { text-align: left; font-size: 8px; margin-top: 2px; padding-top: 2px; border-top: 1px dotted #ccc; font-style: italic; margin-bottom: 0; padding-bottom: 0; line-height: 1.2; }
 
-        /* --- Impression : 4 reçus par page A4 paysage --- */
+        /* --- Impression : 4 reçus par page A4 paysage (TAILLES AUGMENTÉES) --- */
         @media print {
           @page { size: A4 landscape; margin: 0.3mm; }
           body { background: white; margin: 0; padding: 0; }
@@ -272,7 +272,7 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
           .receipt {
             border: 0.5px solid #000;
             padding: 0.05mm 0.05mm;
-            font-size: 16px; /* ← Taille de base augmentée */
+            font-size: 18px; /* ← +2px */
             height: 100%;
             box-sizing: border-box;
             display: flex;
@@ -280,33 +280,33 @@ export default function Receipts({ entries, eglise, district, federation, sabbat
             background: white;
           }
           .receipt-header { padding-bottom: 0.05mm; margin-bottom: 0.05mm; }
-          .header-logo { height: 16px; }
+          .header-logo { height: 18px; /* +2px */ }
           .church-titles .church-line,
           .church-titles .sabbath-line,
           .church-titles .federation-line {
-            font-size: 10px;
+            font-size: 11px; /* +1px */
             line-height: 1.0;
           }
-          .rosia-number { font-size: 10px; }
+          .rosia-number { font-size: 11px; /* +1px */ }
           .title-box { padding: 0.03mm 0.15mm; margin-bottom: 0.03mm; }
-          .receipt-title { font-size: 11px; }
-          .verse { font-size: 7px; }
-          .member-info { font-size: 10px; margin: 0.03mm 0; }
+          .receipt-title { font-size: 12px; /* +1px */ }
+          .verse { font-size: 8px; /* +1px */ }
+          .member-info { font-size: 11px; /* +1px */ margin: 0.03mm 0; }
           .member-line { gap: 0.02rem; }
-          .member-line .label { min-width: 10px; font-size: 9px; }
-          .member-line .district-label { min-width: 6px; font-size: 9px; }
-          .member-line .value { font-size: 9px; }
-          .amount-row { font-size: 10px; margin: 0.03mm 0; padding-bottom: 0.03mm; }
-          .amount-row .label { font-size: 9px; }
-          .amount-row .value { font-size: 9px; }
-          .receipt-table { font-size: 8.5px; margin: 0.03mm 0; }
+          .member-line .label { min-width: 10px; font-size: 10px; /* +1px */ }
+          .member-line .district-label { min-width: 6px; font-size: 10px; /* +1px */ }
+          .member-line .value { font-size: 10px; /* +1px */ }
+          .amount-row { font-size: 11px; /* +1px */ margin: 0.03mm 0; padding-bottom: 0.03mm; }
+          .amount-row .label { font-size: 10px; /* +1px */ }
+          .amount-row .value { font-size: 10px; /* +1px */ }
+          .receipt-table { font-size: 9.5px; /* +1px */ margin: 0.03mm 0; }
           .receipt-table th, .receipt-table td { padding: 0.03mm 0.08mm; line-height: 1.0; }
-          .receipt-table .title-cell { font-size: 8px; padding-left: 0.3px; }
-          .receipt-table .category-cell { font-size: 7.5px; padding-left: 0.3px; }
-          .receipt-table .header-cell { font-size: 7.5px; }
-          .receipt-table .amount-cell { font-size: 7.5px; padding-right: 0.3px; }
-          .receipt-table .total-cell { font-size: 7.5px; padding-right: 0.3px; }
-          .footer-note { font-size: 6.5px; margin-top: 0.03mm; padding-top: 0.03mm; }
+          .receipt-table .title-cell { font-size: 9px; /* +1px */ padding-left: 0.3px; }
+          .receipt-table .category-cell { font-size: 8.5px; /* +1px */ padding-left: 0.3px; }
+          .receipt-table .header-cell { font-size: 8.5px; /* +1px */ }
+          .receipt-table .amount-cell { font-size: 8.5px; /* +1px */ padding-right: 0.3px; }
+          .receipt-table .total-cell { font-size: 8.5px; /* +1px */ padding-right: 0.3px; }
+          .footer-note { font-size: 7.5px; /* +1px */ margin-top: 0.03mm; padding-top: 0.03mm; }
           .receipt-body { flex: 1; justify-content: flex-start; }
         }
       `}</style>
