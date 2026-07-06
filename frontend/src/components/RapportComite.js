@@ -20,8 +20,8 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
   const [closingBalanceSpecial, setClosingBalanceSpecial] = useState(0);
   const [loading, setLoading] = useState(true);
   const [references, setReferences] = useState(Array(6).fill({ date: '', soraBola: '', rosia: '' }));
-  const [hasReport, setHasReport] = useState(false);
 
+  // Helper : parser une date depuis une chaîne "jj/mm/aaaa" ou "jj/mm"
   function parseDateString(dateStr) {
     if (!dateStr) return null;
     let parts = dateStr.split('/');
@@ -48,6 +48,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   }
 
+  // Chargement des données
   async function loadData() {
     if (!currentMonth || !eglise) {
       setLoading(false);
@@ -55,109 +56,57 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     }
     setLoading(true);
     try {
-      // 1. Charger le rapport s'il existe
+      // 1. Récupérer le rapport mensuel (il contient soraBolaLinesJson)
       let r = await api.getMonthlyReport(currentMonth, eglise);
-      if (r) {
-        setHasReport(true);
-        setReport(r);
-        // Extraire les références du rapport
-        if (r.soraBolaLinesJson) {
-          try {
-            const parsed = JSON.parse(r.soraBolaLinesJson);
-            let chequeArr = [];
-            let soraArr = [];
-            if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
-              chequeArr = parsed.cheque || [];
-              soraArr = parsed.soraBola || [];
-            } else if (Array.isArray(parsed)) {
-              soraArr = parsed;
-            }
-            const newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
-            const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
-            for (let i = 0; i < maxLines; i++) {
-              const chequeStr = chequeArr[i] || '';
-              const soraAmount = soraArr[i] || '';
-              let dateFormatted = '';
-              let ref = '';
-              if (chequeStr) {
-                const duIndex = chequeStr.indexOf(' du ');
-                if (duIndex !== -1) {
-                  ref = chequeStr.substring(0, duIndex).trim();
-                  let datePart = chequeStr.substring(duIndex + 4).trim();
-                  const dateObj = parseDateString(datePart);
-                  if (dateObj) {
-                    dateFormatted = formatLongDateFromDate(dateObj);
-                  } else {
-                    dateFormatted = datePart;
-                  }
-                } else {
-                  ref = chequeStr;
-                }
-              }
-              newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
-            }
-            setReferences(newRefs);
-          } catch(e) {
-            console.warn("Erreur parsing soraBolaLinesJson:", e);
-          }
-        }
-      } else {
-        // 🔥 Essayer de recréer le rapport
-        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
+      if (!r) {
+        // Tenter de le recréer
+        r = await api.rebuildMonthlyReport(currentMonth, eglise);
+      }
+      setReport(r);
+
+      // 2. Extraire les références depuis soraBolaLinesJson
+      let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
+      if (r && r.soraBolaLinesJson) {
         try {
-          r = await api.rebuildMonthlyReport(currentMonth, eglise);
-          if (r) {
-            setHasReport(true);
-            setReport(r);
-            // Même extraction des références...
-            if (r.soraBolaLinesJson) {
-              try {
-                const parsed = JSON.parse(r.soraBolaLinesJson);
-                let chequeArr = [];
-                let soraArr = [];
-                if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
-                  chequeArr = parsed.cheque || [];
-                  soraArr = parsed.soraBola || [];
-                } else if (Array.isArray(parsed)) {
-                  soraArr = parsed;
-                }
-                const newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
-                const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
-                for (let i = 0; i < maxLines; i++) {
-                  const chequeStr = chequeArr[i] || '';
-                  const soraAmount = soraArr[i] || '';
-                  let dateFormatted = '';
-                  let ref = '';
-                  if (chequeStr) {
-                    const duIndex = chequeStr.indexOf(' du ');
-                    if (duIndex !== -1) {
-                      ref = chequeStr.substring(0, duIndex).trim();
-                      let datePart = chequeStr.substring(duIndex + 4).trim();
-                      const dateObj = parseDateString(datePart);
-                      if (dateObj) {
-                        dateFormatted = formatLongDateFromDate(dateObj);
-                      } else {
-                        dateFormatted = datePart;
-                      }
-                    } else {
-                      ref = chequeStr;
-                    }
-                  }
-                  newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
-                }
-                setReferences(newRefs);
-              } catch(e) {}
-            }
-            console.log('✅ Rapport recréé avec succès');
-          } else {
-            console.warn('⚠️ Échec de la recréation du rapport');
+          const parsed = JSON.parse(r.soraBolaLinesJson);
+          let chequeArr = [];
+          let soraArr = [];
+          if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
+            chequeArr = parsed.cheque || [];
+            soraArr = parsed.soraBola || [];
+          } else if (Array.isArray(parsed)) {
+            soraArr = parsed;
           }
-        } catch (rebuildErr) {
-          console.error('❌ Erreur lors du rebuild :', rebuildErr);
+          const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
+          for (let i = 0; i < maxLines; i++) {
+            const chequeStr = chequeArr[i] || '';
+            const soraAmount = soraArr[i] || '';
+            let dateFormatted = '';
+            let ref = '';
+            if (chequeStr) {
+              const duIndex = chequeStr.indexOf(' du ');
+              if (duIndex !== -1) {
+                ref = chequeStr.substring(0, duIndex).trim();
+                let datePart = chequeStr.substring(duIndex + 4).trim();
+                const dateObj = parseDateString(datePart);
+                if (dateObj) {
+                  dateFormatted = formatLongDateFromDate(dateObj);
+                } else {
+                  dateFormatted = datePart;
+                }
+              } else {
+                ref = chequeStr;
+              }
+            }
+            newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
+          }
+        } catch(e) {
+          console.warn("Erreur parsing soraBolaLinesJson:", e);
         }
       }
+      setReferences(newRefs);
 
-      // 2. Charger les données GL et dépenses (toujours nécessaires)
+      // 3. Charger les données GL et dépenses (pour les totaux)
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const categoryTotals = { f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0 };
       let b9=0, b10=0;
@@ -192,6 +141,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     finally { setLoading(false); }
   }
 
+  // Rechargement automatique
   useEffect(() => {
     loadData();
   }, [currentMonth, eglise]);
@@ -199,34 +149,24 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
   useEffect(() => {
     const handleDataUpdate = () => loadData();
     window.addEventListener('data-updated', handleDataUpdate);
-    return () => window.removeEventListener('data-updated', handleDataUpdate);
+    window.addEventListener('expenses-updated', handleDataUpdate);
+    return () => {
+      window.removeEventListener('data-updated', handleDataUpdate);
+      window.removeEventListener('expenses-updated', handleDataUpdate);
+    };
   }, [currentMonth, eglise]);
 
+  // Mise à jour des champs de l'utilisateur
   useEffect(() => {
     setEglise(selectedEglise || user?.eglise || '');
     setDistrict(user?.district || '');
     setFederation(user?.federation || '');
   }, [selectedEglise, user]);
 
-  useEffect(() => {
-    const handleExpensesUpdate = () => loadData();
-    window.addEventListener('expenses-updated', handleExpensesUpdate);
-    return () => window.removeEventListener('expenses-updated', handleExpensesUpdate);
-  }, [currentMonth, eglise]);
-
-  // Restaurer references depuis localStorage si disponible
-  useEffect(() => {
-    if (currentMonth && eglise) {
-      const saved = localStorage.getItem(`references_${currentMonth}_${eglise}`);
-      if (saved) try { setReferences(JSON.parse(saved)); } catch(e) {}
-    }
-  }, [currentMonth, eglise]);
-
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (loading) return <div className="text-center p-4">Chargement du rapport...</div>;
 
-  // On affiche toujours le tableau, même sans rapport
   const displayEglise = capitalizeFirstLetter(eglise);
   const displayDistrict = capitalizeFirstLetter(district);
   const displayFederation = (federation || '').toUpperCase();
@@ -419,7 +359,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         </table>
       </div>
 
-      {/* Tableau des références - verrouillé en lecture seule */}
+      {/* Tableau des références (lecture seule) */}
       <div className="mt-6">
         <table className="w-full text-sm border border-black">
           <thead>
@@ -430,33 +370,33 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
             </tr>
           </thead>
           <tbody>
-            {references.map((ref,idx)=>(
+            {references.map((ref, idx) => (
               <tr key={idx}>
                 <td className="border p-1">
-                  <input 
-                    type="text" 
-                    value={ref.date} 
+                  <input
+                    type="text"
+                    value={ref.date}
                     readOnly
-                    className="w-full" 
-                    style={{textAlign:'left', backgroundColor: '#f5f5f5'}}
+                    className="w-full"
+                    style={{ textAlign: 'left', backgroundColor: '#f5f5f5', border: 'none' }}
                   />
                 </td>
                 <td className="border p-1">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formatNumber(ref.soraBola) || ''}
                     readOnly
-                    className="w-full" 
-                    style={{textAlign:'right', backgroundColor: '#f5f5f5'}}
+                    className="w-full"
+                    style={{ textAlign: 'right', backgroundColor: '#f5f5f5', border: 'none' }}
                   />
                 </td>
                 <td className="border p-1">
-                  <input 
-                    type="text" 
-                    value={ref.rosia} 
+                  <input
+                    type="text"
+                    value={ref.rosia}
                     readOnly
-                    className="w-full" 
-                    style={{textAlign:'left', backgroundColor: '#f5f5f5'}}
+                    className="w-full"
+                    style={{ textAlign: 'left', backgroundColor: '#f5f5f5', border: 'none' }}
                   />
                 </td>
               </tr>
