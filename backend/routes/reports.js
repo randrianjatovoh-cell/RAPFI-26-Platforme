@@ -18,11 +18,12 @@ router.get('/monthly/:month/:eglise', checkAccess, async (req, res) => {
     const report = await getMonthlyReport(req.params.month, req.params.eglise);
     res.json(report || null);
   } catch (err) {
+    console.error('❌ Erreur GET /monthly:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// 🔥 Route pour forcer le recalcul d'un rapport mensuel
+// Route pour forcer le recalcul d'un rapport mensuel
 router.post('/rebuild', checkAccess, async (req, res) => {
   try {
     const { month, eglise } = req.body;
@@ -33,7 +34,7 @@ router.post('/rebuild', checkAccess, async (req, res) => {
     const report = await getMonthlyReport(month, eglise);
     res.json(report);
   } catch (err) {
-    console.error('Erreur lors du rebuild du rapport :', err);
+    console.error('❌ Erreur rebuild:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -43,14 +44,27 @@ router.put('/field', checkAccess, async (req, res) => {
   try {
     const { month, eglise, field, value } = req.body;
 
+    // 🔒 Liste des champs autorisés (sécurité)
+    const allowedFields = [
+      'sabbath_dates', 'totalA', 'totalB', 'totalExpenses', 'balanceChurch',
+      'saramPandefasana', 'dateVersementFME', 'rosiaNum', 'bokyBe', 'rapano',
+      'tatitra', 'dateFanamarihana', 'caisseFME', 'chequeRef', 'dateCheque',
+      'soraBolaDate', 'soraBolaMontant', 'soraBolaLettres', 'soraBolaSignataire',
+      'soraBolaLinesJson', 'signatures', 'endOfYear', 'receiptNumber', 'note'
+    ];
+    if (!allowedFields.includes(field)) {
+      console.warn(`⛔ Champ non autorisé: ${field}`);
+      return res.status(400).json({ error: 'Champ non autorisé' });
+    }
+
     // 1. Vérifier si le rapport existe
     let report = await getMonthlyReport(month, eglise);
     if (!report) {
-      // 🔥 Le rapport n'existe pas : on le recrée à partir des données GL existantes
+      // Le rapport n'existe pas → on le recrée
       await computeAndSaveMonthlyReports(month, eglise);
       report = await getMonthlyReport(month, eglise);
       if (!report) {
-        // Si malgré tout le rapport est toujours null, on crée un squelette vide
+        // Si toujours null, on crée un squelette vide
         await upsertMonthlyReport(month, eglise, {});
         report = await getMonthlyReport(month, eglise);
       }
@@ -58,9 +72,10 @@ router.put('/field', checkAccess, async (req, res) => {
 
     // 2. Mettre à jour le champ
     await updateReportField(month, eglise, field, value);
+    console.log(`✅ Champ ${field} mis à jour pour ${month} - ${eglise}`);
     res.json({ success: true });
   } catch (err) {
-    console.error('Erreur updateReportField:', err);
+    console.error('❌ Erreur updateReportField:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -75,7 +90,7 @@ router.put('/sabbath-date', checkAccess, async (req, res) => {
     await upsertMonthlyReport(month, eglise, { sabbath_dates: JSON.stringify(sabbathDates) });
     res.json({ success: true });
   } catch (err) {
-    console.error('Erreur sauvegarde date Sabbat:', err);
+    console.error('❌ Erreur sauvegarde date Sabbat:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -88,6 +103,7 @@ router.get('/eglise/:eglise', checkAccess, async (req, res) => {
     const reports = await d.all('SELECT * FROM monthly_reports WHERE eglise = ? ORDER BY month_id', req.params.eglise);
     res.json(reports);
   } catch (err) {
+    console.error('❌ Erreur /eglise:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -116,6 +132,7 @@ router.get('/district/:district', async (req, res) => {
     `, requestedDistrict);
     res.json(reports);
   } catch (err) {
+    console.error('❌ Erreur /district:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -157,6 +174,7 @@ router.get('/federation/:federation', async (req, res) => {
     const reports = await d.all(sql, params);
     res.json(reports);
   } catch (err) {
+    console.error('❌ Erreur /federation:', err);
     res.status(500).json({ error: err.message });
   }
 });
