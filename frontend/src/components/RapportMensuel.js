@@ -370,7 +370,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .rapport-mensuel .border-black { border-color: #000 !important; }
         .rapport-mensuel .protected-cell { background-color: #f9f9f9; }
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        /* Style pour les affichages de date sans bordure, alignés à gauche */
         .date-display {
           display: inline-block;
           min-width: 100px;
@@ -381,7 +380,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           background: transparent;
           border: none;
         }
-        /* Lignes de séparation pour l'impression */
+        /* Lignes de séparation explicites avec style inline pour garantir la visibilité */
         .section-separator {
           border: none;
           border-top: 2px solid #000;
@@ -480,7 +479,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       </div>
 
       {/* Ligne avant "I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA" */}
-      <hr className="section-separator" />
+      <div style={{ border: 'none', borderTop: '2px solid #000', margin: '8px 0' }}></div>
 
       <h3 className="font-bold mt-1">I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA</h3>
       <div className="overflow-x-auto">
@@ -589,7 +588,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       </div>
 
       {/* Ligne après "TONTALIN'NY VOLA MIAKATRA any @ FME" */}
-      <hr className="section-separator-light" />
+      <div style={{ border: 'none', borderTop: '1px solid #000', margin: '6px 0' }}></div>
 
       <div className="grid grid-cols-2 gap-1 mt-1">
         <div className="border p-1">
@@ -627,7 +626,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       </div>
 
       {/* Ligne avant "II- MOMBA NY VOLAM-PIANGONANA ETO AN-TOERANA" */}
-      <hr className="section-separator" />
+      <div style={{ border: 'none', borderTop: '2px solid #000', margin: '8px 0' }}></div>
 
       <h3 className="font-bold mt-2">II- MOMBA NY VOLAM-PIANGONANA ETO AN-TOERANA</h3>
       <div className="overflow-x-auto mt-0">
@@ -681,7 +680,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       </div>
 
       {/* Ligne avant "Ny Mpitahiry vola" */}
-      <hr className="section-separator" />
+      <div style={{ border: 'none', borderTop: '2px solid #000', margin: '8px 0' }}></div>
 
       <div className="grid grid-cols-3 gap-2 mt-1 border-t pt-1" style={{ gap: '6px', fontSize: '10pt' }}>
         <div>
