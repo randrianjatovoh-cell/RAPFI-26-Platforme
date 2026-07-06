@@ -47,21 +47,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [saramPandefasana, setSaramPandefasana] = useState(0);
   const [dateVersementFME, setDateVersementFME] = useState("");
   const [rosiaNum, setRosiaNum] = useState("");
-  const [bokyBe, setBokyBe] = useState("");
-  const [rapano, setRapano] = useState("");
-  const [tatitra, setTatitra] = useState("");
   const [dateFanamarihana, setDateFanamarihana] = useState("");
   const [caisseFME, setCaisseFME] = useState("");
   const [soraBolaDate, setSoraBolaDate] = useState("");
   const [soraBolaMontant, setSoraBolaMontant] = useState(0);
   const [soraBolaLettres, setSoraBolaLettres] = useState("");
   const [soraBolaSignataire, setSoraBolaSignataire] = useState("");
-  const [checkBokyBe, setCheckBokyBe] = useState(false);
-  const [checkRapano, setCheckRapano] = useState(false);
-  const [checkTatitra, setCheckTatitra] = useState(false);
-  const [remarkBokyBe, setRemarkBokyBe] = useState("");
-  const [remarkRapano, setRemarkRapano] = useState("");
-  const [remarkTatitra, setRemarkTatitra] = useState("");
   const [chequeLines, setChequeLines] = useState(["", "", "", "", ""]);
   const [soraBolaLines, setSoraBolaLines] = useState(["", "", "", "", ""]);
   const [totalChequeSora, setTotalChequeSora] = useState(0);
@@ -78,6 +69,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Données supplémentaires stockées dans `note` (JSON)
+  const [additionalData, setAdditionalData] = useState({
+    checkBokyBe: false,
+    remarkBokyBe: "",
+    checkRapano: false,
+    remarkRapano: "",
+    checkTatitra: false,
+    remarkTatitra: "",
+  });
+
   const datePickerRefs = useRef({});
 
   const isReadOnlyMode = () => {
@@ -87,6 +88,18 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
+  // Sauvegarde des données supplémentaires dans `note`
+  const saveAdditionalData = async (newData) => {
+    if (isReadOnlyMode() || !currentMonth || !eglise) return;
+    try {
+      const note = JSON.stringify(newData);
+      await api.updateReportField(currentMonth, eglise, 'note', note);
+    } catch (err) {
+      console.error('Erreur sauvegarde note (additional data):', err);
+    }
+  };
+
+  // Sauvegarde d'un champ simple
   const saveField = async (field, value) => {
     if (isReadOnlyMode() || !currentMonth || !eglise) return;
     try {
@@ -111,12 +124,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     try {
       let r = await api.getMonthlyReport(currentMonth, eglise);
       if (!r) {
-        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
+        console.log(`📝 Rapport manquant, tentative de recréation...`);
         try {
           r = await api.rebuildMonthlyReport(currentMonth, eglise);
-          console.log('✅ Rapport recréé avec succès');
         } catch (rebuildErr) {
-          console.error('❌ Erreur lors du rebuild :', rebuildErr);
+          console.error('❌ Erreur rebuild:', rebuildErr);
         }
       }
       setReport(r);
@@ -129,13 +141,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             if (Array.isArray(parsed) && parsed.length >= 5) setSabbathDates(parsed);
             else setSabbathDates(["", "", "", "", ""]);
           } catch { setSabbathDates(["", "", "", "", ""]); }
-        } else setSabbathDates(["", "", "", "", ""]);
+        }
 
+        // Champs simples
         setDateVersementFME(r.dateVersementFME || "");
         setRosiaNum(r.rosiaNum || "");
-        setBokyBe(r.bokyBe || "");
-        setRapano(r.rapano || "");
-        setTatitra(r.tatitra || "");
         setDateFanamarihana(r.dateFanamarihana || "");
         setCaisseFME(r.caisseFME || "");
         setSoraBolaDate(r.soraBolaDate || "");
@@ -143,13 +153,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || "");
         setSoraBolaSignataire(r.soraBolaSignataire || "");
 
-        setCheckBokyBe(r.checkBokyBe === true || r.checkBokyBe === 'true');
-        setCheckRapano(r.checkRapano === true || r.checkRapano === 'true');
-        setCheckTatitra(r.checkTatitra === true || r.checkTatitra === 'true');
-        setRemarkBokyBe(r.remarkBokyBe || "");
-        setRemarkRapano(r.remarkRapano || "");
-        setRemarkTatitra(r.remarkTatitra || "");
+        // Récupérer les données supplémentaires depuis `note`
+        if (r.note) {
+          try {
+            const parsed = JSON.parse(r.note);
+            setAdditionalData(prev => ({ ...prev, ...parsed }));
+          } catch {
+            // Si ce n'est pas du JSON, on l'ignore
+          }
+        }
 
+        // Tableau cheque/sora-bola
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -168,9 +182,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         }
       }
 
+      // Frais
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setSaramPandefasana(fraisVal);
 
+      // GL data
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -197,6 +213,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(categorySumsArr);
 
+      // Dépenses
       const expensesList = await api.getDepenses(currentMonth, null, null, eglise);
       const totalExp = expensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
@@ -246,6 +263,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       window.removeEventListener('frais-updated', handleDataUpdate);
     };
   }, [currentMonth, eglise]);
+
+  // Gestion des champs supplémentaires (avec sauvegarde immédiate)
+  const handleAdditionalChange = (field, value) => {
+    const newData = { ...additionalData, [field]: value };
+    setAdditionalData(newData);
+    saveAdditionalData(newData);
+  };
 
   // Tableau cheque/sora-bola
   const updateSoraBolaLine = (idx, rawValue) => {
@@ -552,19 +576,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         <div className="border p-1">
           <div className="font-bold mb-1">FANAMARIHANA ATAON'NY MPANAMARIM-BOKY</div>
           <div className="checkbox-group">
-            <input type="checkbox" checked={checkBokyBe} onChange={e => { if (!readOnlyMode) { setCheckBokyBe(e.target.checked); saveField('checkBokyBe', e.target.checked); } }} disabled={readOnlyMode} />
+            <input type="checkbox" checked={additionalData.checkBokyBe} onChange={e => handleAdditionalChange('checkBokyBe', e.target.checked)} disabled={readOnlyMode} />
             <span className="label">Boky Be :</span>
-            <input type="text" value={remarkBokyBe} onChange={e => { if (!readOnlyMode) { setRemarkBokyBe(e.target.value); } }} onBlur={e => { if (!readOnlyMode) saveField('remarkBokyBe', e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={additionalData.remarkBokyBe} onChange={e => handleAdditionalChange('remarkBokyBe', e.target.value)} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
-            <input type="checkbox" checked={checkRapano} onChange={e => { if (!readOnlyMode) { setCheckRapano(e.target.checked); saveField('checkRapano', e.target.checked); } }} disabled={readOnlyMode} />
+            <input type="checkbox" checked={additionalData.checkRapano} onChange={e => handleAdditionalChange('checkRapano', e.target.checked)} disabled={readOnlyMode} />
             <span className="label">Rapaoro :</span>
-            <input type="text" value={remarkRapano} onChange={e => { if (!readOnlyMode) { setRemarkRapano(e.target.value); } }} onBlur={e => { if (!readOnlyMode) saveField('remarkRapano', e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={additionalData.remarkRapano} onChange={e => handleAdditionalChange('remarkRapano', e.target.value)} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
-            <input type="checkbox" checked={checkTatitra} onChange={e => { if (!readOnlyMode) { setCheckTatitra(e.target.checked); saveField('checkTatitra', e.target.checked); } }} disabled={readOnlyMode} />
+            <input type="checkbox" checked={additionalData.checkTatitra} onChange={e => handleAdditionalChange('checkTatitra', e.target.checked)} disabled={readOnlyMode} />
             <span className="label">Tatitra :</span>
-            <input type="text" value={remarkTatitra} onChange={e => { if (!readOnlyMode) { setRemarkTatitra(e.target.value); } }} onBlur={e => { if (!readOnlyMode) saveField('remarkTatitra', e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={additionalData.remarkTatitra} onChange={e => handleAdditionalChange('remarkTatitra', e.target.value)} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
         </div>
         <div className="border p-1">
@@ -623,8 +647,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 </tr>
               ))}
               <tr className="font-bold bg-gray-100">
-                <td className="border border-black p-0.5 text-right">TOTAL :</td>
-                <td className="border border-black p-0.5 text-right">{formatNumber(totalChequeSora)} Ar</td>
+                <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>TOTAL :</td>
+                <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>{formatNumber(totalChequeSora)} Ar</td>
               </tr>
             </tbody>
           </table>
