@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
@@ -11,29 +11,6 @@ function formatDateDisplay(dateStr) {
     if (isNaN(date)) return '';
     return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
   } catch { return ''; }
-}
-
-function parseDateInput(value) {
-  if (!value) return '';
-  const parts = value.split('/');
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-      const date = new Date(year, month, day);
-      if (!isNaN(date)) return date.toISOString().split('T')[0];
-    }
-  } else if (parts.length === 2) {
-    const year = new Date().getFullYear();
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    if (!isNaN(day) && !isNaN(month)) {
-      const date = new Date(year, month, day);
-      if (!isNaN(date)) return date.toISOString().split('T')[0];
-    }
-  }
-  return value;
 }
 
 export default function RapportMensuel({ currentMonth, selectedEglise, readOnly = false }) {
@@ -78,8 +55,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     checkTatitra: false,
     remarkTatitra: "",
   });
-
-  const datePickerRefs = useRef({});
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -254,6 +229,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     loadData();
   }, [currentMonth, eglise]);
 
+  // Écouter les événements pour recharger quand les données sont mises à jour ailleurs
   useEffect(() => {
     const handleDataUpdate = () => loadData();
     window.addEventListener('data-updated', handleDataUpdate);
@@ -305,56 +281,21 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     saveField('soraBolaLettres', lettres);
   };
 
-  const DateInputWithIcon = ({ value, setter, fieldName, disabled }) => {
-    const displayValue = formatDateDisplay(value);
+  // Composant DateInput simplifié
+  const DateInput = ({ value, setter, fieldName, disabled }) => {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-        <input
-          type="text"
-          value={displayValue}
-          onChange={(e) => {
-            const raw = e.target.value;
-            setter(raw);
-          }}
-          onBlur={(e) => {
-            const parsed = parseDateInput(e.target.value);
-            const finalValue = (parsed !== e.target.value && parsed !== '') ? parsed : e.target.value;
-            setter(finalValue);
-            saveField(fieldName, finalValue);
-          }}
-          className="rounded p-0.5 date-input"
-          style={{ width: '130px' }}
-          disabled={disabled}
-          placeholder=""
-        />
-        <input
-          type="date"
-          ref={(el) => (datePickerRefs.current[fieldName] = el)}
-          value={value || ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            setter(val);
-            saveField(fieldName, val);
-          }}
-          style={{ display: 'none' }}
-          disabled={disabled}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            if (!disabled && datePickerRefs.current[fieldName]) {
-              datePickerRefs.current[fieldName].showPicker
-                ? datePickerRefs.current[fieldName].showPicker()
-                : datePickerRefs.current[fieldName].click();
-            }
-          }}
-          disabled={disabled}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}
-          className="no-print"
-        >
-          📅
-        </button>
-      </div>
+      <input
+        type="date"
+        value={value || ''}
+        onChange={(e) => {
+          const val = e.target.value;
+          setter(val);
+          saveField(fieldName, val);
+        }}
+        className="rounded p-0.5 date-input"
+        style={{ width: '130px' }}
+        disabled={disabled}
+      />
     );
   };
 
@@ -557,7 +498,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       <div className="flex justify-between items-center mt-1">
         <div>
           <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
-          <DateInputWithIcon value={dateVersementFME} setter={setDateVersementFME} fieldName="dateVersementFME" disabled={readOnlyMode} />
+          <DateInput value={dateVersementFME} setter={setDateVersementFME} fieldName="dateVersementFME" disabled={readOnlyMode} />
         </div>
         <div className="flex items-center gap-1">
           <span className="font-bold whitespace-nowrap">SARAM-PANDEFASANA (Ar) :</span>
@@ -578,31 +519,31 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="checkbox-group">
             <input type="checkbox" checked={additionalData.checkBokyBe} onChange={e => handleAdditionalChange('checkBokyBe', e.target.checked)} disabled={readOnlyMode} />
             <span className="label">Boky Be :</span>
-            <input type="text" value={additionalData.remarkBokyBe} onChange={e => handleAdditionalChange('remarkBokyBe', e.target.value)} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={additionalData.remarkBokyBe} onChange={e => { const val = e.target.value; setAdditionalData(prev => ({...prev, remarkBokyBe: val})); saveAdditionalData({...additionalData, remarkBokyBe: val}); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
             <input type="checkbox" checked={additionalData.checkRapano} onChange={e => handleAdditionalChange('checkRapano', e.target.checked)} disabled={readOnlyMode} />
             <span className="label">Rapaoro :</span>
-            <input type="text" value={additionalData.remarkRapano} onChange={e => handleAdditionalChange('remarkRapano', e.target.value)} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={additionalData.remarkRapano} onChange={e => { const val = e.target.value; setAdditionalData(prev => ({...prev, remarkRapano: val})); saveAdditionalData({...additionalData, remarkRapano: val}); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
             <input type="checkbox" checked={additionalData.checkTatitra} onChange={e => handleAdditionalChange('checkTatitra', e.target.checked)} disabled={readOnlyMode} />
             <span className="label">Tatitra :</span>
-            <input type="text" value={additionalData.remarkTatitra} onChange={e => handleAdditionalChange('remarkTatitra', e.target.value)} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={additionalData.remarkTatitra} onChange={e => { const val = e.target.value; setAdditionalData(prev => ({...prev, remarkTatitra: val})); saveAdditionalData({...additionalData, remarkTatitra: val}); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
         </div>
         <div className="border p-1">
           <div>
             <span className="font-semibold">Rosia N° :</span>
-            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); saveField('rosiaNum', e.target.value); } }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
+            <input type="text" value={rosiaNum} onChange={e => { setRosiaNum(e.target.value); saveField('rosiaNum', e.target.value); }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Daty :</span>
-            <DateInputWithIcon value={dateFanamarihana} setter={setDateFanamarihana} fieldName="dateFanamarihana" disabled={readOnlyMode} />
+            <DateInput value={dateFanamarihana} setter={setDateFanamarihana} fieldName="dateFanamarihana" disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
-            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); saveField('caisseFME', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input type="text" value={caisseFME} onChange={e => { setCaisseFME(e.target.value); saveField('caisseFME', e.target.value); }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
       </div>
@@ -612,11 +553,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="font-bold italic text-center">"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
           <div>
             <span className="font-semibold">Voaray androany (daty) :</span>
-            <DateInputWithIcon value={soraBolaDate} setter={setSoraBolaDate} fieldName="soraBolaDate" disabled={readOnlyMode} />
+            <DateInput value={soraBolaDate} setter={setSoraBolaDate} fieldName="soraBolaDate" disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Ny vola Ar :</span>
-            <input type="number" value={soraBolaMontant} onChange={e => { if (!readOnlyMode) handleMontantChange(e.target.value); }} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
+            <input type="number" value={soraBolaMontant} onChange={e => handleMontantChange(e.target.value)} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">An-tsoratra :</span>
@@ -624,7 +565,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Anarana sy sonian'ny nandray vola :</span>
-            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); saveField('soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input type="text" value={soraBolaSignataire} onChange={e => { setSoraBolaSignataire(e.target.value); saveField('soraBolaSignataire', e.target.value); }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
         <div className="border p-1">
