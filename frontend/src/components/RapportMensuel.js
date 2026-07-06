@@ -5,16 +5,6 @@ import { api } from '../services/api';
 import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
 // --- Helpers de dates ---
-function toISOString(date) {
-  if (!date) return '';
-  const d = new Date(date);
-  if (isNaN(d)) return '';
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 function formatDateInput(dateStr) {
   if (!dateStr) return '';
   try {
@@ -31,6 +21,7 @@ function formatDateInput(dateStr) {
 
 function parseDateInput(value) {
   if (!value) return '';
+  // Si déjà au format ISO, on le garde
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const parts = value.split('/');
   if (parts.length === 3) {
@@ -39,7 +30,10 @@ function parseDateInput(value) {
     const year = parseInt(parts[2], 10);
     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
       const date = new Date(year, month, day);
-      if (!isNaN(date)) return toISOString(date);
+      if (!isNaN(date)) {
+        const iso = date.toISOString().split('T')[0];
+        return iso;
+      }
     }
   } else if (parts.length === 2) {
     const year = new Date().getFullYear();
@@ -47,7 +41,10 @@ function parseDateInput(value) {
     const month = parseInt(parts[1], 10) - 1;
     if (!isNaN(day) && !isNaN(month)) {
       const date = new Date(year, month, day);
-      if (!isNaN(date)) return toISOString(date);
+      if (!isNaN(date)) {
+        const iso = date.toISOString().split('T')[0];
+        return iso;
+      }
     }
   }
   return value;
@@ -103,7 +100,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const datePickerRefs = useRef({});
   const abortControllerRef = useRef(null);
   const [loadTrigger, setLoadTrigger] = useState(0);
 
@@ -136,7 +132,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setError(null);
 
     try {
-      console.log('🔄 [loadData] Début chargement pour', currentMonth, eglise);
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
         api.getMonthlyReport(currentMonth, eglise),
         api.getFrais(currentMonth, eglise),
@@ -153,7 +148,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       }
       setReport(r);
 
-      // Restaurer les champs du rapport
       if (r) {
         if (r.sabbath_dates) {
           try {
@@ -179,13 +173,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // --- Restauration du tableau chèque / sora-bola ---
-        console.log('📋 [loadData] soraBolaLinesJson brut:', r.soraBolaLinesJson);
+        // Restauration du tableau chèque / sora-bola
         let loadedFromBackend = false;
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
-            console.log('📋 [loadData] parsed:', parsed);
             if (parsed && typeof parsed === 'object') {
               if (Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
                 const chq = parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', ''];
@@ -195,7 +187,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
                 loadedFromBackend = true;
-                console.log('✅ [loadData] Tableau restauré depuis backend:', chq, sora);
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
                 setSoraBolaLines(sora);
@@ -205,12 +196,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 loadedFromBackend = true;
               }
             }
-          } catch (e) {
-            console.warn('⚠️ [loadData] Erreur parsing soraBolaLinesJson:', e);
-          }
+          } catch (e) { /* ignore */ }
         }
         if (!loadedFromBackend) {
-          // Fallback : récupérer depuis localStorage
+          // Fallback localStorage
           const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
           const stored = localStorage.getItem(fallbackKey);
           if (stored) {
@@ -221,7 +210,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 setSoraBolaLines(parsed.soraBola.length === 5 ? parsed.soraBola : ['', '', '', '', '']);
                 const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
-                console.log('📋 [loadData] Restauré depuis localStorage');
               }
             } catch (e) {}
           } else {
@@ -302,28 +290,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setVolaSisaTeoAloha(sisa);
       setBalanceChurch(sisa + totalB - totalExp);
 
-      console.log('✅ [loadData] Chargement terminé avec succès');
     } catch (err) {
-      if (err.name === 'AbortError') {
-        console.log('⛔ [loadData] Requête annulée');
-        return;
-      }
-      console.error('❌ [loadData] Erreur:', err);
+      if (err.name === 'AbortError') return;
+      console.error('Erreur chargement:', err);
       setError(err.message);
     } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [currentMonth, eglise, user, canViewEglise, canEditEglise]);
 
-  // --- Chargement à chaque montage ou changement de mois/église ---
+  // --- Chargement ---
   useEffect(() => {
     loadData();
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [currentMonth, eglise, loadTrigger]);
 
@@ -332,26 +312,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
-      console.log(`✅ [updateField] ${field} sauvegardé:`, value);
     } catch (err) {
-      console.error(`❌ [updateField] Erreur sauvegarde ${field}:`, err);
+      console.error(`❌ Erreur sauvegarde ${field}:`, err);
     }
   };
 
-  // --- Sauvegarde du tableau chèque / sora-bola (avec fallback localStorage) ---
+  // --- Sauvegarde du tableau chèque / sora-bola ---
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
-    // Sauvegarde locale
-    const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
-    localStorage.setItem(fallbackKey, JSON.stringify(data));
-    console.log('💾 [saveCheque] Sauvegarde locale effectuée');
-    // Sauvegarde API
+    localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify(data));
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      console.log('✅ [saveCheque] Sauvegarde API réussie');
     } catch (err) {
-      console.error('❌ [saveCheque] Erreur API:', err);
+      console.error('❌ Erreur sauvegarde tableau:', err);
     }
   };
 
@@ -388,82 +362,18 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
-  // --- Date picker ---
-  const openDatePicker = (fieldName) => {
+  // --- Gestion des champs de date (version simple avec texte) ---
+  const handleDateChange = (setter, fieldName, textValue) => {
     if (isReadOnlyMode()) return;
-    const input = datePickerRefs.current[fieldName];
-    if (input) {
-      try {
-        if (input.showPicker) {
-          input.showPicker();
-        } else {
-          input.click();
-        }
-      } catch (e) {
-        input.click();
-      }
-    }
+    setter(textValue); // mise à jour de l'affichage en temps réel
   };
 
-  const handleDatePickerChange = (setter, fieldName, event) => {
-    if (isReadOnlyMode()) return;
-    const isoValue = event.target.value;
-    setter(isoValue);
-    updateField(fieldName, isoValue);
-  };
-
-  const handleDateTextChange = (setter, fieldName, textValue) => {
-    if (isReadOnlyMode()) return;
-    setter(textValue);
-  };
-
-  const handleDateTextBlur = (setter, fieldName, textValue) => {
+  const handleDateBlur = (setter, fieldName, textValue) => {
     if (isReadOnlyMode()) return;
     const iso = parseDateInput(textValue);
     const finalValue = (iso && iso !== textValue) ? iso : textValue;
     setter(finalValue);
     updateField(fieldName, finalValue);
-  };
-
-  const DateInputWithIcon = ({ value, setter, fieldName, disabled }) => {
-    const displayValue = formatDateInput(value);
-    return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-        <input
-          type="text"
-          value={displayValue}
-          onChange={(e) => handleDateTextChange(setter, fieldName, e.target.value)}
-          onBlur={(e) => handleDateTextBlur(setter, fieldName, e.target.value)}
-          className="rounded p-0.5 date-input"
-          style={{ width: '130px' }}
-          disabled={disabled}
-          placeholder="jj/mm/aaaa"
-        />
-        <input
-          type="date"
-          ref={(el) => (datePickerRefs.current[fieldName] = el)}
-          value={value || ''}
-          onChange={(e) => handleDatePickerChange(setter, fieldName, e)}
-          style={{
-            position: 'absolute',
-            opacity: 0,
-            width: 0,
-            height: 0,
-            pointerEvents: 'none'
-          }}
-          disabled={disabled}
-        />
-        <button
-          type="button"
-          onClick={() => openDatePicker(fieldName)}
-          disabled={disabled}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}
-          className="no-print"
-        >
-          📅
-        </button>
-      </div>
-    );
   };
 
   // --- Rendu ---
@@ -559,9 +469,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="italic" style={{ fontSize: '9pt' }}>"IZAY OLONA MAHATOKY TOKOA DIA HO BE FITAHIANA" (Ohab. 28:20a)</div>
         </div>
         <button onClick={() => window.print()} className="bg-gray-600 text-white px-3 py-1 rounded text-sm no-print">Imprimer</button>
-        <button onClick={() => setLoadTrigger(prev => prev + 1)} className="bg-blue-500 text-white px-2 py-1 rounded text-sm ml-2 no-print">
-          Recharger
-        </button>
       </div>
 
       <div style={{ height: '10px' }}></div>
@@ -669,7 +576,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       <div className="flex justify-between items-center mt-1">
         <div>
           <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
-          <DateInputWithIcon value={dateVersementFME} setter={setDateVersementFME} fieldName="dateVersementFME" disabled={readOnlyMode} />
+          <input
+            type="text"
+            value={formatDateInput(dateVersementFME)}
+            onChange={(e) => handleDateChange(setDateVersementFME, 'dateVersementFME', e.target.value)}
+            onBlur={(e) => handleDateBlur(setDateVersementFME, 'dateVersementFME', e.target.value)}
+            className="rounded p-0.5 date-input"
+            style={{ width: '130px' }}
+            disabled={readOnlyMode}
+            placeholder="jj/mm/aaaa"
+          />
         </div>
         <div className="flex items-center gap-1">
           <span className="font-bold whitespace-nowrap">SARAM-PANDEFASANA (Ar) :</span>
@@ -710,7 +626,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Daty :</span>
-            <DateInputWithIcon value={dateFanamarihana} setter={setDateFanamarihana} fieldName="dateFanamarihana" disabled={readOnlyMode} />
+            <input
+              type="text"
+              value={formatDateInput(dateFanamarihana)}
+              onChange={(e) => handleDateChange(setDateFanamarihana, 'dateFanamarihana', e.target.value)}
+              onBlur={(e) => handleDateBlur(setDateFanamarihana, 'dateFanamarihana', e.target.value)}
+              className="rounded p-0.5 date-input"
+              style={{ width: '130px' }}
+              disabled={readOnlyMode}
+              placeholder="jj/mm/aaaa"
+            />
           </div>
           <div>
             <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
@@ -724,7 +649,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="font-bold italic text-center">"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
           <div>
             <span className="font-semibold">Voaray androany (daty) :</span>
-            <DateInputWithIcon value={soraBolaDate} setter={setSoraBolaDate} fieldName="soraBolaDate" disabled={readOnlyMode} />
+            <input
+              type="text"
+              value={formatDateInput(soraBolaDate)}
+              onChange={(e) => handleDateChange(setSoraBolaDate, 'soraBolaDate', e.target.value)}
+              onBlur={(e) => handleDateBlur(setSoraBolaDate, 'soraBolaDate', e.target.value)}
+              className="rounded p-0.5 date-input"
+              style={{ width: '130px' }}
+              disabled={readOnlyMode}
+              placeholder="jj/mm/aaaa"
+            />
           </div>
           <div>
             <span className="font-semibold">Ny vola Ar :</span>
