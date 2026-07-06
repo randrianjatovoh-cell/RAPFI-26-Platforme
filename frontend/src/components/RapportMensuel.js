@@ -280,6 +280,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
+      // 🔔 Dispatch de l'événement pour mettre à jour le RapportComite
+      window.dispatchEvent(new Event('data-updated'));
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
     }
@@ -292,6 +294,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify(data));
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
+      // 🔔 Dispatch de l'événement pour mettre à jour le RapportComite
+      window.dispatchEvent(new Event('data-updated'));
     } catch (err) {
       console.error('❌ Erreur sauvegarde tableau:', err);
     }
