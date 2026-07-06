@@ -63,7 +63,6 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       let r = await api.getMonthlyReport(currentMonth, eglise);
       console.log('📦 [RapportComite] Rapport reçu:', r);
       if (!r) {
-        // Tenter de le recréer
         console.log('🔄 [RapportComite] Rapport manquant, tentative de rebuild...');
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
         console.log('📦 [RapportComite] Après rebuild:', r);
@@ -72,10 +71,25 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
 
       // 2. Extraire les références depuis soraBolaLinesJson
       let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
+      let rawJson = null;
+
+      // Priorité 1 : champ soraBolaLinesJson du rapport
       if (r && r.soraBolaLinesJson) {
-        console.log('📋 [RapportComite] soraBolaLinesJson brut:', r.soraBolaLinesJson);
+        rawJson = r.soraBolaLinesJson;
+        console.log('📋 [RapportComite] soraBolaLinesJson trouvé dans le rapport');
+      } else {
+        // Priorité 2 : fallback localStorage
+        const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
+        const stored = localStorage.getItem(fallbackKey);
+        if (stored) {
+          rawJson = stored;
+          console.log('📋 [RapportComite] soraBolaLinesJson restauré depuis localStorage');
+        }
+      }
+
+      if (rawJson) {
         try {
-          const parsed = JSON.parse(r.soraBolaLinesJson);
+          const parsed = JSON.parse(rawJson);
           console.log('📋 [RapportComite] parsed:', parsed);
           let chequeArr = [];
           let soraArr = [];
@@ -112,10 +126,10 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
           }
           console.log('✅ [RapportComite] Références extraites:', newRefs);
         } catch(e) {
-          console.warn("❌ [RapportComite] Erreur parsing soraBolaLinesJson:", e);
+          console.warn("❌ [RapportComite] Erreur parsing:", e);
         }
       } else {
-        console.warn('⚠️ [RapportComite] Aucune donnée soraBolaLinesJson dans le rapport.');
+        console.warn('⚠️ [RapportComite] Aucune donnée trouvée.');
       }
       setReferences(newRefs);
 
