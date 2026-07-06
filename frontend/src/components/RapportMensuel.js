@@ -1,14 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
 import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
-function formatMontant(value) {
-  if (value === undefined || value === null) return '';
-  const num = Number(value);
-  if (isNaN(num) || num === 0) return '';
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+// --- Helpers de dates robustes ---
+function toISOString(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d)) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDateInput(dateStr) {
@@ -20,11 +24,15 @@ function formatDateInput(dateStr) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
-  } catch { return dateStr; }
+  } catch {
+    return dateStr;
+  }
 }
 
 function parseDateInput(value) {
   if (!value) return '';
+  // Si déjà au format ISO, on le garde
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const parts = value.split('/');
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
@@ -32,7 +40,7 @@ function parseDateInput(value) {
     const year = parseInt(parts[2], 10);
     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
       const date = new Date(year, month, day);
-      if (!isNaN(date)) return date.toISOString().split('T')[0];
+      if (!isNaN(date)) return toISOString(date);
     }
   } else if (parts.length === 2) {
     const year = new Date().getFullYear();
@@ -40,50 +48,49 @@ function parseDateInput(value) {
     const month = parseInt(parts[1], 10) - 1;
     if (!isNaN(day) && !isNaN(month)) {
       const date = new Date(year, month, day);
-      if (!isNaN(date)) return date.toISOString().split('T')[0];
+      if (!isNaN(date)) return toISOString(date);
     }
   }
   return value;
 }
 
-function formatDateDisplay(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date)) return '';
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-  } catch { return ''; }
+// --- Helper d'affichage des montants ---
+function formatMontant(value) {
+  if (value === undefined || value === null) return '';
+  const num = Number(value);
+  if (isNaN(num) || num === 0) return '';
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
+// --- Composant principal ---
 export default function RapportMensuel({ currentMonth, selectedEglise, readOnly = false }) {
   const { user: contextUser } = useUser();
   const { canViewEglise, canEditEglise, isReadOnly: isGlobalReadOnly } = usePermissions();
   const user = contextUser;
-  
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
-  
+
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
-  const [dateVersementFME, setDateVersementFME] = useState("");
-  const [rosiaNum, setRosiaNum] = useState("");
-  const [bokyBe, setBokyBe] = useState("");
-  const [rapano, setRapano] = useState("");
-  const [tatitra, setTatitra] = useState("");
-  const [dateFanamarihana, setDateFanamarihana] = useState("");
-  const [caisseFME, setCaisseFME] = useState("");
-  const [soraBolaDate, setSoraBolaDate] = useState("");
+  const [dateVersementFME, setDateVersementFME] = useState('');
+  const [rosiaNum, setRosiaNum] = useState('');
+  const [bokyBe, setBokyBe] = useState('');
+  const [rapano, setRapano] = useState('');
+  const [tatitra, setTatitra] = useState('');
+  const [dateFanamarihana, setDateFanamarihana] = useState('');
+  const [caisseFME, setCaisseFME] = useState('');
+  const [soraBolaDate, setSoraBolaDate] = useState('');
   const [soraBolaMontant, setSoraBolaMontant] = useState(0);
-  const [soraBolaLettres, setSoraBolaLettres] = useState("");
-  const [soraBolaSignataire, setSoraBolaSignataire] = useState("");
+  const [soraBolaLettres, setSoraBolaLettres] = useState('');
+  const [soraBolaSignataire, setSoraBolaSignataire] = useState('');
   const [checkBokyBe, setCheckBokyBe] = useState(false);
   const [checkRapano, setCheckRapano] = useState(false);
   const [checkTatitra, setCheckTatitra] = useState(false);
-  const [remarkBokyBe, setRemarkBokyBe] = useState("");
-  const [remarkRapano, setRemarkRapano] = useState("");
-  const [remarkTatitra, setRemarkTatitra] = useState("");
-  const [chequeLines, setChequeLines] = useState(["", "", "", "", ""]);
-  const [soraBolaLines, setSoraBolaLines] = useState(["", "", "", "", ""]);
+  const [remarkBokyBe, setRemarkBokyBe] = useState('');
+  const [remarkRapano, setRemarkRapano] = useState('');
+  const [remarkTatitra, setRemarkTatitra] = useState('');
+  const [chequeLines, setChequeLines] = useState(['', '', '', '', '']);
+  const [soraBolaLines, setSoraBolaLines] = useState(['', '', '', '', '']);
   const [totalChequeSora, setTotalChequeSora] = useState(0);
   const [totalsBySabbathA, setTotalsBySabbathA] = useState([0, 0, 0, 0, 0]);
   const [totalsBySabbathB, setTotalsBySabbathB] = useState([0, 0, 0, 0, 0]);
@@ -92,7 +99,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [expensesBySabbath, setExpensesBySabbath] = useState([0, 0, 0, 0, 0]);
   const [balanceChurch, setBalanceChurch] = useState(0);
-  const [sabbathDates, setSabbathDates] = useState(["", "", "", "", ""]);
+  const [sabbathDates, setSabbathDates] = useState(['', '', '', '', '']);
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [loading, setLoading] = useState(true);
@@ -107,105 +114,126 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
-  useEffect(() => {
-    if (currentMonth && eglise) {
-      if (!canViewEglise(eglise, user?.district, user?.federation)) {
-        setError("Vous n'avez pas accès à cette église.");
-        setLoading(false);
-        return;
-      }
-      loadData();
-    } else {
+  // --- Chargement des données ---
+  const loadData = useCallback(async () => {
+    if (!currentMonth || !eglise) {
       setLoading(false);
+      return;
     }
-  }, [currentMonth, eglise]);
+    if (!canViewEglise(eglise, user?.district, user?.federation)) {
+      setError("Vous n'avez pas accès à cette église.");
+      setLoading(false);
+      return;
+    }
 
-  async function loadData() {
     setLoading(true);
     setError(null);
+
     try {
       let r = await api.getMonthlyReport(currentMonth, eglise);
-      // Si le rapport est absent, on le recrée
       if (!r) {
-        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
-        try {
-          r = await api.rebuildMonthlyReport(currentMonth, eglise);
-          console.log('✅ Rapport recréé avec succès');
-        } catch (rebuildErr) {
-          console.error('❌ Erreur lors du rebuild :', rebuildErr);
-        }
+        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, recréation...`);
+        r = await api.rebuildMonthlyReport(currentMonth, eglise);
+        console.log('✅ Rapport recréé');
       }
       setReport(r);
 
+      // --- Restaurer les champs du rapport ---
       if (r) {
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
             if (Array.isArray(parsed) && parsed.length >= 5) setSabbathDates(parsed);
-            else setSabbathDates(["", "", "", "", ""]);
-          } catch { setSabbathDates(["", "", "", "", ""]); }
-        } else setSabbathDates(["", "", "", "", ""]);
+            else setSabbathDates(['', '', '', '', '']);
+          } catch {
+            setSabbathDates(['', '', '', '', '']);
+          }
+        } else {
+          setSabbathDates(['', '', '', '', '']);
+        }
 
-        setDateVersementFME(r.dateVersementFME || "");
-        setRosiaNum(r.rosiaNum || "");
-        setBokyBe(r.bokyBe || "");
-        setRapano(r.rapano || "");
-        setTatitra(r.tatitra || "");
-        setDateFanamarihana(r.dateFanamarihana || "");
-        setCaisseFME(r.caisseFME || "");
-        setSoraBolaDate(r.soraBolaDate || "");
+        setDateVersementFME(r.dateVersementFME || '');
+        setRosiaNum(r.rosiaNum || '');
+        setBokyBe(r.bokyBe || '');
+        setRapano(r.rapano || '');
+        setTatitra(r.tatitra || '');
+        setDateFanamarihana(r.dateFanamarihana || '');
+        setCaisseFME(r.caisseFME || '');
+        setSoraBolaDate(r.soraBolaDate || '');
         setSoraBolaMontant(r.soraBolaMontant || 0);
-        setSoraBolaLettres(r.soraBolaLettres || "");
-        setSoraBolaSignataire(r.soraBolaSignataire || "");
+        setSoraBolaLettres(r.soraBolaLettres || '');
+        setSoraBolaSignataire(r.soraBolaSignataire || '');
 
+        // --- Restaurer le tableau cheque/sora-bola ---
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
-            if (parsed.cheque && parsed.soraBola) {
-              setChequeLines(parsed.cheque);
-              setSoraBolaLines(parsed.soraBola);
-              const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-              setTotalChequeSora(sum);
-            } else if (Array.isArray(parsed)) {
-              setSoraBolaLines(parsed);
-              setChequeLines(["", "", "", "", ""]);
-              const sum = parsed.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-              setTotalChequeSora(sum);
+            if (parsed && typeof parsed === 'object') {
+              if (Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
+                setChequeLines(parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', '']);
+                setSoraBolaLines(parsed.soraBola.length === 5 ? parsed.soraBola : ['', '', '', '', '']);
+                const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                setTotalChequeSora(sum);
+              } else if (Array.isArray(parsed)) {
+                // ancien format: simple tableau de sora-bola
+                setSoraBolaLines(parsed.length === 5 ? parsed : ['', '', '', '', '']);
+                setChequeLines(['', '', '', '', '']);
+                const sum = parsed.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                setTotalChequeSora(sum);
+              }
             }
-          } catch {}
+          } catch (e) {
+            console.warn('Erreur parsing soraBolaLinesJson:', e);
+          }
+        } else {
+          // Initialiser à vide
+          setChequeLines(['', '', '', '', '']);
+          setSoraBolaLines(['', '', '', '', '']);
+          setTotalChequeSora(0);
         }
       }
 
-      // Charger les frais
+      // --- Frais ---
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setSaramPandefasana(fraisVal);
 
+      // --- GL ---
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
-      const categorySumsArr = Array(8).fill().map(() => [0, 0, 0, 0, 0]);
+      const catSums = Array(8).fill().map(() => [0, 0, 0, 0, 0]);
       for (let s = 1; s <= 5; s++) {
         const entries = glData[s] || [];
         for (const entry of entries) {
-          perSabbathA[s - 1] += (entry.f1 || 0) + (entry.f2 || 0) + (entry.f3 || 0) + (entry.f4 || 0) +
-                                 (entry.f5 || 0) + (entry.f6 || 0) + (entry.f7 || 0) + (entry.f8 || 0);
-          perSabbathB[s - 1] += (entry.b9 || 0) + (entry.b10 || 0);
-          categorySumsArr[0][s - 1] += entry.f1 || 0;
-          categorySumsArr[1][s - 1] += entry.f2 || 0;
-          categorySumsArr[2][s - 1] += entry.f3 || 0;
-          categorySumsArr[3][s - 1] += entry.f4 || 0;
-          categorySumsArr[4][s - 1] += entry.f5 || 0;
-          categorySumsArr[5][s - 1] += entry.f6 || 0;
-          categorySumsArr[6][s - 1] += entry.f7 || 0;
-          categorySumsArr[7][s - 1] += entry.f8 || 0;
+          const f1 = entry.f1 || 0,
+                f2 = entry.f2 || 0,
+                f3 = entry.f3 || 0,
+                f4 = entry.f4 || 0,
+                f5 = entry.f5 || 0,
+                f6 = entry.f6 || 0,
+                f7 = entry.f7 || 0,
+                f8 = entry.f8 || 0,
+                b9 = entry.b9 || 0,
+                b10 = entry.b10 || 0;
+          perSabbathA[s - 1] += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
+          perSabbathB[s - 1] += b9 + b10;
+          catSums[0][s - 1] += f1;
+          catSums[1][s - 1] += f2;
+          catSums[2][s - 1] += f3;
+          catSums[3][s - 1] += f4;
+          catSums[4][s - 1] += f5;
+          catSums[5][s - 1] += f6;
+          catSums[6][s - 1] += f7;
+          catSums[7][s - 1] += f8;
         }
       }
       setTotalsBySabbathA(perSabbathA);
       setTotalsBySabbathB(perSabbathB);
       setTotalA(perSabbathA.reduce((a, b) => a + b, 0));
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
-      setCategorySums(categorySumsArr);
+      setCategorySums(catSums);
 
+      // --- Dépenses ---
       const expensesList = await api.getDepenses(currentMonth, null, null, eglise);
       const totalExp = expensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
@@ -227,111 +255,122 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             }
           }
         }
-      } else expensesByWeek[0] = totalExp;
+      } else {
+        expensesByWeek[0] = totalExp;
+      }
       setExpensesBySabbath(expensesByWeek);
 
+      // Solde précédent
       const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const sisa = saved ? parseFloat(saved) : 0;
       setVolaSisaTeoAloha(sisa);
       setBalanceChurch(sisa + totalB - totalExp);
+
     } catch (err) {
       console.error('Erreur chargement RapportMensuel:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentMonth, eglise, user, canViewEglise]);
 
-  const updateSoraBolaLine = (idx, rawValue) => {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // --- Sauvegarde des champs simples ---
+  const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
-    const numericValue = rawValue.replace(/[^\d.-]/g, '');
-    const num = parseFloat(numericValue);
-    const newValue = isNaN(num) ? '' : num.toString();
-    const newLines = [...soraBolaLines];
-    newLines[idx] = newValue;
-    setSoraBolaLines(newLines);
-    saveChequeSoraData(chequeLines, newLines);
+    try {
+      await api.updateReportField(currentMonth, eglise, field, value);
+      console.log(`✅ Champ ${field} sauvegardé:`, value);
+    } catch (err) {
+      console.error(`❌ Erreur sauvegarde ${field}:`, err);
+    }
   };
 
-  const updateChequeLine = (idx, value) => {
+  // --- Gestion du tableau cheque/sora-bola ---
+  const updateChequeSoraData = async (cheque, sora) => {
+    if (isReadOnlyMode()) return;
+    const data = { cheque, soraBola: sora };
+    try {
+      await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
+      console.log('✅ Tableau cheque/sora-bola sauvegardé');
+    } catch (err) {
+      console.error('❌ Erreur sauvegarde tableau:', err);
+    }
+  };
+
+  const handleChequeChange = (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    saveChequeSoraData(newLines, soraBolaLines);
+    updateChequeSoraData(newLines, soraBolaLines);
   };
 
-  const saveChequeSoraData = (cheque, soraBola) => {
-    const data = { cheque, soraBola };
-    api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-    const sum = soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+  const handleSoraBolaChange = (idx, rawValue) => {
+    if (isReadOnlyMode()) return;
+    const numeric = rawValue.replace(/[^\d.-]/g, '');
+    const num = parseFloat(numeric);
+    const newValue = isNaN(num) ? '' : num.toString();
+    const newLines = [...soraBolaLines];
+    newLines[idx] = newValue;
+    setSoraBolaLines(newLines);
+    const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
     setTotalChequeSora(sum);
+    updateChequeSoraData(chequeLines, newLines);
   };
 
-  const handleMontantChange = (val) => {
+  // --- Gestion du montant en lettres ---
+  const handleMontantChange = async (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setSoraBolaMontant(num);
     const lettres = nombreEnLettresCapitalized(num);
     setSoraBolaLettres(lettres);
-    api.updateReportField(currentMonth, eglise, 'soraBolaMontant', num);
-    api.updateReportField(currentMonth, eglise, 'soraBolaLettres', lettres);
+    await updateField('soraBolaMontant', num);
+    await updateField('soraBolaLettres', lettres);
   };
 
-  const handleDateChange = (setter, fieldName, value) => {
-    if (isReadOnlyMode()) return;
-    setter(value);
-  };
-
-  const handleDateBlur = (setter, fieldName, value) => {
-    if (isReadOnlyMode()) return;
-    const parsed = parseDateInput(value);
-    const finalValue = (parsed !== value && parsed !== '') ? parsed : value;
-    setter(finalValue);
-    api.updateReportField(currentMonth, eglise, fieldName, finalValue);
-  };
-
+  // --- Date picker amélioré ---
   const openDatePicker = (fieldName) => {
     if (isReadOnlyMode()) return;
     const input = datePickerRefs.current[fieldName];
     if (input) {
-      input.showPicker ? input.showPicker() : input.click();
+      try {
+        if (input.showPicker) {
+          input.showPicker();
+        } else {
+          input.click();
+        }
+      } catch (e) {
+        console.warn('Impossible d’ouvrir le picker:', e);
+        input.click();
+      }
     }
   };
 
-  const handlePickerChange = (setter, fieldName, event) => {
+  const handleDatePickerChange = (setter, fieldName, event) => {
     if (isReadOnlyMode()) return;
-    const value = event.target.value;
-    setter(value);
-    api.updateReportField(currentMonth, eglise, fieldName, value);
+    const isoValue = event.target.value; // "yyyy-mm-dd"
+    setter(isoValue);
+    updateField(fieldName, isoValue);
   };
 
-  if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
-  if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
-  if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
-  if (loading) return <div className="text-center p-4">Chargement...</div>;
+  const handleDateTextChange = (setter, fieldName, textValue) => {
+    if (isReadOnlyMode()) return;
+    setter(textValue); // on met à jour l'affichage en temps réel
+  };
 
-  const readOnlyMode = isReadOnlyMode();
-  const categories = [
-    "Ampahafolony",
-    "Sekoly Sabata/S. faha-13",
-    "Fanambinana",
-    "Tsingerin-taona",
-    "Fanompoam-pivavahana",
-    "Federasiona",
-    "Maneran-tany",
-    "Manokana",
-    "…...............................",
-    "…..............................."
-  ];
-  const totalNetFederation = totalA - saramPandefasana;
-  const displayFederation = (federation || '').toUpperCase();
-
-  const sabbathHeaders = [1, 2, 3, 4, 5].map(i => {
-    const dateStr = sabbathDates[i - 1] || '';
-    const dateDisplay = formatDateDisplay(dateStr);
-    return { label: `Sabata ${i}`, date: dateDisplay };
-  });
+  const handleDateTextBlur = (setter, fieldName, textValue) => {
+    if (isReadOnlyMode()) return;
+    const iso = parseDateInput(textValue);
+    const finalValue = (iso && iso !== textValue) ? iso : textValue;
+    // Si le texte n'est pas une date valide, on laisse tel quel mais on sauvegarde quand même
+    setter(finalValue);
+    updateField(fieldName, finalValue);
+  };
 
   const DateInputWithIcon = ({ value, setter, fieldName, disabled }) => {
     const displayValue = formatDateInput(value);
@@ -340,19 +379,25 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         <input
           type="text"
           value={displayValue}
-          onChange={(e) => handleDateChange(setter, fieldName, e.target.value)}
-          onBlur={(e) => handleDateBlur(setter, fieldName, e.target.value)}
+          onChange={(e) => handleDateTextChange(setter, fieldName, e.target.value)}
+          onBlur={(e) => handleDateTextBlur(setter, fieldName, e.target.value)}
           className="rounded p-0.5 date-input"
           style={{ width: '130px' }}
           disabled={disabled}
-          placeholder=""
+          placeholder="jj/mm/aaaa"
         />
         <input
           type="date"
           ref={(el) => (datePickerRefs.current[fieldName] = el)}
           value={value || ''}
-          onChange={(e) => handlePickerChange(setter, fieldName, e)}
-          style={{ display: 'none' }}
+          onChange={(e) => handleDatePickerChange(setter, fieldName, e)}
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            width: 0,
+            height: 0,
+            pointerEvents: 'none'
+          }}
           disabled={disabled}
         />
         <button
@@ -367,6 +412,34 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       </div>
     );
   };
+
+  // --- Rendu ---
+  if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
+  if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
+  if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
+  if (loading) return <div className="text-center p-4">Chargement...</div>;
+
+  const readOnlyMode = isReadOnlyMode();
+  const categories = [
+    'Ampahafolony',
+    'Sekoly Sabata/S. faha-13',
+    'Fanambinana',
+    'Tsingerin-taona',
+    'Fanompoam-pivavahana',
+    'Federasiona',
+    'Maneran-tany',
+    'Manokana',
+    '…...............................',
+    '…...............................'
+  ];
+  const totalNetFederation = totalA - saramPandefasana;
+  const displayFederation = (federation || '').toUpperCase();
+
+  const sabbathHeaders = [1, 2, 3, 4, 5].map(i => {
+    const dateStr = sabbathDates[i - 1] || '';
+    const dateDisplay = formatDateInput(dateStr);
+    return { label: `Sabata ${i}`, date: dateDisplay };
+  });
 
   return (
     <div className="rapport-mensuel" style={{ maxWidth: '100%', margin: '0 auto', padding: '0 4px', fontSize: '11pt' }}>
@@ -414,7 +487,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .checkbox-group .label { margin-left: 2px; }
         .date-input { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
         .date-input:focus { outline: 2px solid #1a3c6e; }
-        .date-input::placeholder { color: transparent !important; }
+        .date-input::placeholder { color: #999; }
       `}</style>
 
       <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
@@ -427,7 +500,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             <img src="/Noir.png" alt="Noir" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
           </div>
         </div>
-
         <div className="flex-1 text-center">
           {displayFederation && <div className="font-bold uppercase" style={{ fontSize: '12pt', marginBottom: '2px' }}>{displayFederation}</div>}
           <div className="font-bold" style={{ fontSize: '13pt' }}>RAPAOROM-BOLAN'NY FIANGONANA</div>
@@ -578,7 +650,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         <div className="border p-1">
           <div>
             <span className="font-semibold">Rosia N° :</span>
-            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); api.updateReportField(currentMonth, eglise, 'rosiaNum', e.target.value); } }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
+            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); updateField('rosiaNum', e.target.value); } }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Daty :</span>
@@ -586,7 +658,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
-            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); api.updateReportField(currentMonth, eglise, 'caisseFME', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); updateField('caisseFME', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
       </div>
@@ -608,7 +680,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Anarana sy sonian'ny nandray vola :</span>
-            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); api.updateReportField(currentMonth, eglise, 'soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); updateField('soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
         <div className="border p-1">
@@ -623,10 +695,23 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               {[...Array(5)].map((_, idx) => (
                 <tr key={idx}>
                   <td className="border border-black p-0 cheque-col">
-                    <input type="text" value={chequeLines[idx] || ''} onChange={e => updateChequeLine(idx, e.target.value)} className="w-full p-0.5 border-none" disabled={readOnlyMode} />
+                    <input
+                      type="text"
+                      value={chequeLines[idx] || ''}
+                      onChange={(e) => handleChequeChange(idx, e.target.value)}
+                      className="w-full p-0.5 border-none"
+                      disabled={readOnlyMode}
+                    />
                   </td>
                   <td className="border border-black p-0 sora-col sora-bola-col">
-                    <input type="text" value={formatMontant(soraBolaLines[idx])} onChange={e => updateSoraBolaLine(idx, e.target.value)} className="w-full p-0.5 border-none" style={{ textAlign: 'right' }} disabled={readOnlyMode} />
+                    <input
+                      type="text"
+                      value={formatMontant(soraBolaLines[idx])}
+                      onChange={(e) => handleSoraBolaChange(idx, e.target.value)}
+                      className="w-full p-0.5 border-none"
+                      style={{ textAlign: 'right' }}
+                      disabled={readOnlyMode}
+                    />
                   </td>
                 </tr>
               ))}
