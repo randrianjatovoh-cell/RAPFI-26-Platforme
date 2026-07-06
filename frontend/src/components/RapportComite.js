@@ -20,8 +20,9 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
   const [closingBalanceSpecial, setClosingBalanceSpecial] = useState(0);
   const [loading, setLoading] = useState(true);
   const [references, setReferences] = useState(Array(6).fill({ date: '', soraBola: '', rosia: '' }));
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Helper : parser une date depuis une chaîne "jj/mm/aaaa" ou "jj/mm"
+  // Helper : parser une date depuis "jj/mm/aaaa" ou "jj/mm"
   function parseDateString(dateStr) {
     if (!dateStr) return null;
     let parts = dateStr.split('/');
@@ -56,19 +57,26 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     }
     setLoading(true);
     try {
-      // 1. Récupérer le rapport mensuel (il contient soraBolaLinesJson)
+      console.log('🔄 [RapportComite] Chargement des données pour', currentMonth, eglise);
+
+      // 1. Récupérer le rapport mensuel
       let r = await api.getMonthlyReport(currentMonth, eglise);
+      console.log('📦 [RapportComite] Rapport reçu:', r);
       if (!r) {
         // Tenter de le recréer
+        console.log('🔄 [RapportComite] Rapport manquant, tentative de rebuild...');
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
+        console.log('📦 [RapportComite] Après rebuild:', r);
       }
       setReport(r);
 
       // 2. Extraire les références depuis soraBolaLinesJson
       let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
       if (r && r.soraBolaLinesJson) {
+        console.log('📋 [RapportComite] soraBolaLinesJson brut:', r.soraBolaLinesJson);
         try {
           const parsed = JSON.parse(r.soraBolaLinesJson);
+          console.log('📋 [RapportComite] parsed:', parsed);
           let chequeArr = [];
           let soraArr = [];
           if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
@@ -77,6 +85,8 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
           } else if (Array.isArray(parsed)) {
             soraArr = parsed;
           }
+          console.log('📋 [RapportComite] chequeArr:', chequeArr);
+          console.log('📋 [RapportComite] soraArr:', soraArr);
           const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
           for (let i = 0; i < maxLines; i++) {
             const chequeStr = chequeArr[i] || '';
@@ -100,13 +110,16 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
             }
             newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
           }
+          console.log('✅ [RapportComite] Références extraites:', newRefs);
         } catch(e) {
-          console.warn("Erreur parsing soraBolaLinesJson:", e);
+          console.warn("❌ [RapportComite] Erreur parsing soraBolaLinesJson:", e);
         }
+      } else {
+        console.warn('⚠️ [RapportComite] Aucune donnée soraBolaLinesJson dans le rapport.');
       }
       setReferences(newRefs);
 
-      // 3. Charger les données GL et dépenses (pour les totaux)
+      // 3. Charger les données GL et dépenses
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const categoryTotals = { f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0 };
       let b9=0, b10=0;
@@ -136,7 +149,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       setClosingBalanceChurch(opening + b9 - total);
       setClosingBalanceSpecial(0 + b10);
     } catch(err) {
-      console.error("Erreur dans RapportComite:", err);
+      console.error("❌ Erreur dans RapportComite:", err);
     }
     finally { setLoading(false); }
   }
@@ -144,10 +157,14 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
   // Rechargement automatique
   useEffect(() => {
     loadData();
-  }, [currentMonth, eglise]);
+  }, [currentMonth, eglise, refreshTrigger]);
 
+  // Écoute des événements de mise à jour des données
   useEffect(() => {
-    const handleDataUpdate = () => loadData();
+    const handleDataUpdate = () => {
+      console.log('📢 [RapportComite] Événement data-updated reçu, rechargement...');
+      loadData();
+    };
     window.addEventListener('data-updated', handleDataUpdate);
     window.addEventListener('expenses-updated', handleDataUpdate);
     return () => {
@@ -156,7 +173,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     };
   }, [currentMonth, eglise]);
 
-  // Mise à jour des champs de l'utilisateur
+  // Mise à jour des champs utilisateur
   useEffect(() => {
     setEglise(selectedEglise || user?.eglise || '');
     setDistrict(user?.district || '');
@@ -359,8 +376,17 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         </table>
       </div>
 
-      {/* Tableau des références (lecture seule) */}
+      {/* Tableau des références - verrouillé en lecture seule */}
       <div className="mt-6">
+        <div className="flex justify-between items-center mb-2 no-print">
+          <h4 className="font-bold">Références des versements</h4>
+          <button 
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
+            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+          >
+            🔄 Recharger les références
+          </button>
+        </div>
         <table className="w-full text-sm border border-black">
           <thead>
             <tr className="bg-gray-100">
@@ -373,30 +399,30 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
             {references.map((ref, idx) => (
               <tr key={idx}>
                 <td className="border p-1">
-                  <input
-                    type="text"
-                    value={ref.date}
+                  <input 
+                    type="text" 
+                    value={ref.date} 
                     readOnly
-                    className="w-full"
-                    style={{ textAlign: 'left', backgroundColor: '#f5f5f5', border: 'none' }}
+                    className="w-full" 
+                    style={{textAlign:'left', backgroundColor: '#f5f5f5', border: 'none'}}
                   />
                 </td>
                 <td className="border p-1">
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     value={formatNumber(ref.soraBola) || ''}
                     readOnly
-                    className="w-full"
-                    style={{ textAlign: 'right', backgroundColor: '#f5f5f5', border: 'none' }}
+                    className="w-full" 
+                    style={{textAlign:'right', backgroundColor: '#f5f5f5', border: 'none'}}
                   />
                 </td>
                 <td className="border p-1">
-                  <input
-                    type="text"
-                    value={ref.rosia}
+                  <input 
+                    type="text" 
+                    value={ref.rosia} 
                     readOnly
-                    className="w-full"
-                    style={{ textAlign: 'left', backgroundColor: '#f5f5f5', border: 'none' }}
+                    className="w-full" 
+                    style={{textAlign:'left', backgroundColor: '#f5f5f5', border: 'none'}}
                   />
                 </td>
               </tr>
