@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
@@ -46,7 +46,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Données supplémentaires stockées dans `note` (JSON)
   const [additionalData, setAdditionalData] = useState({
     checkBokyBe: false,
     remarkBokyBe: "",
@@ -63,24 +62,24 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
-  // Sauvegarde des données supplémentaires dans `note`
   const saveAdditionalData = async (newData) => {
     if (isReadOnlyMode() || !currentMonth || !eglise) return;
     try {
       const note = JSON.stringify(newData);
       await api.updateReportField(currentMonth, eglise, 'note', note);
+      console.log('✅ additionalData sauvegardé:', newData);
     } catch (err) {
-      console.error('Erreur sauvegarde note (additional data):', err);
+      console.error('❌ Erreur sauvegarde note:', err);
     }
   };
 
-  // Sauvegarde d'un champ simple
   const saveField = async (field, value) => {
     if (isReadOnlyMode() || !currentMonth || !eglise) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
+      console.log(`✅ ${field} sauvegardé:`, value);
     } catch (err) {
-      console.error(`Erreur sauvegarde ${field}:`, err);
+      console.error(`❌ Erreur sauvegarde ${field}:`, err);
     }
   };
 
@@ -98,10 +97,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setError(null);
     try {
       let r = await api.getMonthlyReport(currentMonth, eglise);
+      console.log('📄 Rapport chargé:', r);
       if (!r) {
-        console.log(`📝 Rapport manquant, tentative de recréation...`);
+        console.log('📝 Rapport manquant, tentative de recréation...');
         try {
           r = await api.rebuildMonthlyReport(currentMonth, eglise);
+          console.log('✅ Rapport recréé:', r);
         } catch (rebuildErr) {
           console.error('❌ Erreur rebuild:', rebuildErr);
         }
@@ -109,7 +110,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setReport(r);
 
       if (r) {
-        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -118,7 +118,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch { setSabbathDates(["", "", "", "", ""]); }
         }
 
-        // Champs simples
         setDateVersementFME(r.dateVersementFME || "");
         setRosiaNum(r.rosiaNum || "");
         setDateFanamarihana(r.dateFanamarihana || "");
@@ -128,20 +127,18 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || "");
         setSoraBolaSignataire(r.soraBolaSignataire || "");
 
-        // Récupérer les données supplémentaires depuis `note`
         if (r.note) {
           try {
             const parsed = JSON.parse(r.note);
             setAdditionalData(prev => ({ ...prev, ...parsed }));
-          } catch {
-            // Si ce n'est pas du JSON, on l'ignore
-          }
+            console.log('📋 additionalData chargé:', parsed);
+          } catch {}
         }
 
-        // Tableau cheque/sora-bola
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
+            console.log('📋 soraBolaLinesJson chargé:', parsed);
             if (parsed.cheque && parsed.soraBola) {
               setChequeLines(parsed.cheque);
               setSoraBolaLines(parsed.soraBola);
@@ -153,15 +150,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               const sum = parsed.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
               setTotalChequeSora(sum);
             }
-          } catch {}
+          } catch (e) {
+            console.warn('⚠️ Erreur parsing soraBolaLinesJson:', e);
+          }
+        } else {
+          console.log('ℹ️ Aucune donnée soraBolaLinesJson dans le rapport');
         }
       }
 
-      // Frais
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setSaramPandefasana(fraisVal);
 
-      // GL data
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -188,7 +187,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(categorySumsArr);
 
-      // Dépenses
       const expensesList = await api.getDepenses(currentMonth, null, null, eglise);
       const totalExp = expensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
@@ -218,7 +216,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setVolaSisaTeoAloha(sisa);
       setBalanceChurch(sisa + totalB - totalExp);
     } catch (err) {
-      console.error('Erreur chargement RapportMensuel:', err);
+      console.error('❌ Erreur chargement RapportMensuel:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -229,7 +227,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     loadData();
   }, [currentMonth, eglise]);
 
-  // Écouter les événements pour recharger quand les données sont mises à jour ailleurs
   useEffect(() => {
     const handleDataUpdate = () => loadData();
     window.addEventListener('data-updated', handleDataUpdate);
@@ -240,14 +237,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     };
   }, [currentMonth, eglise]);
 
-  // Gestion des champs supplémentaires (avec sauvegarde immédiate)
   const handleAdditionalChange = (field, value) => {
     const newData = { ...additionalData, [field]: value };
     setAdditionalData(newData);
     saveAdditionalData(newData);
   };
 
-  // Tableau cheque/sora-bola
   const updateSoraBolaLine = (idx, rawValue) => {
     if (isReadOnlyMode()) return;
     const numericValue = rawValue.replace(/[^\d.-]/g, '');
@@ -281,7 +276,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     saveField('soraBolaLettres', lettres);
   };
 
-  // Composant DateInput simplifié
   const DateInput = ({ value, setter, fieldName, disabled }) => {
     return (
       <input
