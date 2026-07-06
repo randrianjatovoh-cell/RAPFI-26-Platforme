@@ -1,8 +1,50 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
-import { formatMonthYear, nombreEnLettresCapitalized, formatNumber } from '../services/helpers';
+import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
+
+function formatMontant(value) {
+  if (value === undefined || value === null) return '';
+  const num = Number(value);
+  if (isNaN(num) || num === 0) return '';
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function formatDateInput(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch { return dateStr; }
+}
+
+function parseDateInput(value) {
+  if (!value) return '';
+  const parts = value.split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      const date = new Date(year, month, day);
+      if (!isNaN(date)) return date.toISOString().split('T')[0];
+    }
+  } else if (parts.length === 2) {
+    const year = new Date().getFullYear();
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    if (!isNaN(day) && !isNaN(month)) {
+      const date = new Date(year, month, day);
+      if (!isNaN(date)) return date.toISOString().split('T')[0];
+    }
+  }
+  return value;
+}
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return '';
@@ -17,19 +59,29 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const { user: contextUser } = useUser();
   const { canViewEglise, canEditEglise, isReadOnly: isGlobalReadOnly } = usePermissions();
   const user = contextUser;
+  
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
-
+  
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
   const [dateVersementFME, setDateVersementFME] = useState("");
   const [rosiaNum, setRosiaNum] = useState("");
+  const [bokyBe, setBokyBe] = useState("");
+  const [rapano, setRapano] = useState("");
+  const [tatitra, setTatitra] = useState("");
   const [dateFanamarihana, setDateFanamarihana] = useState("");
   const [caisseFME, setCaisseFME] = useState("");
   const [soraBolaDate, setSoraBolaDate] = useState("");
   const [soraBolaMontant, setSoraBolaMontant] = useState(0);
   const [soraBolaLettres, setSoraBolaLettres] = useState("");
   const [soraBolaSignataire, setSoraBolaSignataire] = useState("");
+  const [checkBokyBe, setCheckBokyBe] = useState(false);
+  const [checkRapano, setCheckRapano] = useState(false);
+  const [checkTatitra, setCheckTatitra] = useState(false);
+  const [remarkBokyBe, setRemarkBokyBe] = useState("");
+  const [remarkRapano, setRemarkRapano] = useState("");
+  const [remarkTatitra, setRemarkTatitra] = useState("");
   const [chequeLines, setChequeLines] = useState(["", "", "", "", ""]);
   const [soraBolaLines, setSoraBolaLines] = useState(["", "", "", "", ""]);
   const [totalChequeSora, setTotalChequeSora] = useState(0);
@@ -46,14 +98,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [additionalData, setAdditionalData] = useState({
-    checkBokyBe: false,
-    remarkBokyBe: "",
-    checkRapano: false,
-    remarkRapano: "",
-    checkTatitra: false,
-    remarkTatitra: "",
-  });
+  const datePickerRefs = useRef({});
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -62,49 +107,32 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
-  const saveAdditionalData = async (newData) => {
-    if (isReadOnlyMode() || !currentMonth || !eglise) return;
-    try {
-      const note = JSON.stringify(newData);
-      await api.updateReportField(currentMonth, eglise, 'note', note);
-      console.log('✅ additionalData sauvegardé:', newData);
-    } catch (err) {
-      console.error('❌ Erreur sauvegarde note:', err);
-    }
-  };
-
-  const saveField = async (field, value) => {
-    if (isReadOnlyMode() || !currentMonth || !eglise) return;
-    try {
-      await api.updateReportField(currentMonth, eglise, field, value);
-      console.log(`✅ ${field} sauvegardé:`, value);
-    } catch (err) {
-      console.error(`❌ Erreur sauvegarde ${field}:`, err);
-    }
-  };
-
-  const loadData = async () => {
-    if (!currentMonth || !eglise) {
+  useEffect(() => {
+    if (currentMonth && eglise) {
+      if (!canViewEglise(eglise, user?.district, user?.federation)) {
+        setError("Vous n'avez pas accès à cette église.");
+        setLoading(false);
+        return;
+      }
+      loadData();
+    } else {
       setLoading(false);
-      return;
     }
-    if (!canViewEglise(eglise, user?.district, user?.federation)) {
-      setError("Vous n'avez pas accès à cette église.");
-      setLoading(false);
-      return;
-    }
+  }, [currentMonth, eglise]);
+
+  async function loadData() {
     setLoading(true);
     setError(null);
     try {
       let r = await api.getMonthlyReport(currentMonth, eglise);
-      console.log('📄 Rapport chargé:', r);
+      // Si le rapport est absent, on le recrée
       if (!r) {
-        console.log('📝 Rapport manquant, tentative de recréation...');
+        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
         try {
           r = await api.rebuildMonthlyReport(currentMonth, eglise);
-          console.log('✅ Rapport recréé:', r);
+          console.log('✅ Rapport recréé avec succès');
         } catch (rebuildErr) {
-          console.error('❌ Erreur rebuild:', rebuildErr);
+          console.error('❌ Erreur lors du rebuild :', rebuildErr);
         }
       }
       setReport(r);
@@ -116,10 +144,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             if (Array.isArray(parsed) && parsed.length >= 5) setSabbathDates(parsed);
             else setSabbathDates(["", "", "", "", ""]);
           } catch { setSabbathDates(["", "", "", "", ""]); }
-        }
+        } else setSabbathDates(["", "", "", "", ""]);
 
         setDateVersementFME(r.dateVersementFME || "");
         setRosiaNum(r.rosiaNum || "");
+        setBokyBe(r.bokyBe || "");
+        setRapano(r.rapano || "");
+        setTatitra(r.tatitra || "");
         setDateFanamarihana(r.dateFanamarihana || "");
         setCaisseFME(r.caisseFME || "");
         setSoraBolaDate(r.soraBolaDate || "");
@@ -127,18 +158,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || "");
         setSoraBolaSignataire(r.soraBolaSignataire || "");
 
-        if (r.note) {
-          try {
-            const parsed = JSON.parse(r.note);
-            setAdditionalData(prev => ({ ...prev, ...parsed }));
-            console.log('📋 additionalData chargé:', parsed);
-          } catch {}
-        }
-
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
-            console.log('📋 soraBolaLinesJson chargé:', parsed);
             if (parsed.cheque && parsed.soraBola) {
               setChequeLines(parsed.cheque);
               setSoraBolaLines(parsed.soraBola);
@@ -150,14 +172,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               const sum = parsed.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
               setTotalChequeSora(sum);
             }
-          } catch (e) {
-            console.warn('⚠️ Erreur parsing soraBolaLinesJson:', e);
-          }
-        } else {
-          console.log('ℹ️ Aucune donnée soraBolaLinesJson dans le rapport');
+          } catch {}
         }
       }
 
+      // Charger les frais
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setSaramPandefasana(fraisVal);
 
@@ -216,32 +235,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setVolaSisaTeoAloha(sisa);
       setBalanceChurch(sisa + totalB - totalExp);
     } catch (err) {
-      console.error('❌ Erreur chargement RapportMensuel:', err);
+      console.error('Erreur chargement RapportMensuel:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [currentMonth, eglise]);
-
-  useEffect(() => {
-    const handleDataUpdate = () => loadData();
-    window.addEventListener('data-updated', handleDataUpdate);
-    window.addEventListener('frais-updated', handleDataUpdate);
-    return () => {
-      window.removeEventListener('data-updated', handleDataUpdate);
-      window.removeEventListener('frais-updated', handleDataUpdate);
-    };
-  }, [currentMonth, eglise]);
-
-  const handleAdditionalChange = (field, value) => {
-    const newData = { ...additionalData, [field]: value };
-    setAdditionalData(newData);
-    saveAdditionalData(newData);
-  };
+  }
 
   const updateSoraBolaLine = (idx, rawValue) => {
     if (isReadOnlyMode()) return;
@@ -251,10 +250,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     const newLines = [...soraBolaLines];
     newLines[idx] = newValue;
     setSoraBolaLines(newLines);
-    const data = { cheque: chequeLines, soraBola: newLines };
-    saveField('soraBolaLinesJson', JSON.stringify(data));
-    const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-    setTotalChequeSora(sum);
+    saveChequeSoraData(chequeLines, newLines);
   };
 
   const updateChequeLine = (idx, value) => {
@@ -262,8 +258,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    const data = { cheque: newLines, soraBola: soraBolaLines };
-    saveField('soraBolaLinesJson', JSON.stringify(data));
+    saveChequeSoraData(newLines, soraBolaLines);
+  };
+
+  const saveChequeSoraData = (cheque, soraBola) => {
+    const data = { cheque, soraBola };
+    api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
+    const sum = soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+    setTotalChequeSora(sum);
   };
 
   const handleMontantChange = (val) => {
@@ -272,25 +274,36 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setSoraBolaMontant(num);
     const lettres = nombreEnLettresCapitalized(num);
     setSoraBolaLettres(lettres);
-    saveField('soraBolaMontant', num);
-    saveField('soraBolaLettres', lettres);
+    api.updateReportField(currentMonth, eglise, 'soraBolaMontant', num);
+    api.updateReportField(currentMonth, eglise, 'soraBolaLettres', lettres);
   };
 
-  const DateInput = ({ value, setter, fieldName, disabled }) => {
-    return (
-      <input
-        type="date"
-        value={value || ''}
-        onChange={(e) => {
-          const val = e.target.value;
-          setter(val);
-          saveField(fieldName, val);
-        }}
-        className="rounded p-0.5 date-input"
-        style={{ width: '130px' }}
-        disabled={disabled}
-      />
-    );
+  const handleDateChange = (setter, fieldName, value) => {
+    if (isReadOnlyMode()) return;
+    setter(value);
+  };
+
+  const handleDateBlur = (setter, fieldName, value) => {
+    if (isReadOnlyMode()) return;
+    const parsed = parseDateInput(value);
+    const finalValue = (parsed !== value && parsed !== '') ? parsed : value;
+    setter(finalValue);
+    api.updateReportField(currentMonth, eglise, fieldName, finalValue);
+  };
+
+  const openDatePicker = (fieldName) => {
+    if (isReadOnlyMode()) return;
+    const input = datePickerRefs.current[fieldName];
+    if (input) {
+      input.showPicker ? input.showPicker() : input.click();
+    }
+  };
+
+  const handlePickerChange = (setter, fieldName, event) => {
+    if (isReadOnlyMode()) return;
+    const value = event.target.value;
+    setter(value);
+    api.updateReportField(currentMonth, eglise, fieldName, value);
   };
 
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
@@ -320,6 +333,41 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return { label: `Sabata ${i}`, date: dateDisplay };
   });
 
+  const DateInputWithIcon = ({ value, setter, fieldName, disabled }) => {
+    const displayValue = formatDateInput(value);
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <input
+          type="text"
+          value={displayValue}
+          onChange={(e) => handleDateChange(setter, fieldName, e.target.value)}
+          onBlur={(e) => handleDateBlur(setter, fieldName, e.target.value)}
+          className="rounded p-0.5 date-input"
+          style={{ width: '130px' }}
+          disabled={disabled}
+          placeholder=""
+        />
+        <input
+          type="date"
+          ref={(el) => (datePickerRefs.current[fieldName] = el)}
+          value={value || ''}
+          onChange={(e) => handlePickerChange(setter, fieldName, e)}
+          style={{ display: 'none' }}
+          disabled={disabled}
+        />
+        <button
+          type="button"
+          onClick={() => openDatePicker(fieldName)}
+          disabled={disabled}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+          className="no-print"
+        >
+          📅
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="rapport-mensuel" style={{ maxWidth: '100%', margin: '0 auto', padding: '0 4px', fontSize: '11pt' }}>
       <style>{`
@@ -327,19 +375,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .rapport-mensuel .border-black { border-color: #000 !important; }
         .rapport-mensuel .protected-cell { background-color: #f9f9f9; }
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .cheque-table { table-layout: fixed; width: 100%; }
-        .cheque-col { width: 70%; }
-        .sora-col { width: 30%; }
-        .cheque-col input, .sora-col input { width: 100%; box-sizing: border-box; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
-        .cheque-col input:focus, .sora-col input:focus { outline: 2px solid #1a3c6e; }
-        .cheque-table td, .cheque-table th { word-wrap: break-word; overflow-wrap: break-word; text-align: center; }
-        .cheque-table .sora-bola-col input { text-align: right; }
-        .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
-        .checkbox-group input[type="checkbox"] { margin: 0; flex-shrink: 0; }
-        .checkbox-group .label { margin-left: 2px; }
-        .date-input { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
-        .date-input:focus { outline: 2px solid #1a3c6e; }
-        .date-input::placeholder { color: transparent !important; }
         @media print {
           @page { size: A4 portrait; margin: 0.1cm; }
           body, .rapport-mensuel { font-size: 7.5pt !important; line-height: 1.15 !important; }
@@ -367,6 +402,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
         }
+        .cheque-table { table-layout: fixed; width: 100%; }
+        .cheque-col { width: 70%; }
+        .sora-col { width: 30%; }
+        .cheque-col input, .sora-col input { width: 100%; box-sizing: border-box; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
+        .cheque-col input:focus, .sora-col input:focus { outline: 2px solid #1a3c6e; }
+        .cheque-table td, .cheque-table th { word-wrap: break-word; overflow-wrap: break-word; text-align: center; }
+        .cheque-table .sora-bola-col input { text-align: right; }
+        .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+        .checkbox-group input[type="checkbox"] { margin: 0; flex-shrink: 0; }
+        .checkbox-group .label { margin-left: 2px; }
+        .date-input { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
+        .date-input:focus { outline: 2px solid #1a3c6e; }
+        .date-input::placeholder { color: transparent !important; }
       `}</style>
 
       <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
@@ -379,6 +427,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             <img src="/Noir.png" alt="Noir" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
           </div>
         </div>
+
         <div className="flex-1 text-center">
           {displayFederation && <div className="font-bold uppercase" style={{ fontSize: '12pt', marginBottom: '2px' }}>{displayFederation}</div>}
           <div className="font-bold" style={{ fontSize: '13pt' }}>RAPAOROM-BOLAN'NY FIANGONANA</div>
@@ -444,11 +493,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                   <tr key={`category-${idx}`}>
                     <td className="border p-1 font-bold">{cat}</td>
                     {sabVals.map((v, i) => (
-                      <td key={i} className="border p-1 text-right">{formatNumber(v)}</td>
+                      <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
                     ))}
-                    <td className="border p-1 text-right font-bold">{formatNumber(total)}</td>
+                    <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
                     <td rowSpan="4" className="border p-1 text-right align-middle font-bold">
-                      {formatNumber(sumRapaoro)}
+                      {formatMontant(sumRapaoro)}
                     </td>
                   </tr>
                 );
@@ -457,9 +506,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                   <tr key={`category-${idx}`}>
                     <td className="border p-1 font-bold">{cat}</td>
                     {sabVals.map((v, i) => (
-                      <td key={i} className="border p-1 text-right">{formatNumber(v)}</td>
+                      <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
                     ))}
-                    <td className="border p-1 text-right font-bold">{formatNumber(total)}</td>
+                    <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
                   </tr>
                 );
               } else {
@@ -467,10 +516,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                   <tr key={`category-${idx}`}>
                     <td className="border p-1 font-bold">{cat}</td>
                     {sabVals.map((v, i) => (
-                      <td key={i} className="border p-1 text-right">{formatNumber(v)}</td>
+                      <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
                     ))}
-                    <td className="border p-1 text-right font-bold">{formatNumber(total)}</td>
-                    <td className="border p-1 text-right">{formatNumber(total)}</td>
+                    <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
+                    <td className="border p-1 text-right">{formatMontant(total)}</td>
                   </tr>
                 );
               }
@@ -480,10 +529,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             <tr className="font-bold bg-gray-50">
               <td className="border p-1">TONTALIN'NY VOLA MIAKATRA any @ FME</td>
               {totalsBySabbathA.map((s, i) => (
-                <td key={i} className="border p-1 text-right">{formatNumber(s)}</td>
+                <td key={i} className="border p-1 text-right">{formatMontant(s)}</td>
               ))}
-              <td className="border p-1 text-right">{formatNumber(totalA)}</td>
-              <td className="border p-1 text-right">{formatNumber(totalA)}</td>
+              <td className="border p-1 text-right">{formatMontant(totalA)}</td>
+              <td className="border p-1 text-right">{formatMontant(totalA)}</td>
             </tr>
           </tfoot>
         </table>
@@ -492,18 +541,18 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       <div className="flex justify-between items-center mt-1">
         <div>
           <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
-          <DateInput value={dateVersementFME} setter={setDateVersementFME} fieldName="dateVersementFME" disabled={readOnlyMode} />
+          <DateInputWithIcon value={dateVersementFME} setter={setDateVersementFME} fieldName="dateVersementFME" disabled={readOnlyMode} />
         </div>
         <div className="flex items-center gap-1">
           <span className="font-bold whitespace-nowrap">SARAM-PANDEFASANA (Ar) :</span>
-          <input type="text" value={formatNumber(saramPandefasana)} readOnly className="rounded p-0.5 bg-gray-100 text-right text-xs" style={{ width: '100px', fontFamily: 'inherit' }} />
+          <input type="text" value={formatMontant(saramPandefasana)} readOnly className="rounded p-0.5 bg-gray-100 text-right text-xs" style={{ width: '100px', fontFamily: 'inherit' }} />
         </div>
       </div>
 
       <div className="text-right mt-1">
         TONTALIN'NY VOLA MIAKATRA any @ FME :&nbsp;
         <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold ml-1">
-          {formatNumber(totalNetFederation)} Ar
+          {formatMontant(totalNetFederation)} Ar
         </span>
       </div>
 
@@ -511,33 +560,33 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         <div className="border p-1">
           <div className="font-bold mb-1">FANAMARIHANA ATAON'NY MPANAMARIM-BOKY</div>
           <div className="checkbox-group">
-            <input type="checkbox" checked={additionalData.checkBokyBe} onChange={e => handleAdditionalChange('checkBokyBe', e.target.checked)} disabled={readOnlyMode} />
+            <input type="checkbox" checked={checkBokyBe} onChange={e => { if (!readOnlyMode) setCheckBokyBe(e.target.checked); }} disabled={readOnlyMode} />
             <span className="label">Boky Be :</span>
-            <input type="text" value={additionalData.remarkBokyBe} onChange={e => { const val = e.target.value; setAdditionalData(prev => ({...prev, remarkBokyBe: val})); saveAdditionalData({...additionalData, remarkBokyBe: val}); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={remarkBokyBe} onChange={e => { if (!readOnlyMode) setRemarkBokyBe(e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
-            <input type="checkbox" checked={additionalData.checkRapano} onChange={e => handleAdditionalChange('checkRapano', e.target.checked)} disabled={readOnlyMode} />
+            <input type="checkbox" checked={checkRapano} onChange={e => { if (!readOnlyMode) setCheckRapano(e.target.checked); }} disabled={readOnlyMode} />
             <span className="label">Rapaoro :</span>
-            <input type="text" value={additionalData.remarkRapano} onChange={e => { const val = e.target.value; setAdditionalData(prev => ({...prev, remarkRapano: val})); saveAdditionalData({...additionalData, remarkRapano: val}); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={remarkRapano} onChange={e => { if (!readOnlyMode) setRemarkRapano(e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
-            <input type="checkbox" checked={additionalData.checkTatitra} onChange={e => handleAdditionalChange('checkTatitra', e.target.checked)} disabled={readOnlyMode} />
+            <input type="checkbox" checked={checkTatitra} onChange={e => { if (!readOnlyMode) setCheckTatitra(e.target.checked); }} disabled={readOnlyMode} />
             <span className="label">Tatitra :</span>
-            <input type="text" value={additionalData.remarkTatitra} onChange={e => { const val = e.target.value; setAdditionalData(prev => ({...prev, remarkTatitra: val})); saveAdditionalData({...additionalData, remarkTatitra: val}); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={remarkTatitra} onChange={e => { if (!readOnlyMode) setRemarkTatitra(e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
         </div>
         <div className="border p-1">
           <div>
             <span className="font-semibold">Rosia N° :</span>
-            <input type="text" value={rosiaNum} onChange={e => { setRosiaNum(e.target.value); saveField('rosiaNum', e.target.value); }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
+            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); api.updateReportField(currentMonth, eglise, 'rosiaNum', e.target.value); } }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Daty :</span>
-            <DateInput value={dateFanamarihana} setter={setDateFanamarihana} fieldName="dateFanamarihana" disabled={readOnlyMode} />
+            <DateInputWithIcon value={dateFanamarihana} setter={setDateFanamarihana} fieldName="dateFanamarihana" disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
-            <input type="text" value={caisseFME} onChange={e => { setCaisseFME(e.target.value); saveField('caisseFME', e.target.value); }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); api.updateReportField(currentMonth, eglise, 'caisseFME', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
       </div>
@@ -547,11 +596,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="font-bold italic text-center">"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
           <div>
             <span className="font-semibold">Voaray androany (daty) :</span>
-            <DateInput value={soraBolaDate} setter={setSoraBolaDate} fieldName="soraBolaDate" disabled={readOnlyMode} />
+            <DateInputWithIcon value={soraBolaDate} setter={setSoraBolaDate} fieldName="soraBolaDate" disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">Ny vola Ar :</span>
-            <input type="number" value={soraBolaMontant} onChange={e => handleMontantChange(e.target.value)} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
+            <input type="number" value={soraBolaMontant} onChange={e => { if (!readOnlyMode) handleMontantChange(e.target.value); }} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
           </div>
           <div>
             <span className="font-semibold">An-tsoratra :</span>
@@ -559,7 +608,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Anarana sy sonian'ny nandray vola :</span>
-            <input type="text" value={soraBolaSignataire} onChange={e => { setSoraBolaSignataire(e.target.value); saveField('soraBolaSignataire', e.target.value); }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); api.updateReportField(currentMonth, eglise, 'soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
         <div className="border p-1">
@@ -577,13 +626,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                     <input type="text" value={chequeLines[idx] || ''} onChange={e => updateChequeLine(idx, e.target.value)} className="w-full p-0.5 border-none" disabled={readOnlyMode} />
                   </td>
                   <td className="border border-black p-0 sora-col sora-bola-col">
-                    <input type="text" value={formatNumber(soraBolaLines[idx])} onChange={e => updateSoraBolaLine(idx, e.target.value)} className="w-full p-0.5 border-none" style={{ textAlign: 'right' }} disabled={readOnlyMode} />
+                    <input type="text" value={formatMontant(soraBolaLines[idx])} onChange={e => updateSoraBolaLine(idx, e.target.value)} className="w-full p-0.5 border-none" style={{ textAlign: 'right' }} disabled={readOnlyMode} />
                   </td>
                 </tr>
               ))}
               <tr className="font-bold bg-gray-100">
-                <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>TOTAL :</td>
-                <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>{formatNumber(totalChequeSora)} Ar</td>
+                <td className="border border-black p-0.5 text-right">TOTAL :</td>
+                <td className="border border-black p-0.5 text-right">{formatMontant(totalChequeSora)} Ar</td>
               </tr>
             </tbody>
           </table>
@@ -612,21 +661,21 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
-              <td className="border p-0.5 text-right">{formatNumber(volaSisaTeoAloha)} Ar</td>
+              <td className="border p-0.5 text-right">{formatMontant(volaSisaTeoAloha)} Ar</td>
             </tr>
             <tr>
               <td className="border p-0.5 font-bold">VOLA NIDITRA nandritra ny volana:</td>
               {totalsBySabbathB.map((s, i) => (
-                <td key={i} className="border p-0.5 text-right">{formatNumber(s)} Ar</td>
+                <td key={i} className="border p-0.5 text-right">{formatMontant(s)} Ar</td>
               ))}
-              <td className="border p-0.5 text-right">{formatNumber(totalB)} Ar</td>
+              <td className="border p-0.5 text-right">{formatMontant(totalB)} Ar</td>
             </tr>
             <tr>
               <td className="border p-0.5 font-bold">VOLA NIVOAKA nandritra ny volana:</td>
               {expensesBySabbath.map((s, i) => (
-                <td key={i} className="border p-0.5 text-right">{formatNumber(s)} Ar</td>
+                <td key={i} className="border p-0.5 text-right">{formatMontant(s)} Ar</td>
               ))}
-              <td className="border p-0.5 text-right">{formatNumber(totalExpenses)} Ar</td>
+              <td className="border p-0.5 text-right">{formatMontant(totalExpenses)} Ar</td>
             </tr>
             <tr>
               <td className="border p-0.5 font-bold">VOLA SISA tamin'ny faran'ny volana:</td>
@@ -635,7 +684,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
-              <td className="border p-0.5 text-right">{formatNumber(balanceChurch)} Ar</td>
+              <td className="border p-0.5 text-right">{formatMontant(balanceChurch)} Ar</td>
             </tr>
           </tbody>
         </table>

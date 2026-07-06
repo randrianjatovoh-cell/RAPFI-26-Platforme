@@ -1,3 +1,4 @@
+// src/components/RapportComite.js
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -54,10 +55,12 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     }
     setLoading(true);
     try {
+      // 1. Charger le rapport s'il existe
       let r = await api.getMonthlyReport(currentMonth, eglise);
       if (r) {
         setHasReport(true);
         setReport(r);
+        // Extraire les références du rapport
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -99,13 +102,14 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
           }
         }
       } else {
-        console.log(`📝 Rapport manquant, tentative de recréation...`);
+        // 🔥 Essayer de recréer le rapport
+        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, tentative de recréation...`);
         try {
           r = await api.rebuildMonthlyReport(currentMonth, eglise);
           if (r) {
             setHasReport(true);
             setReport(r);
-            // Re-extraction
+            // Même extraction des références...
             if (r.soraBolaLinesJson) {
               try {
                 const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -153,7 +157,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         }
       }
 
-      // GL et dépenses
+      // 2. Charger les données GL et dépenses (toujours nécessaires)
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const categoryTotals = { f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0 };
       let b9=0, b10=0;
@@ -210,10 +214,19 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     return () => window.removeEventListener('expenses-updated', handleExpensesUpdate);
   }, [currentMonth, eglise]);
 
+  // Restaurer references depuis localStorage si disponible
+  useEffect(() => {
+    if (currentMonth && eglise) {
+      const saved = localStorage.getItem(`references_${currentMonth}_${eglise}`);
+      if (saved) try { setReferences(JSON.parse(saved)); } catch(e) {}
+    }
+  }, [currentMonth, eglise]);
+
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (loading) return <div className="text-center p-4">Chargement du rapport...</div>;
 
+  // On affiche toujours le tableau, même sans rapport
   const displayEglise = capitalizeFirstLetter(eglise);
   const displayDistrict = capitalizeFirstLetter(district);
   const displayFederation = (federation || '').toUpperCase();
@@ -253,7 +266,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       `}</style>
 
-      {/* EN-TÊTE */}
+      {/* EN-TÊTE AVEC LOGOS */}
       <div className="flex items-center justify-between mb-2" style={{ borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ width: '50px', height: '50px' }}>
@@ -406,7 +419,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         </table>
       </div>
 
-      {/* Tableau des références */}
+      {/* Tableau des références - verrouillé en lecture seule */}
       <div className="mt-6">
         <table className="w-full text-sm border border-black">
           <thead>
