@@ -29,7 +29,7 @@ export default function Login({ onLogin }) {
       className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url('/Login.png')` }}
     >
-      <div className="max-w-5xl w-full bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 flex flex-col md:flex-row gap-8 items-center">
+      <div className="max-w-5xl w-full bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 flex flex-col md:flex-row gap-8 items-center justify-center">
         {/* Colonne gauche : formulaire */}
         <div className="flex-1 w-full max-w-md mx-auto">
           <div className="text-center">
@@ -134,8 +134,8 @@ export default function Login({ onLogin }) {
           </form>
         </div>
 
-        {/* Colonne droite : QR Code */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs mx-auto border-l border-gray-200 pl-8 md:pl-8 pt-8 md:pt-0">
+        {/* Colonne droite : QR Code - centré verticalement et horizontalement */}
+        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs mx-auto md:border-l md:border-gray-200 md:pl-8 pt-8 md:pt-0">
           <p className="text-sm text-gray-700 font-medium mb-4 text-center">
             <i className="fas fa-qrcode mr-2 text-amber-500"></i>
             Scannez ce QR Code pour demander Login
