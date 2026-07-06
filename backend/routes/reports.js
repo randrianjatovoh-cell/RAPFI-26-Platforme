@@ -1,4 +1,3 @@
-// backend/routes/reports.js
 const express = require('express');
 const { 
   getMonthlyReport, 
@@ -22,7 +21,7 @@ router.get('/monthly/:month/:eglise', checkAccess, async (req, res) => {
   }
 });
 
-// 🔥 Route pour forcer le recalcul d'un rapport mensuel
+// Route pour forcer le recalcul d'un rapport mensuel
 router.post('/rebuild', checkAccess, async (req, res) => {
   try {
     const { month, eglise } = req.body;
@@ -43,20 +42,35 @@ router.put('/field', checkAccess, async (req, res) => {
   try {
     const { month, eglise, field, value } = req.body;
 
-    // 1. Vérifier si le rapport existe
+    if (!month || !eglise || !field) {
+      return res.status(400).json({ error: 'Month, eglise and field are required' });
+    }
+
+    // Liste des champs autorisés pour éviter les injections
+    const allowedFields = [
+      'sabbath_dates', 'totalA', 'totalB', 'totalExpenses', 'balanceChurch',
+      'perSabbath', 'saramPandefasana', 'dateVersementFME', 'rosiaNum',
+      'bokyBe', 'rapano', 'tatitra', 'dateFanamarihana', 'caisseFME',
+      'chequeRef', 'dateCheque', 'soraBolaDate', 'soraBolaMontant',
+      'soraBolaLettres', 'soraBolaSignataire', 'soraBolaLinesJson',
+      'signatures', 'endOfYear', 'receiptNumber', 'note'
+    ];
+    if (!allowedFields.includes(field)) {
+      return res.status(400).json({ error: 'Invalid field name' });
+    }
+
+    // Vérifier si le rapport existe
     let report = await getMonthlyReport(month, eglise);
     if (!report) {
-      // 🔥 Le rapport n'existe pas : on le recrée à partir des données GL existantes
       await computeAndSaveMonthlyReports(month, eglise);
       report = await getMonthlyReport(month, eglise);
       if (!report) {
-        // Si malgré tout le rapport est toujours null, on crée un squelette vide
         await upsertMonthlyReport(month, eglise, {});
         report = await getMonthlyReport(month, eglise);
       }
     }
 
-    // 2. Mettre à jour le champ
+    // Mettre à jour le champ
     await updateReportField(month, eglise, field, value);
     res.json({ success: true });
   } catch (err) {
