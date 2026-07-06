@@ -4,7 +4,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
 import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
-// --- Helpers de dates robustes ---
+// --- Helpers de dates ---
 function toISOString(date) {
   if (!date) return '';
   const d = new Date(date);
@@ -31,7 +31,6 @@ function formatDateInput(dateStr) {
 
 function parseDateInput(value) {
   if (!value) return '';
-  // Si déjà au format ISO, on le garde
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const parts = value.split('/');
   if (parts.length === 3) {
@@ -54,7 +53,6 @@ function parseDateInput(value) {
   return value;
 }
 
-// --- Helper d'affichage des montants ---
 function formatMontant(value) {
   if (value === undefined || value === null) return '';
   const num = Number(value);
@@ -106,6 +104,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [error, setError] = useState(null);
 
   const datePickerRefs = useRef({});
+  const abortControllerRef = useRef(null);
+  const loadedRef = useRef(false);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -114,7 +114,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
-  // --- Chargement des données ---
+  // --- Chargement des données (avec annulation) ---
   const loadData = useCallback(async () => {
     if (!currentMonth || !eglise) {
       setLoading(false);
@@ -126,19 +126,32 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       return;
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError(null);
 
     try {
-      let r = await api.getMonthlyReport(currentMonth, eglise);
+      const [reportData, fraisData, glData, depensesData] = await Promise.all([
+        api.getMonthlyReport(currentMonth, eglise),
+        api.getFrais(currentMonth, eglise),
+        api.getGL(currentMonth, null, null, eglise),
+        api.getDepenses(currentMonth, null, null, eglise)
+      ]);
+
+      if (controller.signal.aborted) return;
+
+      let r = reportData;
       if (!r) {
-        console.log(`📝 Rapport manquant pour ${currentMonth} - ${eglise}, recréation...`);
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
-        console.log('✅ Rapport recréé');
+        if (controller.signal.aborted) return;
       }
       setReport(r);
 
-      // --- Restaurer les champs du rapport ---
       if (r) {
         if (r.sabbath_dates) {
           try {
@@ -164,7 +177,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // --- Restaurer le tableau cheque/sora-bola ---
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -175,7 +187,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
               } else if (Array.isArray(parsed)) {
-                // ancien format: simple tableau de sora-bola
                 setSoraBolaLines(parsed.length === 5 ? parsed : ['', '', '', '', '']);
                 setChequeLines(['', '', '', '', '']);
                 const sum = parsed.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
@@ -186,24 +197,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             console.warn('Erreur parsing soraBolaLinesJson:', e);
           }
         } else {
-          // Initialiser à vide
           setChequeLines(['', '', '', '', '']);
           setSoraBolaLines(['', '', '', '', '']);
           setTotalChequeSora(0);
         }
       }
 
-      // --- Frais ---
-      const fraisVal = await api.getFrais(currentMonth, eglise);
-      setSaramPandefasana(fraisVal);
+      setSaramPandefasana(fraisData);
 
-      // --- GL ---
-      const glData = await api.getGL(currentMonth, null, null, eglise) || {};
+      const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
       const catSums = Array(8).fill().map(() => [0, 0, 0, 0, 0]);
       for (let s = 1; s <= 5; s++) {
-        const entries = glData[s] || [];
+        const entries = gl[s] || [];
         for (const entry of entries) {
           const f1 = entry.f1 || 0,
                 f2 = entry.f2 || 0,
@@ -233,13 +240,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(catSums);
 
-      // --- Dépenses ---
-      const expensesList = await api.getDepenses(currentMonth, null, null, eglise);
-      const totalExp = expensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const depenses = depensesData || [];
+      const totalExp = depenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
       const expensesByWeek = [0, 0, 0, 0, 0];
       if (sabbathDates[0]) {
-        for (let exp of expensesList) {
+        for (let exp of depenses) {
           if (!exp.date) continue;
           const expDate = new Date(exp.date);
           if (isNaN(expDate)) continue;
@@ -260,42 +266,51 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       }
       setExpensesBySabbath(expensesByWeek);
 
-      // Solde précédent
       const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const sisa = saved ? parseFloat(saved) : 0;
       setVolaSisaTeoAloha(sisa);
       setBalanceChurch(sisa + totalB - totalExp);
 
     } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('Requête annulée');
+        return;
+      }
       console.error('Erreur chargement RapportMensuel:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        loadedRef.current = true;
+      }
     }
-  }, [currentMonth, eglise, user, canViewEglise]);
+  }, [currentMonth, eglise, user, canViewEglise, canEditEglise]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (currentMonth && eglise && !loadedRef.current) {
+      loadData();
+    }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [currentMonth, eglise, loadData]);
 
-  // --- Sauvegarde des champs simples ---
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
-      console.log(`✅ Champ ${field} sauvegardé:`, value);
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
     }
   };
 
-  // --- Gestion du tableau cheque/sora-bola ---
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      console.log('✅ Tableau cheque/sora-bola sauvegardé');
     } catch (err) {
       console.error('❌ Erreur sauvegarde tableau:', err);
     }
@@ -322,7 +337,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     updateChequeSoraData(chequeLines, newLines);
   };
 
-  // --- Gestion du montant en lettres ---
   const handleMontantChange = async (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
@@ -333,7 +347,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
-  // --- Date picker amélioré ---
   const openDatePicker = (fieldName) => {
     if (isReadOnlyMode()) return;
     const input = datePickerRefs.current[fieldName];
@@ -345,7 +358,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           input.click();
         }
       } catch (e) {
-        console.warn('Impossible d’ouvrir le picker:', e);
         input.click();
       }
     }
@@ -353,21 +365,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const handleDatePickerChange = (setter, fieldName, event) => {
     if (isReadOnlyMode()) return;
-    const isoValue = event.target.value; // "yyyy-mm-dd"
+    const isoValue = event.target.value;
     setter(isoValue);
     updateField(fieldName, isoValue);
   };
 
   const handleDateTextChange = (setter, fieldName, textValue) => {
     if (isReadOnlyMode()) return;
-    setter(textValue); // on met à jour l'affichage en temps réel
+    setter(textValue);
   };
 
   const handleDateTextBlur = (setter, fieldName, textValue) => {
     if (isReadOnlyMode()) return;
     const iso = parseDateInput(textValue);
     const finalValue = (iso && iso !== textValue) ? iso : textValue;
-    // Si le texte n'est pas une date valide, on laisse tel quel mais on sauvegarde quand même
     setter(finalValue);
     updateField(fieldName, finalValue);
   };
@@ -413,7 +424,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     );
   };
 
-  // --- Rendu ---
+  // --- Rendu JSX (inchangé) ---
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
