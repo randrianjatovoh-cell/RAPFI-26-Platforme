@@ -105,6 +105,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const datePickerRefs = useRef({});
   const abortControllerRef = useRef(null);
+  const [loadTrigger, setLoadTrigger] = useState(0); // pour forcer un rechargement
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -135,7 +136,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setError(null);
 
     try {
-      console.log('🔄 Chargement des données pour', currentMonth, eglise);
+      console.log('🔄 [loadData] Début chargement pour', currentMonth, eglise);
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
         api.getMonthlyReport(currentMonth, eglise),
         api.getFrais(currentMonth, eglise),
@@ -154,6 +155,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       // Restaurer les champs du rapport
       if (r) {
+        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -166,6 +168,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           setSabbathDates(['', '', '', '', '']);
         }
 
+        // Champs texte
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -179,11 +182,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
         // --- Restauration du tableau chèque / sora-bola ---
-        console.log('📋 soraBolaLinesJson brut:', r.soraBolaLinesJson);
+        console.log('📋 [loadData] soraBolaLinesJson brut:', r.soraBolaLinesJson);
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
-            console.log('📋 parsed:', parsed);
+            console.log('📋 [loadData] parsed:', parsed);
             if (parsed && typeof parsed === 'object') {
               if (Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
                 const chq = parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', ''];
@@ -192,7 +195,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 setSoraBolaLines(sora);
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
-                console.log('✅ Tableau restauré:', chq, sora);
+                console.log('✅ [loadData] Tableau restauré:', chq, sora);
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
                 setSoraBolaLines(sora);
@@ -202,17 +205,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               }
             }
           } catch (e) {
-            console.warn('Erreur parsing soraBolaLinesJson:', e);
+            console.warn('⚠️ [loadData] Erreur parsing soraBolaLinesJson:', e);
           }
         } else {
-          // Si le champ est absent, on initialise avec des lignes vides
+          console.log('ℹ️ [loadData] Aucune donnée soraBolaLinesJson, initialisation à vide');
           setChequeLines(['', '', '', '', '']);
           setSoraBolaLines(['', '', '', '', '']);
           setTotalChequeSora(0);
         }
       }
 
-      // Frais
       setSaramPandefasana(fraisData);
 
       // Grand Livre
@@ -278,18 +280,18 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       }
       setExpensesBySabbath(expensesByWeek);
 
-      // Solde précédent
       const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const sisa = saved ? parseFloat(saved) : 0;
       setVolaSisaTeoAloha(sisa);
       setBalanceChurch(sisa + totalB - totalExp);
 
+      console.log('✅ [loadData] Chargement terminé avec succès');
     } catch (err) {
       if (err.name === 'AbortError') {
-        console.log('Requête annulée');
+        console.log('⛔ [loadData] Requête annulée');
         return;
       }
-      console.error('Erreur chargement RapportMensuel:', err);
+      console.error('❌ [loadData] Erreur:', err);
       setError(err.message);
     } finally {
       if (!controller.signal.aborted) {
@@ -298,7 +300,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }
   }, [currentMonth, eglise, user, canViewEglise, canEditEglise]);
 
-  // --- Chargement à chaque montage du composant ---
+  // --- Chargement à chaque montage ou changement de mois/église ---
   useEffect(() => {
     loadData();
     return () => {
@@ -306,16 +308,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         abortControllerRef.current.abort();
       }
     };
-  }, [currentMonth, eglise]); // Dépendances : mois et église
+  }, [currentMonth, eglise, loadTrigger]);
 
   // --- Sauvegarde des champs simples ---
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
-      console.log(`✅ Champ ${field} sauvegardé:`, value);
+      console.log(`✅ [updateField] ${field} sauvegardé:`, value);
     } catch (err) {
-      console.error(`❌ Erreur sauvegarde ${field}:`, err);
+      console.error(`❌ [updateField] Erreur sauvegarde ${field}:`, err);
+      alert(`Erreur de sauvegarde du champ ${field}. Vérifiez la console.`);
     }
   };
 
@@ -323,15 +326,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
+    console.log('📤 [saveCheque] Envoi des données:', data);
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      console.log('✅ Tableau cheque/sora-bola sauvegardé');
+      console.log('✅ [saveCheque] Sauvegarde réussie');
     } catch (err) {
-      console.error('❌ Erreur sauvegarde tableau:', err);
+      console.error('❌ [saveCheque] Erreur:', err);
+      alert('Erreur lors de la sauvegarde du tableau. Vérifiez la console.');
     }
   };
 
-  // --- Handlers pour le tableau avec sauvegarde immédiate ---
+  // --- Handlers pour le tableau ---
   const handleChequeChange = async (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
