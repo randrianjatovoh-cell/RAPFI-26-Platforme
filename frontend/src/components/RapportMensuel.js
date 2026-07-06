@@ -19,37 +19,6 @@ function formatDateInput(dateStr) {
   }
 }
 
-function parseDateInput(value) {
-  if (!value) return '';
-  // Si déjà au format ISO, on le garde
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  const parts = value.split('/');
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-      const date = new Date(year, month, day);
-      if (!isNaN(date)) {
-        const iso = date.toISOString().split('T')[0];
-        return iso;
-      }
-    }
-  } else if (parts.length === 2) {
-    const year = new Date().getFullYear();
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    if (!isNaN(day) && !isNaN(month)) {
-      const date = new Date(year, month, day);
-      if (!isNaN(date)) {
-        const iso = date.toISOString().split('T')[0];
-        return iso;
-      }
-    }
-  }
-  return value;
-}
-
 function formatMontant(value) {
   if (value === undefined || value === null) return '';
   const num = Number(value);
@@ -67,6 +36,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
+  // Ces champs de date ne seront plus modifiables, on les garde juste pour affichage
   const [dateVersementFME, setDateVersementFME] = useState('');
   const [rosiaNum, setRosiaNum] = useState('');
   const [bokyBe, setBokyBe] = useState('');
@@ -101,7 +71,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [error, setError] = useState(null);
 
   const abortControllerRef = useRef(null);
-  const [loadTrigger, setLoadTrigger] = useState(0);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -161,6 +130,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           setSabbathDates(['', '', '', '', '']);
         }
 
+        // Mettre à jour les champs (les dates restent affichées telles quelles)
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -305,9 +275,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [currentMonth, eglise, loadTrigger]);
+  }, [currentMonth, eglise]); // pas de loadTrigger, on recharge automatiquement
 
-  // --- Sauvegarde des champs simples ---
+  // --- Sauvegarde des champs modifiables ---
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
@@ -362,18 +332,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
-  // --- Gestion des champs de date (version simple avec texte) ---
-  const handleDateChange = (setter, fieldName, textValue) => {
-    if (isReadOnlyMode()) return;
-    setter(textValue); // mise à jour de l'affichage en temps réel
-  };
-
-  const handleDateBlur = (setter, fieldName, textValue) => {
-    if (isReadOnlyMode()) return;
-    const iso = parseDateInput(textValue);
-    const finalValue = (iso && iso !== textValue) ? iso : textValue;
-    setter(finalValue);
-    updateField(fieldName, finalValue);
+  // --- Champs de date (lecture seule) ---
+  const renderDateField = (value) => {
+    const display = value ? formatDateInput(value) : '__/__/____';
+    return display;
   };
 
   // --- Rendu ---
@@ -400,7 +362,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const sabbathHeaders = [1, 2, 3, 4, 5].map(i => {
     const dateStr = sabbathDates[i - 1] || '';
-    const dateDisplay = formatDateInput(dateStr);
+    const dateDisplay = dateStr ? formatDateInput(dateStr) : '__/__/____';
     return { label: `Sabata ${i}`, date: dateDisplay };
   });
 
@@ -448,9 +410,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .checkbox-group input[type="checkbox"] { margin: 0; flex-shrink: 0; }
         .checkbox-group .label { margin-left: 2px; }
-        .date-input { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
-        .date-input:focus { outline: 2px solid #1a3c6e; }
-        .date-input::placeholder { color: #999; }
+        .date-display { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; background-color: #f9f9f9; display: inline-block; text-align: center; font-family: inherit; font-size: inherit; }
       `}</style>
 
       <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
@@ -576,16 +536,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       <div className="flex justify-between items-center mt-1">
         <div>
           <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
-          <input
-            type="text"
-            value={formatDateInput(dateVersementFME)}
-            onChange={(e) => handleDateChange(setDateVersementFME, 'dateVersementFME', e.target.value)}
-            onBlur={(e) => handleDateBlur(setDateVersementFME, 'dateVersementFME', e.target.value)}
-            className="rounded p-0.5 date-input"
-            style={{ width: '130px' }}
-            disabled={readOnlyMode}
-            placeholder="jj/mm/aaaa"
-          />
+          <span className="date-display">{renderDateField(dateVersementFME)}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="font-bold whitespace-nowrap">SARAM-PANDEFASANA (Ar) :</span>
@@ -626,16 +577,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Daty :</span>
-            <input
-              type="text"
-              value={formatDateInput(dateFanamarihana)}
-              onChange={(e) => handleDateChange(setDateFanamarihana, 'dateFanamarihana', e.target.value)}
-              onBlur={(e) => handleDateBlur(setDateFanamarihana, 'dateFanamarihana', e.target.value)}
-              className="rounded p-0.5 date-input"
-              style={{ width: '130px' }}
-              disabled={readOnlyMode}
-              placeholder="jj/mm/aaaa"
-            />
+            <span className="date-display">{renderDateField(dateFanamarihana)}</span>
           </div>
           <div>
             <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
@@ -649,16 +591,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="font-bold italic text-center">"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
           <div>
             <span className="font-semibold">Voaray androany (daty) :</span>
-            <input
-              type="text"
-              value={formatDateInput(soraBolaDate)}
-              onChange={(e) => handleDateChange(setSoraBolaDate, 'soraBolaDate', e.target.value)}
-              onBlur={(e) => handleDateBlur(setSoraBolaDate, 'soraBolaDate', e.target.value)}
-              className="rounded p-0.5 date-input"
-              style={{ width: '130px' }}
-              disabled={readOnlyMode}
-              placeholder="jj/mm/aaaa"
-            />
+            <span className="date-display">{renderDateField(soraBolaDate)}</span>
           </div>
           <div>
             <span className="font-semibold">Ny vola Ar :</span>
