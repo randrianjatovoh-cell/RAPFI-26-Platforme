@@ -1,380 +1,392 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useUser } from '../context/UserContext';
-import { api } from '../services/api';
+// src/components/Receipts.js
+import React from 'react';
+import { formatNumber, nombreEnLettresCapitalized } from '../services/helpers';
 
-export default function Profile({ onClose }) {
-  const { user: contextUser, updateUser, fetchUser } = useUser();
-  // État local pour les données du profil
-  const [user, setUser] = useState(contextUser);
-  const [photo, setPhoto] = useState(contextUser?.photo || '');
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('success');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [adresse, setAdresse] = useState(contextUser?.adresse || '');
-  const [contact, setContact] = useState(contextUser?.contact || '');
-  const [isSaving, setIsSaving] = useState(false);
-  const [originalAdresse, setOriginalAdresse] = useState(contextUser?.adresse || '');
-  const [originalContact, setOriginalContact] = useState(contextUser?.contact || '');
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
+export default function Receipts({ entries, eglise, district, federation, sabbathDate, monthId, sabbathIndex, onClose }) {
+  const validEntries = entries.filter(e => e.memberName && (
+    (e.f1 || 0) + (e.f2 || 0) + (e.f3 || 0) + (e.f4 || 0) +
+    (e.f5 || 0) + (e.f6 || 0) + (e.f7 || 0) + (e.f8 || 0) +
+    (e.b9 || 0) + (e.b10 || 0) > 0
+  ));
 
-  const isAdmin = user?.fonction === 'Admin';
-
-  // Charger les données fraîches de l'utilisateur au montage et à chaque ouverture
-  useEffect(() => {
-    async function loadUserData() {
-      try {
-        const freshUser = await api.getMe();
-        if (freshUser) {
-          setUser(freshUser);
-          setPhoto(freshUser.photo || '');
-          setAdresse(freshUser.adresse || '');
-          setContact(freshUser.contact || '');
-          setOriginalAdresse(freshUser.adresse || '');
-          setOriginalContact(freshUser.contact || '');
-          // Mettre à jour le contexte pour synchroniser
-          updateUser(freshUser);
-        }
-      } catch (err) {
-        console.error('Erreur chargement profil:', err);
-        setMessage('Impossible de charger les données du profil');
-        setMessageType('error');
-      }
-    }
-    loadUserData();
-  }, []); // Ne s'exécute qu'au montage
-
-  // Synchroniser quand le contexte change (par ex. après une mise à jour externe)
-  useEffect(() => {
-    if (contextUser) {
-      setUser(contextUser);
-      setPhoto(contextUser.photo || '');
-      setAdresse(contextUser.adresse || '');
-      setContact(contextUser.contact || '');
-      setOriginalAdresse(contextUser.adresse || '');
-      setOriginalContact(contextUser.contact || '');
-    }
-  }, [contextUser]);
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      setMessage('Aucun fichier sélectionné');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setMessage('Le fichier doit être une image');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage('La photo ne doit pas dépasser 5 Mo');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-
-    setUploading(true);
-    setMessage('');
-
-    try {
-      const formData = new FormData();
-      formData.append('photo', file);
-
-      if (!user?.id) {
-        setMessage('Erreur: utilisateur non identifié');
-        setMessageType('error');
-        setTimeout(() => setMessage(''), 5000);
-        setUploading(false);
-        return;
-      }
-
-      const result = await api.uploadUserPhoto(user.id, formData);
-      
-      setPhoto(result.photoUrl);
-      // Mettre à jour le contexte
-      updateUser({ photo: result.photoUrl });
-
-      setMessage('Photo mise à jour avec succès !');
-      setMessageType('success');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      console.error('❌ Erreur upload photo:', err);
-      setMessage(`Erreur: ${err.message || 'Impossible de mettre à jour la photo'}`);
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    if (isAdmin) {
-      setMessage('Le mot de passe de l\'administrateur ne peut pas être modifié.');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setMessage('Les mots de passe ne correspondent pas');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-    if (newPassword.length < 4) {
-      setMessage('Le mot de passe doit contenir au moins 4 caractères');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-      return;
-    }
-    try {
-      await api.updateUserPassword(user.id, newPassword);
-      setMessage('Mot de passe modifié avec succès !');
-      setMessageType('success');
-      setNewPassword('');
-      setConfirmPassword('');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      console.error('❌ Erreur changement mot de passe:', err);
-      setMessage(`Erreur: ${err.message || 'Impossible de changer le mot de passe'}`);
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-    }
-  };
-
-  const handleSaveAdresseContact = async () => {
-    if (adresse === originalAdresse && contact === originalContact) {
-      setMessage('Aucune modification détectée');
-      setMessageType('info');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-    setIsSaving(true);
-    try {
-      if (!user?.id) {
-        setMessage('Erreur: utilisateur non identifié');
-        setMessageType('error');
-        setTimeout(() => setMessage(''), 5000);
-        setIsSaving(false);
-        return;
-      }
-      await api.updateUser(user.id, { adresse, contact });
-      // Mettre à jour l'état local et le contexte
-      setOriginalAdresse(adresse);
-      setOriginalContact(contact);
-      updateUser({ adresse, contact });
-      // Recharger complètement l'utilisateur depuis le serveur pour être sûr
-      await fetchUser();
-      setMessage('Adresse et contact mis à jour !');
-      setMessageType('success');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      console.error('❌ Erreur mise à jour adresse/contact:', err);
-      setMessage(`Erreur: ${err.message || 'Impossible de mettre à jour'}`);
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const hasChanges = adresse !== originalAdresse || contact !== originalContact;
-
-  const renderMessage = () => {
-    if (!message) return null;
-    const bgColor = 
-      messageType === 'success' ? 'bg-green-50 border-green-400 text-green-700' :
-      messageType === 'error' ? 'bg-red-50 border-red-400 text-red-700' :
-      'bg-blue-50 border-blue-400 text-blue-700';
+  if (validEntries.length === 0) {
     return (
-      <div className={`mt-4 p-3 rounded border ${bgColor} flex items-center`}>
-        <i className={`fas fa-${messageType === 'success' ? 'check-circle' : messageType === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2`}></i>
-        {message}
+      <div className="text-center p-8 text-gray-500">
+        Aucune donnée pour générer des reçus.
+        <button onClick={onClose} className="ml-4 bg-gray-600 text-white px-4 py-2 rounded">Fermer</button>
+      </div>
+    );
+  }
+
+  const chunkSize = 4;
+  const receiptChunks = [];
+  for (let i = 0; i < validEntries.length; i += chunkSize) {
+    receiptChunks.push(validEntries.slice(i, i + chunkSize));
+  }
+
+  const monthName = monthId ? new Date(monthId + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '';
+  const sabbathLabel = sabbathIndex ? `Sabata Faha-${sabbathIndex}` : '';
+  const formattedDistrict = district ? district.charAt(0).toUpperCase() + district.slice(1).toLowerCase() : '________';
+
+  const renderReceipt = (entry, key) => {
+    const total = (entry.f1 || 0) + (entry.f2 || 0) + (entry.f3 || 0) + (entry.f4 || 0) +
+                  (entry.f5 || 0) + (entry.f6 || 0) + (entry.f7 || 0) + (entry.f8 || 0) +
+                  (entry.b9 || 0) + (entry.b10 || 0);
+    const totalLetters = nombreEnLettresCapitalized(total);
+    const dateStr = sabbathDate ? new Date(sabbathDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '___/__/____';
+    const rosiaNumber = entry.rosia || '________';
+
+    const f1 = entry.f1 || 0;
+    const f2 = entry.f2 || 0;
+    const f3 = entry.f3 || 0;
+    const f4 = entry.f4 || 0;
+    const f5 = entry.f5 || 0;
+    const f6 = entry.f6 || 0;
+    const f7 = entry.f7 || 0;
+    const f8 = entry.f8 || 0;
+    const b9 = entry.b9 || 0;
+    const b10 = entry.b10 || 0;
+
+    const rows = [
+      { label: 'Sekoly Sabata / S. faha-13', miakatra: f2, mijanona: b9 },
+      { label: 'Fanambinana', miakatra: f3, mijanona: 0 },
+      { label: 'Tingerin-tana', miakatra: f4, mijanona: 0 },
+      { label: 'Fanompoam-pivavahana', miakatra: f5, mijanona: b10 },
+      { label: 'Federasion', miakatra: f6, mijanona: 0 },
+      { label: 'Maneran-tany', miakatra: f7, mijanona: 0 },
+      { label: 'Manokana 1', miakatra: f8, mijanona: 0 },
+      { label: 'Manokana 2', miakatra: 0, mijanona: 0 },
+      { label: 'Manokana 3', miakatra: 0, mijanona: 0 },
+    ];
+
+    let totalMiakatra = 0, totalMijanona = 0;
+    rows.forEach(row => {
+      totalMiakatra += row.miakatra || 0;
+      totalMijanona += row.mijanona || 0;
+    });
+    const totalFanatitra = totalMiakatra + totalMijanona;
+    const totalNarotsaka = f1 + totalFanatitra;
+
+    return (
+      <div key={key} className="receipt">
+        {/* En-tête */}
+        <div className="receipt-header">
+          <div className="header-top">
+            <div className="logo-title-group">
+              <img 
+                src="/FINANCE.png" 
+                alt="Finance" 
+                className="header-logo" 
+                onError={(e) => e.target.style.display = 'none'} 
+              />
+              <img 
+                src="/Noir.png" 
+                alt="Noir" 
+                className="header-logo" 
+                onError={(e) => e.target.style.display = 'none'} 
+              />
+              <div className="church-titles">
+                <div className="church-line">FIANGONANA ADVANTISTA</div>
+                <div className="sabbath-line">MITANDRINA NY ANDRO FAHA-FITO</div>
+                <div className="federation-line">{federation || 'FÉDÉRATION'}</div>
+              </div>
+            </div>
+            <div className="rosia-number">ROSIA N° {rosiaNumber}</div>
+          </div>
+        </div>
+
+        {/* Corps */}
+        <div className="receipt-body">
+          <div className="title-box">
+            <div className="receipt-title">AMPAHAFOLONY SY FANATITRA HO AN'I JEHOVAH</div>
+            <div className="verse">Chak 28:20a « vifany olona mahatotely tokoa dia ho be fitakianana »</div>
+          </div>
+
+          <div className="member-info">
+            <div className="member-line">
+              <span className="label">Fiangonana ao :</span>
+              <span className="value">{eglise || '________'}</span>
+              <span className="label district-label">DISTRIKA :</span>
+              <span className="value">{formattedDistrict}</span>
+            </div>
+            <div className="member-line">
+              <span className="label">Voaray tamin-dR :</span>
+              <span className="value">{entry.memberName || '________'}</span>
+            </div>
+          </div>
+
+          <div className="amount-row">
+            <span className="label">Ny vola :</span>
+            <span className="value">{formatNumber(totalNarotsaka)} Ar</span>
+          </div>
+
+          {/* Tableau 3 colonnes avec largeurs fixes */}
+          <table className="receipt-table">
+            <thead>
+              <tr>
+                <th className="title-cell" style={{ width: '40%' }}>AMPAHAFOLONY</th>
+                <th className="header-cell" style={{ width: '30%' }}>Fanatitra Miakatra</th>
+                <th className="header-cell" style={{ width: '30%' }}>Fanatitra Mijanona</th>
+              </tr>
+              <tr>
+                <th className="title-cell" style={{ width: '40%' }}>FANATITRA</th>
+                <th className="header-cell" style={{ width: '30%' }}></th>
+                <th className="header-cell" style={{ width: '30%' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="title-cell">AMPAHAFOLONY</td>
+                <td className="amount-cell" colSpan="2">{formatNumber(f1)}</td>
+              </tr>
+              {rows.map((row, idx) => (
+                <tr key={idx}>
+                  <td className="category-cell">{row.label}</td>
+                  <td className="amount-cell">{formatNumber(row.miakatra)}</td>
+                  <td className="amount-cell">{formatNumber(row.mijanona)}</td>
+                </tr>
+              ))}
+              <tr className="total-row">
+                <td className="title-cell">Tontalin'ny fanatitra</td>
+                <td className="total-cell">{formatNumber(totalMiakatra)}</td>
+                <td className="total-cell">{formatNumber(totalMijanona)}</td>
+              </tr>
+              <tr className="total-row">
+                <td className="title-cell">Tontalin'ny vola narotsaka</td>
+                <td className="total-cell" colSpan="2">{formatNumber(totalNarotsaka)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="footer-note">(Rosia omena ny mambra mamerina ny 1/10 sy ny fanatitra)</div>
+        </div>
       </div>
     );
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl">
-      <div className="flex items-center mb-6 relative border-b pb-4">
-        <h2 className="text-2xl font-bold flex-1 text-center text-indigo-700">
-          <i className="fas fa-user-circle mr-2"></i>Mon profil
-        </h2>
-        <button 
-          onClick={onClose} 
-          className="absolute right-0 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-        >
-          <i className="fas fa-times text-xl"></i>
-        </button>
-      </div>
-
-      {/* Photo de profil */}
-      <div className="flex flex-col items-center mb-6">
-        <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center mb-3 border-4 border-indigo-100 shadow-md">
-          {photo ? (
-            <img 
-              src={photo} 
-              alt="Photo de profil" 
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = '<i class="fas fa-user-circle text-6xl text-gray-400"></i>';
-              }}
-            />
-          ) : (
-            <i className="fas fa-user-circle text-6xl text-gray-400"></i>
-          )}
-        </div>
-        <label 
-          htmlFor="photo-upload" 
-          className={`cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <i className="fas fa-camera"></i> 
-          {uploading ? 'Téléchargement...' : 'Changer la photo'}
-        </label>
-        <input 
-          id="photo-upload"
-          type="file" 
-          accept="image/*" 
-          ref={fileInputRef} 
-          onChange={handlePhotoChange} 
-          className="hidden" 
-          disabled={uploading}
-        />
-      </div>
-
-      {/* Grille d'informations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <i className="fas fa-user mr-1"></i> Nom complet
-          </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.nom} {user?.prenom}</div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <i className="fas fa-envelope mr-1"></i> Email
-          </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.email}</div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <i className="fas fa-briefcase mr-1"></i> Fonction
-          </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.fonction}</div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <i className="fas fa-church mr-1"></i> Église
-          </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.eglise || 'Non renseigné'}</div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <i className="fas fa-map-marker-alt mr-1"></i> District
-          </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.district || 'Non renseigné'}</div>
-        </div>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <i className="fas fa-globe mr-1"></i> Fédération
-          </label>
-          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user?.federation || 'Non renseigné'}</div>
-        </div>
-      </div>
-
-      {/* Adresse et contact */}
-      <div className="mt-6 border-t pt-4">
-        <h3 className="text-lg font-semibold text-gray-700 mb-3">
-          <i className="fas fa-address-card mr-2"></i>Coordonnées
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <i className="fas fa-home mr-1"></i> Adresse
-            </label>
-            <input 
-              type="text" 
-              value={adresse} 
-              onChange={e => setAdresse(e.target.value)} 
-              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" 
-              placeholder="Entrez votre adresse"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <i className="fas fa-phone mr-1"></i> Contact (téléphone)
-            </label>
-            <input 
-              type="tel" 
-              value={contact} 
-              onChange={e => setContact(e.target.value)} 
-              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" 
-              placeholder="Entrez votre numéro de téléphone"
-            />
-          </div>
-          <button 
-            onClick={handleSaveAdresseContact} 
-            disabled={isSaving || !hasChanges} 
-            className={`w-full py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
-              isSaving || !hasChanges 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-            }`}
-          >
-            {isSaving ? (
-              <><i className="fas fa-spinner fa-spin"></i> Enregistrement...</>
-            ) : (
-              <><i className="fas fa-save"></i> Enregistrer adresse et contact</>
-            )}
+    <div className="receipts-container">
+      <div className="receipts-header no-print flex justify-between items-center mb-4 p-3 bg-gray-100 rounded">
+        <h2 className="text-xl font-bold">Reçus personnels - {monthName} - {sabbathLabel}</h2>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+            <i className="fas fa-arrow-left mr-2"></i> Retour
+          </button>
+          <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <i className="fas fa-print mr-2"></i> Imprimer
           </button>
         </div>
       </div>
 
-      {/* Changement de mot de passe - masqué pour Admin */}
-      {!isAdmin && (
-        <div className="mt-6 border-t pt-4">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">
-            <i className="fas fa-key mr-2"></i>Changer le mot de passe
-          </h3>
-          <form onSubmit={handlePasswordChange} className="space-y-3">
-            <input 
-              type="password" 
-              placeholder="Nouveau mot de passe (min 4 caractères)" 
-              value={newPassword} 
-              onChange={e => setNewPassword(e.target.value)} 
-              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" 
-              required 
-            />
-            <input 
-              type="password" 
-              placeholder="Confirmer le nouveau mot de passe" 
-              value={confirmPassword} 
-              onChange={e => setConfirmPassword(e.target.value)} 
-              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" 
-              required 
-            />
-            <button 
-              type="submit" 
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              <i className="fas fa-key"></i> Modifier le mot de passe
-            </button>
-          </form>
+      {receiptChunks.map((chunk, chunkIndex) => (
+        <div key={chunkIndex} className="print-page">
+          <div className="receipts-grid">
+            {chunk.map((entry, idx) => renderReceipt(entry, chunkIndex * chunkSize + idx))}
+          </div>
         </div>
-      )}
+      ))}
 
-      {renderMessage()}
+      <style>{`
+        /* --- Styles écran (confortables) --- */
+        .receipts-container { margin-top: 1rem; padding: 0 0.5rem; }
+        .receipts-header { background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .receipts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .receipt {
+          border: 1.5px solid #000;
+          padding: 0.5rem 0.8rem;
+          font-size: 20px;
+          font-family: 'Times New Roman', serif;
+          background: #fff;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+        .receipt-header { border-bottom: none !important; padding-bottom: 4px; margin-bottom: 4px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .logo-title-group { display: flex; align-items: center; gap: 10px; }
+        .header-logo { height: 40px; width: auto; }
+        .church-titles { display: flex; flex-direction: column; line-height: 1.3; margin-left: 5px; }
+        .church-titles .church-line,
+        .church-titles .sabbath-line,
+        .church-titles .federation-line {
+          font-weight: bold; font-size: 18px; margin: 0; padding: 0;
+        }
+        .rosia-number { font-weight: bold; font-size: 18px; text-align: right; white-space: nowrap; }
+        .receipt-body { display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
+        .title-box { border: 1px solid #000; padding: 4px 6px; margin-bottom: 4px; text-align: center; }
+        .receipt-title { font-weight: bold; font-size: 18px; letter-spacing: 0.5px; margin: 0; padding: 0; }
+        .verse { font-style: italic; font-size: 14px; color: #333; margin: 0; padding: 0; }
+        .member-info { font-size: 16px; margin: 4px 0; border-bottom: none !important; padding-bottom: 4px; }
+        .member-line { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0; padding: 0; }
+        .member-line .label { font-weight: bold; min-width: 80px; margin: 0; padding: 0; }
+        .member-line .district-label { min-width: 60px; margin-left: 0.5rem; }
+        .member-line .value { margin: 0; padding: 0; }
+        .amount-row { display: flex; justify-content: flex-start; gap: 0.8rem; font-size: 16px; font-weight: bold; margin: 4px 0; border-bottom: 1px solid #000; padding-bottom: 4px; }
+        .amount-row .label { font-weight: bold; }
+        .amount-row .value { font-weight: bold; }
+        .receipt-table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 4px 0; line-height: 1.3; border-spacing: 0; table-layout: auto; }
+        .receipt-table th, .receipt-table td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
+        .receipt-table .title-cell { text-align: left; font-weight: bold; padding-left: 6px; }
+        .receipt-table .header-cell { text-align: center; font-weight: bold; background: #f0f0f0; }
+        .receipt-table .category-cell { text-align: left; padding-left: 6px; }
+        .receipt-table .amount-cell { text-align: right; padding-right: 6px; }
+        .receipt-table .total-cell { text-align: right; font-weight: bold; padding-right: 6px; }
+        .receipt-table .total-row td { font-weight: bold; background: #f9f9f9; }
+        .footer-note { text-align: left; font-size: 14px; margin-top: 4px; padding-top: 4px; border-top: 1px dotted #ccc; font-style: italic; margin-bottom: 0; padding-bottom: 0; line-height: 1.3; }
+
+        /* --- Impression : 4 reçus par page A4 paysage — marges réduites et colonnes serrées --- */
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 1mm; /* marges réduites à 1 mm */
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
+          .no-print { display: none !important; }
+          
+          .print-page {
+            page-break-after: always;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+          }
+          .print-page:last-child { page-break-after: avoid; }
+          
+          .receipts-container {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
+          
+          .receipts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 1mm; /* espace réduit à 1 mm */
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 1mm; /* padding externe réduit à 1 mm */
+            box-sizing: border-box;
+          }
+          
+          .receipt {
+            border: 0.5px solid #000;
+            padding: 0.2mm 0.5mm;
+            margin: 0;
+            font-size: 34px; /* légère réduction pour gagner de la place */
+            height: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            line-height: 0.8;
+          }
+          .receipt-header { padding: 0; margin: 0; border-bottom: none !important; }
+          .header-top { padding: 0; margin: 0; gap: 0; }
+          .logo-title-group { gap: 2px; margin: 0; padding: 0; }
+          .header-logo { height: 18px; margin: 0; padding: 0; }
+          .church-titles { margin: 0; padding: 0; line-height: 0.8; }
+          .church-titles .church-line,
+          .church-titles .sabbath-line,
+          .church-titles .federation-line {
+            font-size: 17px;
+            margin: 0;
+            padding: 0;
+            line-height: 0.8;
+          }
+          .rosia-number { font-size: 17px; margin: 0; padding: 0; line-height: 0.8; }
+          .title-box { border: 0.5px solid #000; padding: 0.2mm 0.5mm; margin: 0; text-align: center; }
+          .receipt-title { font-size: 19px; margin: 0; padding: 0; letter-spacing: 0; line-height: 0.8; }
+          .verse { font-size: 12px; margin: 0; padding: 0; line-height: 0.8; }
+          .member-info { font-size: 17px; margin: 0; padding: 0; border-bottom: none !important; line-height: 0.8; }
+          .member-line { display: flex; align-items: center; gap: 1px; margin: 0; padding: 0; flex-wrap: nowrap; line-height: 0.8; }
+          .member-line .label { font-size: 15px; min-width: auto; margin: 0; padding: 0; }
+          .member-line .district-label { font-size: 15px; min-width: auto; margin: 0; padding: 0; }
+          .member-line .value { font-size: 15px; margin: 0; padding: 0; }
+          .amount-row { display: flex; justify-content: flex-start; gap: 2px; font-size: 17px; font-weight: bold; margin: 0; padding: 0; border-bottom: 0.5px solid #000; line-height: 0.8; }
+          .amount-row .label { font-size: 15px; margin: 0; padding: 0; }
+          .amount-row .value { font-size: 15px; margin: 0; padding: 0; }
+          /* Tableau : colonnes forcées plus petites */
+          .receipt-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px; /* encore réduit */
+            margin: 0;
+            padding: 0;
+            line-height: 0.75;
+            border-spacing: 0;
+            table-layout: fixed; /* ← pour forcer les largeurs */
+          }
+          .receipt-table th, 
+          .receipt-table td {
+            border: 0.5px solid #000;
+            padding: 0.2mm 0.3mm;
+            margin: 0;
+            text-align: center;
+            vertical-align: middle;
+          }
+          .receipt-table .title-cell {
+            font-size: 10px;
+            padding-left: 0.3mm;
+            text-align: left;
+            width: 40%; /* colonne des libellés */
+          }
+          .receipt-table .category-cell {
+            font-size: 9px;
+            padding-left: 0.3mm;
+            text-align: left;
+          }
+          .receipt-table .header-cell {
+            font-size: 10px;
+            width: 30%; /* colonne en-tête "Miakatra" */
+          }
+          .receipt-table .amount-cell {
+            font-size: 10px;
+            padding-right: 0.3mm;
+            text-align: right;
+            width: 30%; /* colonne "Mijanona" */
+          }
+          .receipt-table .total-cell {
+            font-size: 10px;
+            padding-right: 0.3mm;
+            text-align: right;
+          }
+          .receipt-table .total-row td {
+            font-weight: bold;
+            background: #f9f9f9;
+          }
+          .footer-note {
+            font-size: 9px;
+            margin: 0;
+            padding: 0;
+            border-top: 0.5px dotted #ccc;
+            font-style: italic;
+            line-height: 0.8;
+          }
+          .receipt-body {
+            flex: 1;
+            justify-content: flex-start;
+            padding: 0;
+            margin: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
