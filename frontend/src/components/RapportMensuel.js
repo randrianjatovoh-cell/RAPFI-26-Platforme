@@ -105,7 +105,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const datePickerRefs = useRef({});
   const abortControllerRef = useRef(null);
-  const loadedRef = useRef(false);
+  // Utilisé pour forcer un rechargement propre
+  const [loadTrigger, setLoadTrigger] = useState(0);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -114,7 +115,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
-  // --- Chargement des données (avec annulation) ---
+  // --- Fonction de chargement (avec annulation) ---
   const loadData = useCallback(async () => {
     if (!currentMonth || !eglise) {
       setLoading(false);
@@ -136,6 +137,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setError(null);
 
     try {
+      // Récupérer toutes les données en parallèle
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
         api.getMonthlyReport(currentMonth, eglise),
         api.getFrais(currentMonth, eglise),
@@ -152,7 +154,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       }
       setReport(r);
 
+      // Restaurer les champs du rapport
       if (r) {
+        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -165,6 +169,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           setSabbathDates(['', '', '', '', '']);
         }
 
+        // Champs texte
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -177,6 +182,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
+        // --- Restauration du tableau chèque / sora-bola ---
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -197,14 +203,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             console.warn('Erreur parsing soraBolaLinesJson:', e);
           }
         } else {
+          // Si le champ est absent, on initialise avec des lignes vides
           setChequeLines(['', '', '', '', '']);
           setSoraBolaLines(['', '', '', '', '']);
           setTotalChequeSora(0);
         }
       }
 
+      // Frais
       setSaramPandefasana(fraisData);
 
+      // Grand Livre
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -240,6 +249,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(catSums);
 
+      // Dépenses
       const depenses = depensesData || [];
       const totalExp = depenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
@@ -266,6 +276,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       }
       setExpensesBySabbath(expensesByWeek);
 
+      // Solde précédent
       const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const sisa = saved ? parseFloat(saved) : 0;
       setVolaSisaTeoAloha(sisa);
@@ -281,50 +292,53 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
-        loadedRef.current = true;
       }
     }
   }, [currentMonth, eglise, user, canViewEglise, canEditEglise]);
 
+  // --- Chargement initial et rechargement quand on revient sur l'onglet ---
   useEffect(() => {
-    if (currentMonth && eglise && !loadedRef.current) {
-      loadData();
-    }
+    loadData();
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [currentMonth, eglise, loadData]);
+  }, [currentMonth, eglise, loadTrigger]); // loadTrigger permet un rechargement manuel si besoin
 
+  // --- Sauvegarde des champs simples ---
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
+      console.log(`✅ Champ ${field} sauvegardé:`, value);
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
     }
   };
 
+  // --- Sauvegarde du tableau chèque / sora-bola ---
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
+      console.log('✅ Tableau cheque/sora-bola sauvegardé');
     } catch (err) {
       console.error('❌ Erreur sauvegarde tableau:', err);
     }
   };
 
-  const handleChequeChange = (idx, value) => {
+  // --- Handlers pour le tableau ---
+  const handleChequeChange = async (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    updateChequeSoraData(newLines, soraBolaLines);
+    await updateChequeSoraData(newLines, soraBolaLines);
   };
 
-  const handleSoraBolaChange = (idx, rawValue) => {
+  const handleSoraBolaChange = async (idx, rawValue) => {
     if (isReadOnlyMode()) return;
     const numeric = rawValue.replace(/[^\d.-]/g, '');
     const num = parseFloat(numeric);
@@ -334,9 +348,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setSoraBolaLines(newLines);
     const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
     setTotalChequeSora(sum);
-    updateChequeSoraData(chequeLines, newLines);
+    await updateChequeSoraData(chequeLines, newLines);
   };
 
+  // --- Montant en lettres ---
   const handleMontantChange = async (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
@@ -347,6 +362,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
+  // --- Date picker ---
   const openDatePicker = (fieldName) => {
     if (isReadOnlyMode()) return;
     const input = datePickerRefs.current[fieldName];
@@ -424,7 +440,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     );
   };
 
-  // --- Rendu JSX (inchangé) ---
+  // --- Rendu ---
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
@@ -726,9 +742,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                   </td>
                 </tr>
               ))}
+              {/* Ligne TOTAL : on force l'alignement à droite sur la cellule SORA-BOLA */}
               <tr className="font-bold bg-gray-100">
                 <td className="border border-black p-0.5 text-right">TOTAL :</td>
-                <td className="border border-black p-0.5 text-right">{formatMontant(totalChequeSora)} Ar</td>
+                <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>
+                  {formatMontant(totalChequeSora)} Ar
+                </td>
               </tr>
             </tbody>
           </table>
