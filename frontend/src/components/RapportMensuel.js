@@ -105,7 +105,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const datePickerRefs = useRef({});
   const abortControllerRef = useRef(null);
-  const [loadTrigger, setLoadTrigger] = useState(0); // pour forcer un rechargement
+  const [loadTrigger, setLoadTrigger] = useState(0);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -155,7 +155,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       // Restaurer les champs du rapport
       if (r) {
-        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -168,7 +167,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           setSabbathDates(['', '', '', '', '']);
         }
 
-        // Champs texte
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -183,6 +181,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
         // --- Restauration du tableau chèque / sora-bola ---
         console.log('📋 [loadData] soraBolaLinesJson brut:', r.soraBolaLinesJson);
+        let loadedFromBackend = false;
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -195,23 +194,41 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 setSoraBolaLines(sora);
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
-                console.log('✅ [loadData] Tableau restauré:', chq, sora);
+                loadedFromBackend = true;
+                console.log('✅ [loadData] Tableau restauré depuis backend:', chq, sora);
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
                 setSoraBolaLines(sora);
                 setChequeLines(['', '', '', '', '']);
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
+                loadedFromBackend = true;
               }
             }
           } catch (e) {
             console.warn('⚠️ [loadData] Erreur parsing soraBolaLinesJson:', e);
           }
-        } else {
-          console.log('ℹ️ [loadData] Aucune donnée soraBolaLinesJson, initialisation à vide');
-          setChequeLines(['', '', '', '', '']);
-          setSoraBolaLines(['', '', '', '', '']);
-          setTotalChequeSora(0);
+        }
+        if (!loadedFromBackend) {
+          // Fallback : récupérer depuis localStorage
+          const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
+          const stored = localStorage.getItem(fallbackKey);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (parsed && Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
+                setChequeLines(parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', '']);
+                setSoraBolaLines(parsed.soraBola.length === 5 ? parsed.soraBola : ['', '', '', '', '']);
+                const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                setTotalChequeSora(sum);
+                console.log('📋 [loadData] Restauré depuis localStorage');
+              }
+            } catch (e) {}
+          } else {
+            setChequeLines(['', '', '', '', '']);
+            setSoraBolaLines(['', '', '', '', '']);
+            setTotalChequeSora(0);
+          }
         }
       }
 
@@ -318,21 +335,23 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       console.log(`✅ [updateField] ${field} sauvegardé:`, value);
     } catch (err) {
       console.error(`❌ [updateField] Erreur sauvegarde ${field}:`, err);
-      alert(`Erreur de sauvegarde du champ ${field}. Vérifiez la console.`);
     }
   };
 
-  // --- Sauvegarde du tableau chèque / sora-bola ---
+  // --- Sauvegarde du tableau chèque / sora-bola (avec fallback localStorage) ---
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
-    console.log('📤 [saveCheque] Envoi des données:', data);
+    // Sauvegarde locale
+    const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
+    localStorage.setItem(fallbackKey, JSON.stringify(data));
+    console.log('💾 [saveCheque] Sauvegarde locale effectuée');
+    // Sauvegarde API
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      console.log('✅ [saveCheque] Sauvegarde réussie');
+      console.log('✅ [saveCheque] Sauvegarde API réussie');
     } catch (err) {
-      console.error('❌ [saveCheque] Erreur:', err);
-      alert('Erreur lors de la sauvegarde du tableau. Vérifiez la console.');
+      console.error('❌ [saveCheque] Erreur API:', err);
     }
   };
 
@@ -540,6 +559,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div className="italic" style={{ fontSize: '9pt' }}>"IZAY OLONA MAHATOKY TOKOA DIA HO BE FITAHIANA" (Ohab. 28:20a)</div>
         </div>
         <button onClick={() => window.print()} className="bg-gray-600 text-white px-3 py-1 rounded text-sm no-print">Imprimer</button>
+        <button onClick={() => setLoadTrigger(prev => prev + 1)} className="bg-blue-500 text-white px-2 py-1 rounded text-sm ml-2 no-print">
+          Recharger
+        </button>
       </div>
 
       <div style={{ height: '10px' }}></div>
