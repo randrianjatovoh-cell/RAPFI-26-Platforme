@@ -167,6 +167,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch (e) { /* ignore */ }
         }
         if (!loadedFromBackend) {
+          // Fallback localStorage
           const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
           const stored = localStorage.getItem(fallbackKey);
           if (stored) {
@@ -329,7 +330,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
-  // --- Champs de date (lecture seule, sans bordure, aligné à gauche) ---
+  // --- Champs de date (lecture seule) ---
   const renderDateField = (value) => {
     const display = value ? formatDateInput(value) : '__/__/____';
     return display;
@@ -370,30 +371,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .rapport-mensuel .border-black { border-color: #000 !important; }
         .rapport-mensuel .protected-cell { background-color: #f9f9f9; }
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        /* Style pour les affichages de date sans bordure, alignés à gauche */
-        .date-display {
-          display: inline-block;
-          min-width: 100px;
-          padding: 2px 4px;
-          text-align: left;
-          font-family: inherit;
-          font-size: inherit;
-          background: transparent;
-          border: none;
-        }
-        /* Lignes de séparation pour l'impression */
-        .section-separator {
-          border: none;
-          border-top: 2px solid #000;
-          margin: 8px 0;
-          page-break-after: avoid;
-        }
-        .section-separator-light {
-          border: none;
-          border-top: 1px solid #000;
-          margin: 6px 0;
-          page-break-after: avoid;
-        }
         @media print {
           @page { size: A4 portrait; margin: 0.1cm; }
           body, .rapport-mensuel { font-size: 7.5pt !important; line-height: 1.15 !important; }
@@ -420,20 +397,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .table-volam-piangonana th:nth-child(1), .table-volam-piangonana td:nth-child(1) { width: 28% !important; }
           .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
-          .section-separator {
-            border-top: 2px solid #000 !important;
-            margin: 4px 0 !important;
-          }
-          .section-separator-light {
-            border-top: 1px solid #000 !important;
-            margin: 3px 0 !important;
-          }
-          .date-display {
-            border: none !important;
-            background: transparent !important;
-            padding: 0 2px !important;
-            min-width: auto !important;
-          }
         }
         .cheque-table { table-layout: fixed; width: 100%; }
         .cheque-col { width: 70%; }
@@ -445,6 +408,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .checkbox-group input[type="checkbox"] { margin: 0; flex-shrink: 0; }
         .checkbox-group .label { margin-left: 2px; }
+        .date-display {
+          width: 130px;
+          padding: 2px 4px;
+          border: none;
+          background: transparent;
+          display: inline-block;
+          text-align: left;
+          font-family: inherit;
+          font-size: inherit;
+        }
       `}</style>
 
       <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
@@ -478,9 +451,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           <div><strong>Taona:</strong> {currentMonth.split('-')[0]}</div>
         </div>
       </div>
-
-      {/* Ligne avant "I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA" */}
-      <hr className="section-separator" />
 
       <h3 className="font-bold mt-1">I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA</h3>
       <div className="overflow-x-auto">
@@ -588,9 +558,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </span>
       </div>
 
-      {/* Ligne après "TONTALIN'NY VOLA MIAKATRA any @ FME" */}
-      <hr className="section-separator-light" />
-
       <div className="grid grid-cols-2 gap-1 mt-1">
         <div className="border p-1">
           <div className="font-bold mb-1">FANAMARIHANA ATAON'NY MPANAMARIM-BOKY</div>
@@ -626,8 +593,68 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </div>
       </div>
 
-      {/* Ligne avant "II- MOMBA NY VOLAM-PIANGONANA ETO AN-TOERANA" */}
-      <hr className="section-separator" />
+      <div className="grid grid-cols-2 gap-1 mt-1">
+        <div className="border p-1">
+          <div className="font-bold italic text-center">"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
+          <div>
+            <span className="font-semibold">Voaray androany (daty) :</span>
+            <span className="date-display">{renderDateField(soraBolaDate)}</span>
+          </div>
+          <div>
+            <span className="font-semibold">Ny vola Ar :</span>
+            <input type="number" value={soraBolaMontant} onChange={e => { if (!readOnlyMode) handleMontantChange(e.target.value); }} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
+          </div>
+          <div>
+            <span className="font-semibold">An-tsoratra :</span>
+            <input type="text" value={soraBolaLettres} readOnly style={{ backgroundColor: '#f9f9f9' }} className="rounded p-0.5" />
+          </div>
+          <div>
+            <span className="font-semibold">Anarana sy sonian'ny nandray vola :</span>
+            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); updateField('soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+          </div>
+        </div>
+        <div className="border p-1">
+          <table className="w-full border-collapse cheque-table">
+            <thead>
+              <tr>
+                <th className="border border-black p-0.5 cheque-col">CHEQUE/BANQUE</th>
+                <th className="border border-black p-0.5 sora-col">SORA-BOLA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, idx) => (
+                <tr key={idx}>
+                  <td className="border border-black p-0 cheque-col">
+                    <input
+                      type="text"
+                      value={chequeLines[idx] || ''}
+                      onChange={(e) => handleChequeChange(idx, e.target.value)}
+                      className="w-full p-0.5 border-none"
+                      disabled={readOnlyMode}
+                    />
+                  </td>
+                  <td className="border border-black p-0 sora-col sora-bola-col">
+                    <input
+                      type="text"
+                      value={formatMontant(soraBolaLines[idx])}
+                      onChange={(e) => handleSoraBolaChange(idx, e.target.value)}
+                      className="w-full p-0.5 border-none"
+                      style={{ textAlign: 'right' }}
+                      disabled={readOnlyMode}
+                    />
+                  </td>
+                </tr>
+              ))}
+              <tr className="font-bold bg-gray-100">
+                <td className="border border-black p-0.5 text-right">TOTAL :</td>
+                <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>
+                  {formatMontant(totalChequeSora)} Ar
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <h3 className="font-bold mt-2">II- MOMBA NY VOLAM-PIANGONANA ETO AN-TOERANA</h3>
       <div className="overflow-x-auto mt-0">
@@ -679,9 +706,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </tbody>
         </table>
       </div>
-
-      {/* Ligne avant "Ny Mpitahiry vola" */}
-      <hr className="section-separator" />
 
       <div className="grid grid-cols-3 gap-2 mt-1 border-t pt-1" style={{ gap: '6px', fontSize: '10pt' }}>
         <div>
