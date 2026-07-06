@@ -36,7 +36,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
-  // Ces champs de date ne seront plus modifiables, on les garde juste pour affichage
   const [dateVersementFME, setDateVersementFME] = useState('');
   const [rosiaNum, setRosiaNum] = useState('');
   const [bokyBe, setBokyBe] = useState('');
@@ -130,7 +129,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           setSabbathDates(['', '', '', '', '']);
         }
 
-        // Mettre à jour les champs (les dates restent affichées telles quelles)
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -275,7 +273,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [currentMonth, eglise]); // pas de loadTrigger, on recharge automatiquement
+  }, [currentMonth, eglise]);
 
   // --- Sauvegarde des champs modifiables ---
   const updateField = async (field, value) => {
@@ -410,7 +408,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .checkbox-group input[type="checkbox"] { margin: 0; flex-shrink: 0; }
         .checkbox-group .label { margin-left: 2px; }
-        .date-display { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; background-color: #f9f9f9; display: inline-block; text-align: center; font-family: inherit; font-size: inherit; }
+        .date-display {
+          width: 130px;
+          padding: 2px 4px;
+          border: none;
+          background: transparent;
+          display: inline-block;
+          text-align: left;
+          font-family: inherit;
+          font-size: inherit;
+        }
       `}</style>
 
       <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
