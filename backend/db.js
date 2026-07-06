@@ -22,7 +22,6 @@ function convertPlaceholders(sql, params) {
 
 function createPgWrapper(pool) {
   return {
-    // ✅ run accepte soit des arguments séparés, soit un tableau
     async run(sql, ...params) {
       if (params.length === 1 && Array.isArray(params[0])) {
         params = params[0];
@@ -45,7 +44,6 @@ function createPgWrapper(pool) {
         client.release();
       }
     },
-    // ✅ get accepte soit des arguments séparés, soit un tableau
     async get(sql, ...params) {
       if (params.length === 1 && Array.isArray(params[0])) {
         params = params[0];
@@ -59,7 +57,6 @@ function createPgWrapper(pool) {
         client.release();
       }
     },
-    // ✅ all accepte soit des arguments séparés, soit un tableau
     async all(sql, ...params) {
       if (params.length === 1 && Array.isArray(params[0])) {
         params = params[0];
@@ -117,6 +114,43 @@ async function openDb() {
       filename: path.join(dataDir, 'rapfi.db'),
       driver: sqlite3.Database
     });
+  }
+}
+
+/**
+ * Vérifie et ajoute la colonne soraBolaLinesJson si elle manque
+ */
+async function ensureColumnSoraBolaLinesJson(db) {
+  try {
+    let columnExists = false;
+    if (isProduction) {
+      // PostgreSQL
+      const result = await db.get(
+        `SELECT column_name 
+         FROM information_schema.columns 
+         WHERE table_name = 'monthly_reports' AND column_name = 'sorabolalinesjson'`
+      );
+      columnExists = !!result;
+    } else {
+      // SQLite
+      const tableInfo = await db.all(`PRAGMA table_info(monthly_reports)`);
+      columnExists = tableInfo.some(col => col.name === 'soraBolaLinesJson');
+    }
+
+    if (!columnExists) {
+      console.log('🔧 Ajout de la colonne soraBolaLinesJson dans monthly_reports...');
+      if (isProduction) {
+        await db.run(`ALTER TABLE monthly_reports ADD COLUMN soraBolaLinesJson TEXT`);
+      } else {
+        await db.run(`ALTER TABLE monthly_reports ADD COLUMN soraBolaLinesJson TEXT`);
+      }
+      console.log('✅ Colonne soraBolaLinesJson ajoutée avec succès.');
+    } else {
+      console.log('ℹ️ La colonne soraBolaLinesJson existe déjà.');
+    }
+  } catch (err) {
+    console.error('❌ Erreur lors de la vérification/ajout de la colonne soraBolaLinesJson:', err);
+    // On ne bloque pas l'initialisation, mais on log l'erreur
   }
 }
 
@@ -305,6 +339,10 @@ async function initDb() {
 
   await db.exec(schemaSQL);
 
+  // ---------- Migration : ajout de la colonne soraBolaLinesJson si manquante ----------
+  await ensureColumnSoraBolaLinesJson(db);
+
+  // ---------- Insertion des mois 2026 ----------
   const months2026 = [
     '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
     '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
