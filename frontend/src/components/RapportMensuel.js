@@ -111,7 +111,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setReport(r);
 
       if (r) {
-        console.log('📦 [loadData] Rapport complet reçu:', r);
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -131,8 +130,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaMontant(r.soraBolaMontant || 0);
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
-        setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
-        console.log('📦 [loadData] volamPiangonanaApetraka récupéré :', r.volamPiangonanaApetraka);
+
+        // Récupération de volamPiangonanaApetraka
+        let val = r.volamPiangonanaApetraka;
+        if (val === undefined || val === null) {
+          // Fallback localStorage
+          const fallbackKey = `volamPiangonana_${currentMonth}_${eglise}`;
+          const stored = localStorage.getItem(fallbackKey);
+          if (stored) {
+            val = parseFloat(stored) || 0;
+            console.log('📦 [loadData] volamPiangonanaApetraka restauré depuis localStorage:', val);
+          }
+        }
+        setVolamPiangonanaApetraka(val || 0);
+        console.log('📦 [loadData] volamPiangonanaApetraka récupéré :', val);
 
         // Restauration du tableau cheque/sora-bola
         let loadedFromBackend = false;
@@ -306,34 +317,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
-  // Gestion du champ volamPiangonanaApetraka avec formatage
-  const [volamPiangonanaInput, setVolamPiangonanaInput] = useState('');
-  useEffect(() => {
-    setVolamPiangonanaInput(formatMontant(volamPiangonanaApetraka));
-  }, [volamPiangonanaApetraka]);
-
-  const handleVolamPiangonanaChange = (e) => {
+  const handleVolamPiangonanaChange = async (val) => {
     if (isReadOnlyMode()) return;
-    const raw = e.target.value.replace(/\s/g, '');
-    const num = parseFloat(raw);
-    if (!isNaN(num)) {
-      const intValue = Math.floor(num);
-      setVolamPiangonanaApetraka(intValue);
-      setVolamPiangonanaInput(formatMontant(intValue));
-      updateField('volamPiangonanaApetraka', intValue);
-    } else if (raw === '') {
-      setVolamPiangonanaApetraka(0);
-      setVolamPiangonanaInput('');
-      updateField('volamPiangonanaApetraka', 0);
-    }
-  };
-
-  const handleVolamPiangonanaBlur = () => {
-    if (volamPiangonanaInput === '') {
-      setVolamPiangonanaInput('0');
-      setVolamPiangonanaApetraka(0);
-      updateField('volamPiangonanaApetraka', 0);
-    }
+    const num = parseFloat(val) || 0;
+    setVolamPiangonanaApetraka(num);
+    // Sauvegarde locale de secours
+    localStorage.setItem(`volamPiangonana_${currentMonth}_${eglise}`, String(num));
+    await updateField('volamPiangonanaApetraka', num);
   };
 
   const renderDateField = (value) => {
@@ -401,6 +391,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .table-volam-piangonana th:nth-child(1), .table-volam-piangonana td:nth-child(1) { width: 28% !important; }
           .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
+          .print-amount {
+            display: inline-block !important;
+            min-width: 120px;
+            text-align: right !important;
+            font-weight: bold !important;
+          }
         }
         .cheque-table { table-layout: fixed; width: 100%; }
         .cheque-col { width: 70%; }
@@ -422,11 +418,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           font-family: inherit;
           font-size: inherit;
         }
-        .align-right {
-          text-align: right;
+        .print-amount {
+          display: none; /* caché à l'écran, visible en impression */
         }
-        .flex-grow {
-          flex: 1;
+        .no-print {
+          display: inline-block;
+        }
+        @media print {
+          .print-amount {
+            display: inline-block !important;
+          }
+          .no-print {
+            display: none !important;
+          }
         }
       `}</style>
 
@@ -561,23 +565,27 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </div>
       </div>
 
-      {/* ✅ Ligne corrigée : alignée à droite, sans "Ar" */}
-      <div className="flex justify-end items-center mt-1">
-        <span className="font-bold mr-1">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
-        <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold">
+      {/* Ligne TONTALIN'NY VOLA MIAKATRA any @ FME (sans Ar) */}
+      <div className="text-right mt-1">
+        <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
+        <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold ml-1">
           {formatMontant(totalNetFederation)}
         </span>
       </div>
 
-      {/* ✅ Champ corrigé : aligné à droite, sans "Ar" à côté, avec formatage */}
-      <div className="flex justify-end items-center mt-1">
-        <span className="font-bold mr-1">Volam-piangonana apetraka any @ FME :</span>
+      {/* Ligne Volam-piangonana apetraka any @ FME */}
+      <div className="text-right mt-1 flex items-center justify-end gap-2">
+        <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
+        {/* Affichage en impression (caché à l'écran) */}
+        <span className="print-amount">
+          {formatMontant(volamPiangonanaApetraka)}
+        </span>
+        {/* Input visible à l'écran, caché en impression */}
         <input
-          type="text"
-          value={volamPiangonanaInput}
-          onChange={handleVolamPiangonanaChange}
-          onBlur={handleVolamPiangonanaBlur}
-          className="rounded p-0.5 text-right border"
+          type="number"
+          value={volamPiangonanaApetraka}
+          onChange={(e) => handleVolamPiangonanaChange(e.target.value)}
+          className="rounded p-0.5 text-right border no-print"
           style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
           disabled={readOnlyMode}
         />
