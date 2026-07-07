@@ -26,20 +26,19 @@ export default function Login({ onLogin }) {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-cover bg-center bg-no-repeat"
+      className="min-h-screen flex items-center justify-end py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url('/Login.png')` }}
     >
-      {/* Overlay animé pour améliorer la lisibilité */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-rose-900/40 backdrop-blur-[2px]"></div>
+      {/* Overlay plus léger pour la lisibilité */}
+      <div className="absolute inset-0 bg-gradient-to-l from-amber-900/30 via-orange-900/20 to-transparent backdrop-blur-[1px]"></div>
 
-      {/* Cercles décoratifs animés */}
+      {/* Cercles décoratifs animés (moins visibles) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -left-20 w-96 h-96 bg-amber-300/20 rounded-full animate-spin-slow blur-3xl"></div>
-        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-rose-300/20 rounded-full animate-spin-slow blur-3xl" style={{ animationDirection: 'reverse' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-300/10 rounded-full animate-pulse blur-2xl"></div>
+        <div className="absolute -top-20 -left-20 w-96 h-96 bg-amber-300/10 rounded-full animate-spin-slow blur-3xl"></div>
+        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-rose-300/10 rounded-full animate-spin-slow blur-3xl" style={{ animationDirection: 'reverse' }}></div>
       </div>
 
-      {/* Animations CSS */}
+      {/* Animations CSS (inchangées) */}
       <style>{`
         @keyframes float {
           0% { transform: translateY(0px); }
@@ -110,7 +109,8 @@ export default function Login({ onLogin }) {
         }
       `}</style>
 
-      <div className="max-w-5xl w-full glass-card rounded-3xl shadow-2xl p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center justify-center relative z-10 animate-fadeInUp">
+      {/* Conteneur décalé à droite avec un espace sur la gauche */}
+      <div className="max-w-5xl w-full glass-card rounded-3xl shadow-2xl p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center justify-center relative z-10 animate-fadeInUp md:mr-8 lg:mr-16">
         {/* Colonne gauche : formulaire */}
         <div className="flex-1 w-full max-w-md mx-auto">
           <div className="text-center">
