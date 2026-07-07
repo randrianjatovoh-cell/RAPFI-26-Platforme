@@ -391,7 +391,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
     return (
       <div
-        className={`bg-gradient-to-r ${bgColor} text-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 p-4 animate-fadeInUp`}
+        className={`bg-gradient-to-r ${bgColor} text-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:rotate-1 p-4 animate-fadeInUp`}
         style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
       >
         <div className="flex items-start justify-between">
@@ -399,7 +399,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             <div className="text-xs font-semibold uppercase tracking-wider opacity-80">{title}</div>
             <div className="text-2xl font-bold mt-1">{value || '0'} Ar</div>
           </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-full p-2.5">
+          <div className="bg-white/20 backdrop-blur-sm rounded-full p-2.5 hover:animate-pulse">
             <i className={`fas ${icon} text-xl`}></i>
           </div>
         </div>
@@ -432,7 +432,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     { title: 'Année', value: year, icon: 'fa-calendar-alt', color: 'yellow', delay: 400 }
   ];
 
-  // ----- ANCIEN / TRÉSORIER (avec les nouveaux titres) -----
+  // ----- ANCIEN / TRÉSORIER (avec camembert 3D) -----
   const renderAncienDashboard = () => {
     const { monthlyData } = annualData;
 
@@ -441,7 +441,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       { name: 'Entrées', value: annualData.volaNiditra !== 0 ? Math.abs(annualData.volaNiditra) : 0.001 },
       { name: 'Sorties', value: annualData.volaNivoaka !== 0 ? Math.abs(annualData.volaNivoaka) : 0.001 }
     ];
-    // 🔥 Changement de couleur : Entrées en vert (#10b981)
     const pieColors = ['#f59e0b', '#10b981', '#ef4444'];
 
     return (
@@ -477,54 +476,63 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           </div>
 
           {/* Graphique secteurs - EGLISE LOCALE avec effet 3D */}
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative" style={{ perspective: '1000px' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
               <div className="text-sm font-medium text-gray-500">Répartition Reste / Entrées / Sorties</div>
             </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, value }) => {
-                    const displayValue = value === 0.001 ? 0 : value;
-                    const total = pieData.reduce((sum, d) => sum + d.value, 0);
-                    const percent = total > 0 ? (displayValue / total) * 100 : 0;
-                    return `${name}: ${percent.toFixed(1)}%`;
-                  }}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  paddingAngle={2}  // Espace entre les parts pour un effet 3D
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={pieColors[index % pieColors.length]}
-                      style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.25))' }} // Ombre portée 3D
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => {
-                    const displayValue = value === 0.001 ? 0 : value;
-                    return `${formatMontant(displayValue)} Ar`;
-                  }}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div
+              style={{
+                transform: 'rotateX(5deg) rotateY(5deg)',
+                transition: 'transform 0.4s ease-in-out',
+                transformStyle: 'preserve-3d'
+              }}
+              className="hover:rotateX-0 hover:rotateY-0"
+            >
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    label={({ name, value }) => {
+                      const displayValue = value === 0.001 ? 0 : value;
+                      const total = pieData.reduce((sum, d) => sum + d.value, 0);
+                      const percent = total > 0 ? (displayValue / total) * 100 : 0;
+                      return `${name}: ${percent.toFixed(1)}%`;
+                    }}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="white"
+                    strokeWidth={3}
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    animationEasing="ease-in-out"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => {
+                      const displayValue = value === 0.001 ? 0 : value;
+                      return `${formatMontant(displayValue)} Ar`;
+                    }}
+                    contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </>
     );
   };
 
-  // ----- PASTEUR -----
+  // ----- PASTEUR (avec camembert 3D) -----
   const renderPasteurDashboard = () => {
     if (districtData.length === 0) {
       return <div className="text-center p-4 text-gray-500">Aucune donnée pour ce district.</div>;
@@ -547,6 +555,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       { name: 'Dîme', value: totalDime || 0.001 },
       { name: 'Offrandes', value: totalOff || 0.001 }
     ];
+    const pieColors = ['#f59e0b', '#10b981'];
 
     const cards = pasteurStatCards(totalDime, totalOff, totalA, districtData.length);
 
@@ -585,43 +594,52 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative" style={{ perspective: '1000px' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  paddingAngle={2}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={['#f59e0b', '#10b981'][index % 2]}
-                      style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.25))' }}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => `${formatMontant(value)} Ar`}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div
+              style={{
+                transform: 'rotateX(5deg) rotateY(5deg)',
+                transition: 'transform 0.4s ease-in-out',
+                transformStyle: 'preserve-3d'
+              }}
+              className="hover:rotateX-0 hover:rotateY-0"
+            >
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="white"
+                    strokeWidth={3}
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    animationEasing="ease-in-out"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => `${formatMontant(value)} Ar`}
+                    contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </>
     );
   };
 
-  // ----- VÉRIFICATEUR -----
+  // ----- VÉRIFICATEUR (avec camembert 3D) -----
   const renderVerificateurDashboard = () => {
     if (federationData.length === 0) {
       return <div className="text-center p-4 text-gray-500">Aucune donnée pour cette fédération.</div>;
@@ -684,36 +702,45 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative" style={{ perspective: '1000px' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  paddingAngle={2}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={colors[index % colors.length]}
-                      style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.25))' }}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => `${formatMontant(value)} Ar`}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div
+              style={{
+                transform: 'rotateX(5deg) rotateY(5deg)',
+                transition: 'transform 0.4s ease-in-out',
+                transformStyle: 'preserve-3d'
+              }}
+              className="hover:rotateX-0 hover:rotateY-0"
+            >
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="white"
+                    strokeWidth={3}
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    animationEasing="ease-in-out"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => `${formatMontant(value)} Ar`}
+                    contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </>
@@ -802,6 +829,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         }
         .animate-fadeInUp {
           animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .hover\\:rotateX-0:hover {
+          transform: rotateX(0deg) rotateY(0deg) !important;
+        }
+        .hover\\:rotateY-0:hover {
+          transform: rotateX(0deg) rotateY(0deg) !important;
         }
       `}</style>
 
