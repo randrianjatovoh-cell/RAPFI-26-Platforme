@@ -109,6 +109,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         if (controller.signal.aborted) return;
       }
       setReport(r);
+      console.log('📦 [loadData] Rapport complet reçu:', r);
 
       if (r) {
         if (r.sabbath_dates) {
@@ -130,20 +131,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaMontant(r.soraBolaMontant || 0);
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
-
-        // Récupération de volamPiangonanaApetraka
-        let val = r.volamPiangonanaApetraka;
-        if (val === undefined || val === null) {
-          // Fallback localStorage
-          const fallbackKey = `volamPiangonana_${currentMonth}_${eglise}`;
-          const stored = localStorage.getItem(fallbackKey);
-          if (stored) {
-            val = parseFloat(stored) || 0;
-            console.log('📦 [loadData] volamPiangonanaApetraka restauré depuis localStorage:', val);
-          }
-        }
-        setVolamPiangonanaApetraka(val || 0);
-        console.log('📦 [loadData] volamPiangonanaApetraka récupéré :', val);
+        setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
+        console.log('📦 [loadData] volamPiangonanaApetraka récupéré :', r.volamPiangonanaApetraka);
 
         // Restauration du tableau cheque/sora-bola
         let loadedFromBackend = false;
@@ -321,8 +310,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
-    // Sauvegarde locale de secours
-    localStorage.setItem(`volamPiangonana_${currentMonth}_${eglise}`, String(num));
     await updateField('volamPiangonanaApetraka', num);
   };
 
@@ -365,6 +352,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .rapport-mensuel .border-black { border-color: #000 !important; }
         .rapport-mensuel .protected-cell { background-color: #f9f9f9; }
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        /* Styles pour l'impression */
         @media print {
           @page { size: A4 portrait; margin: 0.1cm; }
           body, .rapport-mensuel { font-size: 7.5pt !important; line-height: 1.15 !important; }
@@ -379,6 +367,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .rapport-mensuel .mt-2 { margin-top: 0.1cm !important; }
           .rapport-mensuel .gap-1 { gap: 0.05cm !important; }
           .rapport-mensuel .p-1 { padding: 1px !important; }
+          /* Colonnes du tableau cheque/sora-bola */
           .cheque-table { table-layout: fixed !important; width: 100% !important; }
           .cheque-table .cheque-col { width: 70% !important; }
           .cheque-table .sora-col { width: 30% !important; }
@@ -391,11 +380,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .table-volam-piangonana th:nth-child(1), .table-volam-piangonana td:nth-child(1) { width: 28% !important; }
           .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
-          .print-amount {
-            display: inline-block !important;
-            min-width: 120px;
+          /* Alignement à droite des montants en impression */
+          .print-right {
             text-align: right !important;
-            font-weight: bold !important;
+          }
+          .print-amount {
+            font-weight: bold;
           }
         }
         .cheque-table { table-layout: fixed; width: 100%; }
@@ -417,20 +407,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           text-align: left;
           font-family: inherit;
           font-size: inherit;
-        }
-        .print-amount {
-          display: none; /* caché à l'écran, visible en impression */
-        }
-        .no-print {
-          display: inline-block;
-        }
-        @media print {
-          .print-amount {
-            display: inline-block !important;
-          }
-          .no-print {
-            display: none !important;
-          }
         }
       `}</style>
 
@@ -554,41 +530,41 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </table>
       </div>
 
-      <div className="flex justify-between items-center mt-1">
-        <div>
-          <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
-          <span className="date-display">{renderDateField(dateVersementFME)}</span>
+      {/* Section des montants alignés à droite (écran et impression) */}
+      <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        {/* SARAM-PANDEFASANA */}
+        <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
+          <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
+          <span className="print-amount" style={{ minWidth: '80px', textAlign: 'right' }}>
+            {formatMontant(saramPandefasana)}
+          </span>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="font-bold whitespace-nowrap">SARAM-PANDEFASANA (Ar) :</span>
-          <input type="text" value={formatMontant(saramPandefasana)} readOnly className="rounded p-0.5 bg-gray-100 text-right text-xs" style={{ width: '100px', fontFamily: 'inherit' }} />
+
+        {/* TONTALIN'NY VOLA MIAKATRA any @ FME */}
+        <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
+          <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
+          <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
+            {formatMontant(totalNetFederation)}
+          </span>
         </div>
-      </div>
 
-      {/* Ligne TONTALIN'NY VOLA MIAKATRA any @ FME (sans Ar) */}
-      <div className="text-right mt-1">
-        <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
-        <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold ml-1">
-          {formatMontant(totalNetFederation)}
-        </span>
-      </div>
-
-      {/* Ligne Volam-piangonana apetraka any @ FME */}
-      <div className="text-right mt-1 flex items-center justify-end gap-2">
-        <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
-        {/* Affichage en impression (caché à l'écran) */}
-        <span className="print-amount">
-          {formatMontant(volamPiangonanaApetraka)}
-        </span>
-        {/* Input visible à l'écran, caché en impression */}
-        <input
-          type="number"
-          value={volamPiangonanaApetraka}
-          onChange={(e) => handleVolamPiangonanaChange(e.target.value)}
-          className="rounded p-0.5 text-right border no-print"
-          style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
-          disabled={readOnlyMode}
-        />
+        {/* Volam-piangonana apetraka any @ FME */}
+        <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
+          <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
+          {/* Affichage en impression (caché à l'écran) */}
+          <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right' }}>
+            {formatMontant(volamPiangonanaApetraka)}
+          </span>
+          {/* Champ de saisie à l'écran (caché en impression) */}
+          <input
+            type="number"
+            value={volamPiangonanaApetraka}
+            onChange={(e) => handleVolamPiangonanaChange(e.target.value)}
+            className="rounded p-0.5 text-right border no-print"
+            style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
+            disabled={readOnlyMode}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-1 mt-1">
