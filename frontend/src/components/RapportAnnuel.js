@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
-import { formatNumber } from '../services/helpers';
+import { formatNumber, formatReferences } from '../services/helpers'; // ← import ajouté
 
 const MONTHS_LIST = [
   { id: '01', name: 'Janvier', english: 'January' },
@@ -166,7 +166,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         updatedMonthlyData[i].expenses = totalExpenses;
         updatedMonthlyData[i].balance = income - totalExpenses;
 
-        // 🔥 Extraction des références depuis soraBolaLinesJson
+        // 🔥 Utilisation de formatReferences depuis helpers
         let refs = [];
         if (existingReport && existingReport.soraBolaLinesJson) {
           try {
@@ -180,20 +180,10 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
                 chequeArray = parsed;
               }
             }
-            // Filtrer les références vides
-            const validRefs = chequeArray.filter(ref => ref && ref.trim() !== '');
-            if (validRefs.length > 0) {
-              // On met le dernier avec "et" et les autres avec virgule
-              if (validRefs.length === 1) {
-                refs.push(validRefs[0]);
-              } else {
-                const last = validRefs.pop();
-                refs = [...validRefs, `et ${last}`];
-              }
-            }
+            refs = formatReferences(chequeArray);
           } catch(e) { /* ignore */ }
         }
-        updatedMonthlyData[i].receiptNumber = refs.join(', ');
+        updatedMonthlyData[i].receiptNumber = refs; // déjà une chaîne formatée
 
         if (existingReport) {
           updatedMonthlyData[i].note = existingReport.note || '';
@@ -269,6 +259,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
 
   return (
     <div className="rapport-annuel-container p-1 font-sans text-sm">
+      {/* Styles identiques à ceux fournis précédemment – inchangés */}
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 0; }

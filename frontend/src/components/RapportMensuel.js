@@ -1,8 +1,9 @@
+// src/components/RapportMensuel.js
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
-import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
+import { formatMonthYear, nombreEnLettresCapitalized, formatReferences } from '../services/helpers'; // ← import ajouté
 
 function formatDateInput(dateStr) {
   if (!dateStr) return '';
@@ -133,7 +134,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // --- Récupération de volamPiangonanaApetraka avec fallback localStorage ---
         let volamValue = r.volamPiangonanaApetraka;
         if (volamValue === undefined || volamValue === null) {
           const stored = localStorage.getItem(fallbackKey);
@@ -146,7 +146,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         }
         setVolamPiangonanaApetraka(volamValue);
 
-        // Restauration du tableau cheque/sora-bola
         let loadedFromBackend = false;
         if (r.soraBolaLinesJson) {
           try {
@@ -331,6 +330,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return display;
   };
 
+  // 🔥 Calcul de la référence combinée pour l'affichage
+  const combinedReferences = formatReferences(chequeLines);
+
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
@@ -413,6 +415,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           text-align: left;
           font-family: inherit;
           font-size: inherit;
+        }
+        .reference-summary {
+          font-size: 10pt;
+          padding: 4px 6px;
+          background-color: #f0f4ff;
+          border-radius: 4px;
+          border: 1px solid #ccc;
+          margin-top: 4px;
         }
       `}</style>
 
@@ -536,7 +546,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </table>
       </div>
 
-      {/* Section des montants alignés à droite (écran et impression) */}
       <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
@@ -663,6 +672,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               </tr>
             </tbody>
           </table>
+          {/* 🔥 Affichage de la référence combinée */}
+          {combinedReferences && (
+            <div className="reference-summary">
+              <strong>Références combinées :</strong> {combinedReferences}
+            </div>
+          )}
         </div>
       </div>
 

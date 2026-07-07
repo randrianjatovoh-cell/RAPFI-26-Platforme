@@ -1,4 +1,5 @@
 // src/services/helpers.js
+
 export function formatMonthYear(monthId) {
   if (!monthId) return "";
   const [year, month] = monthId.split('-');
@@ -93,4 +94,16 @@ export function nombreEnLettresCapitalized(n) {
   const letters = nombreEnLettres(n);
   if (!letters) return '';
   return letters.charAt(0).toUpperCase() + letters.slice(1);
+}
+
+// 🔥 NOUVELLE FONCTION : formatage des références (chèques, reçus, etc.)
+// Prend un tableau de chaînes, retourne une chaîne formatée avec virgules et "et" avant le dernier.
+export function formatReferences(refsArray) {
+  if (!refsArray || refsArray.length === 0) return '';
+  const validRefs = refsArray.filter(ref => ref && ref.trim() !== '');
+  if (validRefs.length === 0) return '';
+  if (validRefs.length === 1) return validRefs[0];
+  // Cas >= 2 : on sépare par ", " et on met "et" avant le dernier
+  const last = validRefs.pop();
+  return `${validRefs.join(', ')} et ${last}`;
 }
