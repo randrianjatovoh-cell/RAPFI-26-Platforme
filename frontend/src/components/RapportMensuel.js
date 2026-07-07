@@ -131,6 +131,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
         setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
+        console.log('📦 [loadData] volamPiangonanaApetraka récupéré :', r.volamPiangonanaApetraka);
 
         // Restauration du tableau cheque/sora-bola
         let loadedFromBackend = false;
@@ -530,14 +531,15 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </div>
       </div>
 
+      {/* ✅ Ligne corrigée : alignée à droite, sans "Ar" */}
       <div className="text-right mt-1">
-        TONTALIN'NY VOLA MIAKATRA any @ FME :&nbsp;
+        <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
         <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold ml-1">
-          {formatMontant(totalNetFederation)} Ar
+          {formatMontant(totalNetFederation)}
         </span>
       </div>
 
-      {/* NOUVEAU CHAMP : Volam-piangonana apetraka any @ FME */}
+      {/* ✅ Champ corrigé : aligné à droite, sans "Ar" à côté */}
       <div className="text-right mt-1 flex items-center justify-end gap-2">
         <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
         <input
@@ -548,7 +550,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
           disabled={readOnlyMode}
         />
-        <span>Ar</span>
       </div>
 
       <div className="grid grid-cols-2 gap-1 mt-1">
