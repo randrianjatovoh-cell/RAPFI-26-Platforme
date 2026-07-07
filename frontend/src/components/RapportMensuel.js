@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
-import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers'; // formatReferences retiré
+import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
 function formatDateInput(dateStr) {
   if (!dateStr) return '';
@@ -543,9 +543,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
+        {/* 🔥 Modification ici : suppression de la bordure et du fond */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
-          <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
+          <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
             {formatMontant(totalNetFederation)}
           </span>
         </div>
