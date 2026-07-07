@@ -23,19 +23,6 @@ function normalizeEglise(name) {
 
 const COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
-// Icônes pour les cartes de stats
-const statIcons = {
-  'Total A': 'fa-chart-line',
-  'Reste (précédent)': 'fa-history',
-  'Entrées': 'fa-arrow-down',
-  'Sorties': 'fa-arrow-up',
-  'EGLISE (suivant)': 'fa-forward',
-  'Total Dîmes': 'fa-hand-holding-heart',
-  'Total Offrandes (A)': 'fa-gift',
-  "Nombre d'églises": 'fa-church',
-  'Année': 'fa-calendar-alt'
-};
-
 export default function Dashboard({ pasteurMode, mode, user: propUser, selectedEglise: propEglise }) {
   const { user: contextUser } = useUser();
   const user = propUser || contextUser;
@@ -50,6 +37,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [annualData, setAnnualData] = useState({
     totalA: 0,
@@ -354,6 +342,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       setError(err.message || 'Erreur de chargement des données');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, [user, selectedYear, isAncienOrTresorier, isPasteur, isVerificateur, eglise]);
 
@@ -372,6 +361,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }, []);
 
   const refresh = useCallback(() => {
+    setIsRefreshing(true);
     setRefreshKey(prev => prev + 1);
   }, []);
 
@@ -386,28 +376,60 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
   // =================== RENDU ===================
 
-  // Composant réutilisable pour une carte de statistique
-  const StatCard = ({ title, value, icon, colorClass, textColor }) => (
-    <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-4 border-l-4 ${colorClass}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</div>
-          <div className={`text-2xl font-bold ${textColor} mt-1`}>{value || '0'} Ar</div>
-        </div>
-        <div className={`text-3xl opacity-30 ${colorClass}`}>
-          <i className={`fas ${icon}`}></i>
+  // Composant réutilisable pour une carte de statistique avec dégradé et animation
+  const StatCard = ({ title, value, icon, color, delay }) => {
+    const gradientMap = {
+      blue: 'from-blue-500 to-blue-600',
+      yellow: 'from-yellow-500 to-yellow-600',
+      green: 'from-green-500 to-green-600',
+      red: 'from-red-500 to-red-600',
+      purple: 'from-purple-500 to-purple-600',
+      indigo: 'from-indigo-500 to-indigo-600',
+      pink: 'from-pink-500 to-pink-600',
+    };
+    const bgColor = gradientMap[color] || 'from-gray-500 to-gray-600';
+
+    return (
+      <div
+        className={`bg-gradient-to-r ${bgColor} text-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 p-4 animate-fadeInUp`}
+        style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider opacity-80">{title}</div>
+            <div className="text-2xl font-bold mt-1">{value || '0'} Ar</div>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm rounded-full p-2.5">
+            <i className={`fas ${icon} text-xl`}></i>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Cartes pour Ancien / Trésorier
   const ancienStatCards = [
-    { title: 'Total A (Fédération)', value: formatMontant(annualData.totalA), icon: 'fa-chart-line', colorClass: 'border-blue-500', textColor: 'text-blue-700' },
-    { title: 'Reste (précédent)', value: formatMontant(annualData.volaSisaTeoAloha), icon: 'fa-history', colorClass: 'border-yellow-500', textColor: 'text-yellow-700' },
-    { title: 'Entrées (Église)', value: formatMontant(annualData.volaNiditra), icon: 'fa-arrow-down', colorClass: 'border-green-500', textColor: 'text-green-700' },
-    { title: 'Sorties (Église)', value: formatMontant(annualData.volaNivoaka), icon: 'fa-arrow-up', colorClass: 'border-red-500', textColor: 'text-red-700' },
-    { title: 'EGLISE (suivant)', value: formatMontant(annualData.volaAfindra), icon: 'fa-forward', colorClass: 'border-purple-500', textColor: 'text-purple-700' }
+    { title: 'Total A (Fédération)', value: formatMontant(annualData.totalA), icon: 'fa-chart-line', color: 'blue', delay: 100 },
+    { title: 'Reste (précédent)', value: formatMontant(annualData.volaSisaTeoAloha), icon: 'fa-history', color: 'yellow', delay: 200 },
+    { title: 'Entrées (Église)', value: formatMontant(annualData.volaNiditra), icon: 'fa-arrow-down', color: 'green', delay: 300 },
+    { title: 'Sorties (Église)', value: formatMontant(annualData.volaNivoaka), icon: 'fa-arrow-up', color: 'red', delay: 400 },
+    { title: 'EGLISE (suivant)', value: formatMontant(annualData.volaAfindra), icon: 'fa-forward', color: 'purple', delay: 500 }
+  ];
+
+  // Pasteur
+  const pasteurStatCards = (totalDime, totalOff, totalA, count) => [
+    { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', color: 'blue', delay: 100 },
+    { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', color: 'green', delay: 200 },
+    { title: 'Total A (Fédération)', value: formatMontant(totalA), icon: 'fa-chart-line', color: 'purple', delay: 300 },
+    { title: "Nombre d'églises", value: count, icon: 'fa-church', color: 'yellow', delay: 400 }
+  ];
+
+  // Vérificateur
+  const verifStatCards = (totalDime, totalOff, count, year) => [
+    { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', color: 'blue', delay: 100 },
+    { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', color: 'green', delay: 200 },
+    { title: "Nombre d'églises", value: count, icon: 'fa-church', color: 'purple', delay: 300 },
+    { title: 'Année', value: year, icon: 'fa-calendar-alt', color: 'yellow', delay: 400 }
   ];
 
   // ----- ANCIEN / TRÉSORIER (avec les nouveaux titres) -----
@@ -431,7 +453,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
           {/* Graphique courbes - FEDERATION */}
-          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
               <div className="text-sm font-medium text-gray-500">Évolution de la Dîme et des Offrandes</div>
@@ -441,17 +463,20 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#4b5563' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} />
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Tooltip
+                  formatter={(value) => `${formatMontant(value)} Ar`}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Graphique secteurs - EGLISE LOCALE */}
-          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
               <div className="text-sm font-medium text-gray-500">Répartition Reste / Entrées / Sorties</div>
@@ -477,11 +502,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => {
-                  const displayValue = value === 0.001 ? 0 : value;
-                  return `${formatMontant(displayValue)} Ar`;
-                }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Tooltip
+                  formatter={(value) => {
+                    const displayValue = value === 0.001 ? 0 : value;
+                    return `${formatMontant(displayValue)} Ar`;
+                  }}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -514,34 +542,29 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       { name: 'Offrandes', value: totalOff || 0.001 }
     ];
 
-    const colors = ['#f59e0b', '#10b981'];
-
-    // Cartes pour Pasteur
-    const pasteurStatCards = [
-      { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', colorClass: 'border-blue-500', textColor: 'text-blue-700' },
-      { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', colorClass: 'border-green-500', textColor: 'text-green-700' },
-      { title: 'Total A (Fédération)', value: formatMontant(totalA), icon: 'fa-chart-line', colorClass: 'border-purple-500', textColor: 'text-purple-700' },
-      { title: "Nombre d'églises", value: districtData.length, icon: 'fa-church', colorClass: 'border-yellow-500', textColor: 'text-yellow-700' }
-    ];
+    const cards = pasteurStatCards(totalDime, totalOff, totalA, districtData.length);
 
     return (
       <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {pasteurStatCards.map((card, idx) => (
+          {cards.map((card, idx) => (
             <StatCard key={idx} {...card} />
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={lineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#4b5563' }} />
                 <YAxis tick={{ fontSize: 10, fill: '#4b5563' }} />
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                <Tooltip
+                  formatter={(value) => `${formatMontant(value)} Ar`}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} />
                 {districtData.map((eg, idx) => (
                   <Line
                     key={eg.eglise}
@@ -556,7 +579,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
             <ResponsiveContainer width="100%" height={320}>
               <PieChart>
@@ -571,11 +594,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   dataKey="value"
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                    <Cell key={`cell-${index}`} fill={['#f59e0b', '#10b981'][index % 2]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Tooltip
+                  formatter={(value) => `${formatMontant(value)} Ar`}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -610,31 +636,29 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
-    const verifStatCards = [
-      { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', colorClass: 'border-blue-500', textColor: 'text-blue-700' },
-      { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', colorClass: 'border-green-500', textColor: 'text-green-700' },
-      { title: "Nombre d'églises", value: federationData.length, icon: 'fa-church', colorClass: 'border-purple-500', textColor: 'text-purple-700' },
-      { title: 'Année', value: selectedYear, icon: 'fa-calendar-alt', colorClass: 'border-yellow-500', textColor: 'text-yellow-700' }
-    ];
+    const cards = verifStatCards(totalDime, totalOff, federationData.length, selectedYear);
 
     return (
       <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {verifStatCards.map((card, idx) => (
+          {cards.map((card, idx) => (
             <StatCard key={idx} {...card} />
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={lineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#4b5563' }} />
                 <YAxis tick={{ fontSize: 10, fill: '#4b5563' }} />
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                <Tooltip
+                  formatter={(value) => `${formatMontant(value)} Ar`}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} />
                 {federationData.map((eg, idx) => (
                   <Line
                     key={eg.eglise}
@@ -649,7 +673,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <PieChart>
@@ -667,8 +691,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Tooltip
+                  formatter={(value) => `${formatMontant(value)} Ar`}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -680,7 +707,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   // ----- RENDU GLOBAL -----
   if (isAdmin) {
     return (
-      <div className="text-center p-8 bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm">
+      <div className="text-center p-8 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-2xl border border-yellow-200 shadow-lg">
         <i className="fas fa-info-circle text-yellow-500 text-5xl mb-4"></i>
         <p className="text-yellow-700 font-semibold text-lg">Mode Admin</p>
         <p className="text-gray-600 mt-2">Le tableau de bord est désactivé pour les administrateurs. Veuillez utiliser l'onglet <strong>Formulaire</strong> pour sélectionner une fédération, un district ou une église.</p>
@@ -689,15 +716,24 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }
 
   if (loading) {
-    return <div className="text-center p-8">Chargement du tableau de bord...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <p className="mt-4 text-gray-600">Chargement du tableau de bord...</p>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="text-center p-8 text-red-600 bg-red-50 rounded-xl border border-red-200">
-        <i className="fas fa-exclamation-triangle mr-2"></i> Erreur : {error}
-        <button onClick={refresh} className="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-          <i className="fas fa-sync-alt mr-1"></i> Réessayer
+      <div className="text-center p-8 bg-red-50 rounded-2xl border border-red-200 shadow-lg">
+        <i className="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+        <p className="text-red-600 font-medium">Erreur : {error}</p>
+        <button
+          onClick={refresh}
+          className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 mx-auto"
+        >
+          <i className="fas fa-sync-alt"></i> Réessayer
         </button>
       </div>
     );
@@ -717,9 +753,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       </select>
       <button
         onClick={refresh}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1"
+        disabled={isRefreshing}
+        className={`bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1 ${isRefreshing ? 'opacity-70 cursor-not-allowed' : ''}`}
       >
-        <i className="fas fa-sync-alt"></i> Rafraîchir
+        <i className={`fas fa-sync-alt ${isRefreshing ? 'animate-spin' : ''}`}></i>
+        Rafraîchir
       </button>
     </div>
   );
@@ -735,6 +773,22 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeInUp {
+          animation: fadeInUp 0.6s ease-out forwards;
+        }
+      `}</style>
+
       <div className="flex flex-wrap justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
           <i className="fas fa-chart-pie text-indigo-600"></i>
