@@ -26,17 +26,16 @@ export default function Login({ onLogin }) {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-end py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url('/Login.png')` }}
+      className="min-h-screen flex items-center justify-end py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+      style={{
+        backgroundImage: `url('/Login.png')`,
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
     >
-      {/* Overlay plus léger pour la lisibilité */}
-      <div className="absolute inset-0 bg-gradient-to-l from-amber-900/20 via-orange-900/10 to-transparent backdrop-blur-[0.5px]"></div>
-
-      {/* Cercles décoratifs animés (plus discrets) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -left-20 w-96 h-96 bg-amber-300/5 rounded-full animate-spin-slow blur-3xl"></div>
-        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-rose-300/5 rounded-full animate-spin-slow blur-3xl" style={{ animationDirection: 'reverse' }}></div>
-      </div>
+      {/* Overlay très léger pour la lisibilité */}
+      <div className="absolute inset-0 bg-gradient-to-l from-plum/10 via-blush/5 to-transparent"></div>
 
       {/* Animations CSS */}
       <style>{`
@@ -46,17 +45,13 @@ export default function Login({ onLogin }) {
           100% { transform: translateY(0px); }
         }
         @keyframes pulseGlow {
-          0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3); }
-          70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(205, 127, 110, 0.4); }
+          70% { box-shadow: 0 0 0 12px rgba(205, 127, 110, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(205, 127, 110, 0); }
         }
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes spinSlow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
         }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
@@ -72,9 +67,6 @@ export default function Login({ onLogin }) {
         .animate-fadeInUp {
           animation: fadeInUp 0.5s ease-out forwards;
         }
-        .animate-spin-slow {
-          animation: spinSlow 20s linear infinite;
-        }
         .animate-shake {
           animation: shake 0.4s ease-in-out;
         }
@@ -83,14 +75,14 @@ export default function Login({ onLogin }) {
         }
         .input-focus:focus {
           transform: scale(1.01);
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+          box-shadow: 0 0 0 3px rgba(205, 127, 110, 0.25);
         }
         .btn-hover {
           transition: all 0.25s ease;
         }
         .btn-hover:hover {
-          transform: translateY(-1px) scale(1.01);
-          box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.4);
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 8px 20px -4px rgba(205, 127, 110, 0.4);
         }
         .btn-hover:active {
           transform: scale(0.97);
@@ -103,50 +95,45 @@ export default function Login({ onLogin }) {
           box-shadow: 0 12px 28px rgba(0,0,0,0.12);
         }
         .glass-card {
-          backdrop-filter: blur(12px);
-          background: rgba(255, 255, 255, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.25);
+          backdrop-filter: blur(10px);
+          background: rgba(255, 248, 245, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        /* Texte plus contrasté */
-        .text-gray-800 {
-          color: #1a202c !important;
-        }
-        .text-gray-600 {
-          color: #2d3748 !important;
-        }
-        .text-gray-700 {
-          color: #2d3748 !important;
-        }
-        .text-gray-500 {
-          color: #4a5568 !important;
-        }
+        .text-plum { color: #5e2e4a; }
+        .text-maroon { color: #6e2c2c; }
+        .text-charcoal { color: #36454f; }
+        .bg-blush { background: #f5d6cd; }
+        .bg-peach { background: #fad4c0; }
+        .bg-nude { background: #f2e3db; }
+        .border-blush { border-color: #f5d6cd; }
+        .from-blush { --tw-gradient-from: #f5d6cd; --tw-gradient-to: rgba(245,214,205,0); }
+        .to-peach { --tw-gradient-to: #fad4c0; }
       `}</style>
 
-      {/* Conteneur décalé à droite avec espace réduit */}
-      <div className="max-w-4xl w-full glass-card rounded-2xl shadow-xl p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-center justify-center relative z-10 animate-fadeInUp md:mr-6 lg:mr-12">
+      <div className="max-w-4xl w-full glass-card rounded-2xl shadow-xl p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center justify-center relative z-10 animate-fadeInUp md:mr-6 lg:mr-12">
         {/* Colonne gauche : formulaire */}
         <div className="flex-1 w-full max-w-sm mx-auto">
           <div className="text-center">
             <div className="flex justify-center">
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-500 to-rose-500 flex items-center justify-center shadow-md animate-float ring-4 ring-amber-200/30">
+              <div className="h-20 w-20 rounded-full bg-white/90 shadow-lg flex items-center justify-center animate-float ring-2 ring-blush/40">
                 <img
                   src="/FINANCE.png"
                   alt="Finance"
-                  className="h-14 w-14 object-contain drop-shadow-md"
+                  className="h-14 w-14 object-contain drop-shadow-sm"
                 />
               </div>
             </div>
-            <h2 className="mt-4 text-2xl font-extrabold text-gray-800 tracking-tight">
+            <h2 className="mt-4 text-2xl font-bold text-plum tracking-tight">
               Gestion des Dîmes
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-charcoal/80">
               Connectez-vous à votre espace de travail
             </p>
           </div>
 
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md animate-shake">
+              <div className="bg-red-50 border-l-4 border-red-400 p-3 rounded-md animate-shake">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <i className="fas fa-exclamation-circle text-red-500"></i>
@@ -160,12 +147,12 @@ export default function Login({ onLogin }) {
 
             <div className="space-y-3">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-0.5">
+                <label htmlFor="email" className="block text-sm font-medium text-charcoal mb-0.5">
                   Adresse email
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i className="fas fa-envelope text-amber-400 text-sm"></i>
+                    <i className="fas fa-envelope text-blush/70 text-sm"></i>
                   </div>
                   <input
                     id="email"
@@ -173,19 +160,19 @@ export default function Login({ onLogin }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="input-focus appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 bg-white/90 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-150"
+                    className="input-focus appearance-none block w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg placeholder-gray-400 text-charcoal bg-white/90 focus:ring-2 focus:ring-blush focus:border-transparent transition duration-150 text-sm"
                     placeholder="exemple@email.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-0.5">
+                <label htmlFor="password" className="block text-sm font-medium text-charcoal mb-0.5">
                   Mot de passe
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i className="fas fa-lock text-amber-400 text-sm"></i>
+                    <i className="fas fa-lock text-blush/70 text-sm"></i>
                   </div>
                   <input
                     id="password"
@@ -193,7 +180,7 @@ export default function Login({ onLogin }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="input-focus appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 bg-white/90 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-150"
+                    className="input-focus appearance-none block w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg placeholder-gray-400 text-charcoal bg-white/90 focus:ring-2 focus:ring-blush focus:border-transparent transition duration-150 text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -204,7 +191,7 @@ export default function Login({ onLogin }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-hover relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-700 hover:via-orange-700 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-md animate-pulse-glow"
+                className="btn-hover relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blush to-peach hover:from-blush/90 hover:to-peach/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blush transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-md animate-pulse-glow"
               >
                 {loading ? (
                   <>
@@ -212,7 +199,7 @@ export default function Login({ onLogin }) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Connexion en cours...
+                    Connexion...
                   </>
                 ) : (
                   <>
@@ -223,7 +210,7 @@ export default function Login({ onLogin }) {
               </button>
             </div>
 
-            <div className="text-center text-xs text-gray-500 pt-3 border-t border-gray-200/50">
+            <div className="text-center text-xs text-charcoal/60 pt-3 border-t border-gray-200/50">
               <p>© 2026 Gestion des Dîmes et Offrandes</p>
               <p className="mt-0.5">Système sécurisé - Tous droits réservés</p>
             </div>
@@ -232,11 +219,11 @@ export default function Login({ onLogin }) {
 
         {/* Colonne droite : QR Code */}
         <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs mx-auto md:border-l md:border-gray-200/50 md:pl-6 pt-6 md:pt-0">
-          <p className="text-sm text-gray-700 font-medium mb-3 text-center">
-            <i className="fas fa-qrcode mr-2 text-amber-500 animate-pulse"></i>
+          <p className="text-xs text-charcoal/70 font-medium mb-3 text-center">
+            <i className="fas fa-qrcode mr-1.5 text-blush"></i>
             Scannez ce QR Code pour demander Login
           </p>
-          <div className="qr-hover rounded-xl overflow-hidden shadow-sm bg-white p-1.5">
+          <div className="qr-hover rounded-lg overflow-hidden shadow-sm bg-white/90 p-1.5">
             <img
               src="/QR_Code.png"
               alt="QR Code Login"
