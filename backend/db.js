@@ -328,4 +328,4 @@ async function initDb() {
   return db;
 }
 
-module.exports = { initDb, openDb };
+module.exports = { initDb, openDb, ensureColumn };

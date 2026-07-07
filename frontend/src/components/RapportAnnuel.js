@@ -1,4 +1,4 @@
-// src/components/RapportAnnuel.js
+// frontend/src/components/RapportAnnuel.js
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -92,6 +92,8 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     carriedForward: 0
   });
   const [balanceInput, setBalanceInput] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
 
   const [signatures, setSignatures] = useState({
     treasurer: { name: '', email: '', tel: '' },
@@ -103,6 +105,16 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
   const federationName = user?.federation || 'FEDERASIONA MADAGASIKARA';
 
   const getStorageKey = () => `endOfYear_${selectedYear}_${eglise}`;
+
+  // Notification
+  const showMessage = (msg, type = 'success') => {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => {
+      setMessage('');
+      setMessageType('');
+    }, 5000);
+  };
 
   useEffect(() => {
     if (eglise) loadYearlyData();
@@ -254,10 +266,11 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         carriedForward: loadedPreviousBalance + totals.totalIncome - totals.totalExpenses
       });
       setBalanceInput(formatBalance(loadedPreviousBalance));
-      localStorage.setItem(storageKey, String(loadedPreviousBalance));
+      localStorage.setItem(getStorageKey(), String(loadedPreviousBalance));
 
     } catch(err) {
       console.error(err);
+      showMessage("Erreur lors du chargement du rapport annuel", "error");
     } finally {
       setLoading(false);
     }
@@ -276,8 +289,10 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     localStorage.setItem(storageKey, String(newBalance));
     try {
       await api.updateReportField(`${selectedYear}-01`, eglise, 'endOfYear', JSON.stringify({ previousBalance: newBalance }));
+      showMessage("Solde initial mis à jour", "success");
     } catch (err) {
       console.error("Erreur lors de la sauvegarde du solde initial sur le serveur:", err);
+      showMessage("Erreur lors de la sauvegarde du solde initial", "error");
     }
     window.dispatchEvent(new Event('data-updated'));
   }
@@ -287,7 +302,13 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     const newData = [...monthlyData];
     newData[monthIndex].note = value;
     setMonthlyData(newData);
-    await api.updateReportField(newData[monthIndex].monthId, eglise, 'note', value);
+    try {
+      await api.updateReportField(newData[monthIndex].monthId, eglise, 'note', value);
+      showMessage("Note mise à jour", "success");
+    } catch (err) {
+      console.error("Erreur mise à jour note:", err);
+      showMessage("Erreur lors de la mise à jour de la note", "error");
+    }
   }
 
   async function updateSignature(field, subField, value) {
@@ -295,7 +316,13 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     const newSignatures = { ...signatures };
     newSignatures[field][subField] = value;
     setSignatures(newSignatures);
-    await api.updateReportField(`${selectedYear}-01`, eglise, 'signatures', JSON.stringify(newSignatures));
+    try {
+      await api.updateReportField(`${selectedYear}-01`, eglise, 'signatures', JSON.stringify(newSignatures));
+      showMessage("Signature mise à jour", "success");
+    } catch (err) {
+      console.error("Erreur mise à jour signature:", err);
+      showMessage("Erreur lors de la mise à jour de la signature", "error");
+    }
   }
 
   const availableYears = [2026, 2027, 2028, 2029, 2030];
@@ -325,6 +352,12 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
           print-color-adjust: exact;
         }
       `}</style>
+
+      {message && (
+        <div className={`mb-3 p-3 rounded text-white ${messageType === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {message}
+        </div>
+      )}
 
       {/* EN-TÊTE AVEC LOGOS */}
       <div className="flex items-center justify-between mb-2" style={{ borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>

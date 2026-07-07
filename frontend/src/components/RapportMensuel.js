@@ -1,4 +1,4 @@
-// src/components/RapportMensuel.js
+// frontend/src/components/RapportMensuel.js
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -66,6 +66,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState(''); // 'success' | 'error'
 
   const abortControllerRef = useRef(null);
   const fallbackKey = `volamPiangonanaApetraka_${currentMonth}_${eglise}`;
@@ -75,6 +77,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (readOnly) return true;
     if (!eglise) return true;
     return !canEditEglise(eglise, user?.district, user?.federation);
+  };
+
+  // Notification temporaire
+  const showMessage = (msg, type = 'success') => {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => {
+      setMessage('');
+      setMessageType('');
+    }, 5000);
   };
 
   const loadData = useCallback(async () => {
@@ -134,18 +146,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        let volamValue = r.volamPiangonanaApetraka;
-        if (volamValue === undefined || volamValue === null) {
-          const stored = localStorage.getItem(fallbackKey);
-          if (stored) {
-            volamValue = parseFloat(stored) || 0;
-            console.log('📦 [loadData] volamPiangonanaApetraka restauré depuis localStorage:', volamValue);
-          } else {
-            volamValue = 0;
-          }
-        }
+        // Lecture du volamPiangonanaApetraka depuis le backend uniquement
+        const volamValue = r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null
+          ? r.volamPiangonanaApetraka
+          : 0;
         setVolamPiangonanaApetraka(volamValue);
+        // Mettre à jour localStorage en fallback (mais ne pas écraser si le backend a une valeur)
+        if (volamValue > 0) {
+          localStorage.setItem(fallbackKey, volamValue.toString());
+        }
 
+        // Lignes de chèques - priorité au backend
         let loadedFromBackend = false;
         if (r.soraBolaLinesJson) {
           try {
@@ -170,24 +181,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             }
           } catch (e) { /* ignore */ }
         }
+        // Si le backend n'a pas de données, on peut essayer localStorage en fallback (mais on ne le fait pas pour privilégier le backend)
+        // On ne charge pas depuis localStorage ici pour éviter d'écraser une valeur backend.
         if (!loadedFromBackend) {
-          const fallbackKeyCheque = `chequeSora_${currentMonth}_${eglise}`;
-          const stored = localStorage.getItem(fallbackKeyCheque);
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (parsed && Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
-                setChequeLines(parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', '']);
-                setSoraBolaLines(parsed.soraBola.length === 5 ? parsed.soraBola : ['', '', '', '', '']);
-                const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-                setTotalChequeSora(sum);
-              }
-            } catch (e) {}
-          } else {
-            setChequeLines(['', '', '', '', '']);
-            setSoraBolaLines(['', '', '', '', '']);
-            setTotalChequeSora(0);
-          }
+          // On initialise à vide
+          setChequeLines(['', '', '', '', '']);
+          setSoraBolaLines(['', '', '', '', '']);
+          setTotalChequeSora(0);
         }
       }
 
@@ -268,21 +268,28 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
-      window.dispatchEvent(new Event('data-updated'));
+      // Mise à jour locale réussie, on peut mettre à jour localStorage pour certains champs si besoin
+      if (field === 'volamPiangonanaApetraka') {
+        localStorage.setItem(fallbackKey, value.toString());
+      }
+      showMessage(`Champ "${field}" mis à jour avec succès`, 'success');
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
+      showMessage(`Erreur lors de la sauvegarde du champ "${field}" : ${err.message}`, 'error');
     }
   };
 
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
-    localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify(data));
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      window.dispatchEvent(new Event('data-updated'));
+      // Sauvegarde locale après réussite
+      localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify(data));
+      showMessage('Tableau des chèques sauvegardé', 'success');
     } catch (err) {
       console.error('❌ Erreur sauvegarde tableau:', err);
+      showMessage(`Erreur lors de la sauvegarde du tableau des chèques : ${err.message}`, 'error');
     }
   };
 
@@ -321,7 +328,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
-    localStorage.setItem(fallbackKey, num.toString());
     await updateField('volamPiangonanaApetraka', num);
   };
 
@@ -461,6 +467,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           font-size: inherit;
         }
       `}</style>
+
+      {message && (
+        <div className={`mb-3 p-3 rounded text-white ${messageType === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {message}
+        </div>
+      )}
 
       <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

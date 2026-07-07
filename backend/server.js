@@ -126,7 +126,8 @@ app.use((err, req, res, next) => {
 // ---------- Démarrage ----------
 const start = async () => {
   try {
-    await initDb();
+    const db = await initDb();
+    // La colonne volamPiangonanaApetraka est déjà assurée dans initDb via ensureColumn
     await createAdminIfNotExists();
     const port = process.env.PORT || 5000;
     app.listen(port, '0.0.0.0', () => {
