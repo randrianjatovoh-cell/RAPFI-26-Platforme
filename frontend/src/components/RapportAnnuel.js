@@ -51,7 +51,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
       fanatitra: 0,
       totalA: 0,
       receiptNumber: '',
-      income: 0,      // correspond au total B (b9 + b10)
+      income: 0,
       expenses: 0,
       note: '',
       balance: 0
@@ -61,7 +61,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     totalTithe: 0,
     totalFanatitra: 0,
     totalA: 0,
-    totalIncome: 0,   // somme des total B annuels
+    totalIncome: 0,
     totalExpenses: 0
   });
   const [endOfYear, setEndOfYear] = useState({
@@ -87,7 +87,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     if (eglise) loadYearlyData();
   }, [selectedYear, eglise]);
 
-  // 🔥 Rechargement automatique après modification (ex: sauvegarde des frais)
   useEffect(() => {
     const handleDataUpdate = () => {
       if (eglise) loadYearlyData();
@@ -146,18 +145,15 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         const month = MONTHS_LIST[i];
         const monthKey = `${selectedYear}-${month.id}`;
         const glData = await api.getGL(monthKey, null, null, eglise) || {};
-        let tithe = 0, fanatitra = 0, income = 0; // income = total B (b9 + b10)
+        let tithe = 0, fanatitra = 0, income = 0;
         for (let s = 1; s <= 5; s++) {
           const entries = glData[s] || [];
           for (const e of entries) {
             tithe += e.f1 || 0;
             fanatitra += (e.f2||0)+(e.f3||0)+(e.f4||0)+(e.f5||0)+(e.f6||0)+(e.f7||0)+(e.f8||0);
-            // 🔥 Correction : le total B est b9 + b10
             income += (e.b9 || 0) + (e.b10 || 0);
           }
         }
-        // Les frais (saram-pandefasana) ne sont pas déduits ici car ils concernent la partie A
-        // Le Dashboard les déduit déjà pour l'affichage.
 
         const expensesList = await api.getDepenses(monthKey, null, null, eglise);
         const totalExpenses = expensesList.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
@@ -170,21 +166,61 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         updatedMonthlyData[i].expenses = totalExpenses;
         updatedMonthlyData[i].balance = income - totalExpenses;
 
-        let chequeRefs = '';
+        // --- Construction de la colonne "N° Rosia sy ny daty nadrotsahana" ---
+        let receiptParts = [];
         if (existingReport && existingReport.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(existingReport.soraBolaLinesJson);
-            let chequeArray = [];
-            if (parsed && typeof parsed === 'object' && parsed.cheque) {
-              chequeArray = parsed.cheque || [];
+            let chequeArr = [];
+            let soraArr = [];
+            if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
+              chequeArr = parsed.cheque || [];
+              soraArr = parsed.soraBola || [];
+            } else if (Array.isArray(parsed)) {
+              soraArr = parsed;
             }
-            const validRefs = chequeArray.filter(ref => ref && ref.trim() !== '');
-            if (validRefs.length > 0) {
-              chequeRefs = validRefs.join(', et ');
+            const maxLines = Math.min(chequeArr.length, soraArr.length);
+            for (let j = 0; j < maxLines; j++) {
+              const chequeStr = chequeArr[j] || '';
+              const soraAmount = soraArr[j] || '';
+              let ref = '';
+              let datePart = '';
+              if (chequeStr) {
+                const duIndex = chequeStr.indexOf(' du ');
+                if (duIndex !== -1) {
+                  ref = chequeStr.substring(0, duIndex).trim();
+                  datePart = chequeStr.substring(duIndex + 4).trim();
+                } else {
+                  ref = chequeStr;
+                }
+              }
+              // Construire un segment
+              let segment = '';
+              if (ref) segment += ref;
+              if (datePart) {
+                if (segment) segment += ` du ${datePart}`;
+                else segment += datePart;
+              }
+              const amountStr = soraAmount ? `, ${formatNumber(parseFloat(soraAmount))} Ar` : '';
+              if (segment || amountStr) {
+                receiptParts.push(segment + amountStr);
+              }
             }
           } catch(e) { /* ignore */ }
         }
-        updatedMonthlyData[i].receiptNumber = chequeRefs;
+
+        // Joindre avec virgules et "et" avant la dernière
+        let receiptDisplay = '';
+        if (receiptParts.length > 0) {
+          if (receiptParts.length === 1) {
+            receiptDisplay = receiptParts[0];
+          } else {
+            const last = receiptParts[receiptParts.length - 1];
+            const rest = receiptParts.slice(0, -1).join(', ');
+            receiptDisplay = `${rest}, et ${last}`;
+          }
+        }
+        updatedMonthlyData[i].receiptNumber = receiptDisplay;
 
         if (existingReport) {
           updatedMonthlyData[i].note = existingReport.note || '';
