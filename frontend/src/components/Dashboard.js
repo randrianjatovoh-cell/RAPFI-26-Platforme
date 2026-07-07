@@ -23,6 +23,19 @@ function normalizeEglise(name) {
 
 const COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
+// Icônes pour les cartes de stats
+const statIcons = {
+  'Total A': 'fa-chart-line',
+  'Reste (précédent)': 'fa-history',
+  'Entrées': 'fa-arrow-down',
+  'Sorties': 'fa-arrow-up',
+  'EGLISE (suivant)': 'fa-forward',
+  'Total Dîmes': 'fa-hand-holding-heart',
+  'Total Offrandes (A)': 'fa-gift',
+  "Nombre d'églises": 'fa-church',
+  'Année': 'fa-calendar-alt'
+};
+
 export default function Dashboard({ pasteurMode, mode, user: propUser, selectedEglise: propEglise }) {
   const { user: contextUser } = useUser();
   const user = propUser || contextUser;
@@ -50,7 +63,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // ---- Fonction de chargement des données (optimisée avec Promise.all) ----
+  // ---- Fonction de chargement des données (inchangée) ----
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -78,7 +91,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           let monthDime = 0;
           let monthOther = 0;
           let monthTotalB = 0;
-          let monthIncome = 0; // total B = b9 + b10
+          let monthIncome = 0;
 
           if (glData) {
             for (let s = 1; s <= 5; s++) {
@@ -99,12 +112,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 monthOther += f2 + f3 + f4 + f5 + f6 + f7 + f8;
                 monthTotalA += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
                 monthTotalB += b9 + b10;
-                monthIncome += b9 + b10; // 🔥 total B
+                monthIncome += b9 + b10;
               }
             }
           }
 
-          // Frais déduits du total A et des offrandes
           const fraisVal = await api.getFrais(monthId, egliseNom);
           monthTotalA = Math.max(0, monthTotalA - fraisVal);
           monthOther = Math.max(0, monthOther - fraisVal);
@@ -156,7 +168,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           totalExpenses += res.monthExpenses;
         });
 
-        // Solde initial
         let volaSisaTeoAloha = 0;
         try {
           const janMonthId = `${yearStr}-01`;
@@ -218,7 +229,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         });
 
       } else if (isPasteur) {
-        // ... (code inchangé)
         const district = user.district;
         if (!district) {
           setError("Votre compte n'est pas associé à un district.");
@@ -294,7 +304,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         }
 
       } else if (isVerificateur) {
-        // ... (code inchangé)
         const federation = user.federation;
         if (!federation) {
           setError("Votre compte n'est pas associé à une fédération.");
@@ -354,7 +363,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     }
   }, [eglise, selectedYear, loadData]);
 
-  // Écouter les mises à jour des frais
   useEffect(() => {
     const handleFraisUpdate = () => {
       setRefreshKey(prev => prev + 1);
@@ -378,68 +386,75 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
   // =================== RENDU ===================
 
+  // Composant réutilisable pour une carte de statistique
+  const StatCard = ({ title, value, icon, colorClass, textColor }) => (
+    <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-4 border-l-4 ${colorClass}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</div>
+          <div className={`text-2xl font-bold ${textColor} mt-1`}>{value || '0'} Ar</div>
+        </div>
+        <div className={`text-3xl opacity-30 ${colorClass}`}>
+          <i className={`fas ${icon}`}></i>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Cartes pour Ancien / Trésorier
+  const ancienStatCards = [
+    { title: 'Total A (Fédération)', value: formatMontant(annualData.totalA), icon: 'fa-chart-line', colorClass: 'border-blue-500', textColor: 'text-blue-700' },
+    { title: 'Reste (précédent)', value: formatMontant(annualData.volaSisaTeoAloha), icon: 'fa-history', colorClass: 'border-yellow-500', textColor: 'text-yellow-700' },
+    { title: 'Entrées (Église)', value: formatMontant(annualData.volaNiditra), icon: 'fa-arrow-down', colorClass: 'border-green-500', textColor: 'text-green-700' },
+    { title: 'Sorties (Église)', value: formatMontant(annualData.volaNivoaka), icon: 'fa-arrow-up', colorClass: 'border-red-500', textColor: 'text-red-700' },
+    { title: 'EGLISE (suivant)', value: formatMontant(annualData.volaAfindra), icon: 'fa-forward', colorClass: 'border-purple-500', textColor: 'text-purple-700' }
+  ];
+
   // ----- ANCIEN / TRÉSORIER (avec les nouveaux titres) -----
   const renderAncienDashboard = () => {
-    const { totalA, volaSisaTeoAloha, volaNiditra, volaNivoaka, volaAfindra, monthlyData } = annualData;
+    const { monthlyData } = annualData;
 
     const pieData = [
-      { name: 'Reste', value: volaSisaTeoAloha !== 0 ? Math.abs(volaSisaTeoAloha) : 0.001 },
-      { name: 'Entrées', value: volaNiditra !== 0 ? Math.abs(volaNiditra) : 0.001 },
-      { name: 'Sorties', value: volaNivoaka !== 0 ? Math.abs(volaNivoaka) : 0.001 }
+      { name: 'Reste', value: annualData.volaSisaTeoAloha !== 0 ? Math.abs(annualData.volaSisaTeoAloha) : 0.001 },
+      { name: 'Entrées', value: annualData.volaNiditra !== 0 ? Math.abs(annualData.volaNiditra) : 0.001 },
+      { name: 'Sorties', value: annualData.volaNivoaka !== 0 ? Math.abs(annualData.volaNivoaka) : 0.001 }
     ];
     const pieColors = ['#f59e0b', '#3b82f6', '#ef4444'];
 
     return (
       <>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <div className="bg-blue-50 p-3 rounded-lg shadow border-l-4 border-blue-500">
-            <div className="text-xs text-blue-600 uppercase font-semibold">Total A (Fédération)</div>
-            <div className="text-xl font-bold text-blue-700">{formatMontant(totalA) || '0'} Ar</div>
-          </div>
-          <div className="bg-yellow-50 p-3 rounded-lg shadow border-l-4 border-yellow-500">
-            <div className="text-xs text-yellow-600 uppercase font-semibold">RESTE (précédent)</div>
-            <div className="text-xl font-bold text-yellow-700">{formatMontant(volaSisaTeoAloha) || '0'} Ar</div>
-          </div>
-          <div className="bg-green-50 p-3 rounded-lg shadow border-l-4 border-green-500">
-            <div className="text-xs text-green-600 uppercase font-semibold">ENTRÉES (Église)</div>
-            <div className="text-xl font-bold text-green-700">{formatMontant(volaNiditra) || '0'} Ar</div>
-          </div>
-          <div className="bg-red-50 p-3 rounded-lg shadow border-l-4 border-red-500">
-            <div className="text-xs text-red-600 uppercase font-semibold">SORTIES (Église)</div>
-            <div className="text-xl font-bold text-red-700">{formatMontant(volaNivoaka) || '0'} Ar</div>
-          </div>
-          <div className="bg-purple-50 p-3 rounded-lg shadow border-l-4 border-purple-500">
-            <div className="text-xs text-purple-600 uppercase font-semibold">EGLISE (suivant)</div>
-            <div className="text-xl font-bold text-purple-700">{formatMontant(volaAfindra) || '0'} Ar</div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          {ancienStatCards.map((card, idx) => (
+            <StatCard key={idx} {...card} />
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 no-print">
-          {/* Graphique courbes - avec titre FEDERATION */}
-          <div className="bg-white p-3 rounded shadow" style={{ height: 320 }}>
-            <div className="text-center mb-1">
-              <div className="font-bold text-base uppercase text-gray-700">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-600">Évolution de la Dîme et des Offrandes</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
+          {/* Graphique courbes - FEDERATION */}
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+            <div className="text-center mb-3">
+              <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
+              <div className="text-sm font-medium text-gray-500">Évolution de la Dîme et des Offrandes</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} />
-                <Legend />
-                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={2} />
-                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={2} />
-                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#4b5563' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} />
+                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Graphique secteurs - avec titre EGLISE LOCALE */}
-          <div className="bg-white p-3 rounded shadow" style={{ height: 320 }}>
-            <div className="text-center mb-1">
-              <div className="font-bold text-base uppercase text-gray-700">EGLISE LOCALE</div>
-              <div className="text-sm font-medium text-gray-600">Répartition Reste / Entrées / Sorties</div>
+          {/* Graphique secteurs - EGLISE LOCALE */}
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+            <div className="text-center mb-3">
+              <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
+              <div className="text-sm font-medium text-gray-500">Répartition Reste / Entrées / Sorties</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
@@ -465,8 +480,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 <Tooltip formatter={(value) => {
                   const displayValue = value === 0.001 ? 0 : value;
                   return `${formatMontant(displayValue)} Ar`;
-                }} />
-                <Legend />
+                }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -478,7 +493,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   // ----- PASTEUR -----
   const renderPasteurDashboard = () => {
     if (districtData.length === 0) {
-      return <div className="text-center p-4">Aucune donnée pour ce district.</div>;
+      return <div className="text-center p-4 text-gray-500">Aucune donnée pour ce district.</div>;
     }
 
     const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -499,160 +514,50 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       { name: 'Offrandes', value: totalOff || 0.001 }
     ];
 
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
+    const colors = ['#f59e0b', '#10b981'];
+
+    // Cartes pour Pasteur
+    const pasteurStatCards = [
+      { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', colorClass: 'border-blue-500', textColor: 'text-blue-700' },
+      { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', colorClass: 'border-green-500', textColor: 'text-green-700' },
+      { title: 'Total A (Fédération)', value: formatMontant(totalA), icon: 'fa-chart-line', colorClass: 'border-purple-500', textColor: 'text-purple-700' },
+      { title: "Nombre d'églises", value: districtData.length, icon: 'fa-church', colorClass: 'border-yellow-500', textColor: 'text-yellow-700' }
+    ];
 
     return (
       <>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-blue-50 p-3 rounded-lg shadow border-l-4 border-blue-500">
-            <div className="text-xs text-blue-600 uppercase font-semibold">Total Dîmes</div>
-            <div className="text-xl font-bold text-blue-700">
-              {formatMontant(totalDime) || '0'} Ar
-            </div>
-          </div>
-          <div className="bg-green-50 p-3 rounded-lg shadow border-l-4 border-green-500">
-            <div className="text-xs text-green-600 uppercase font-semibold">Total Offrandes (A)</div>
-            <div className="text-xl font-bold text-green-700">
-              {formatMontant(totalOff) || '0'} Ar
-            </div>
-          </div>
-          <div className="bg-purple-50 p-3 rounded-lg shadow border-l-4 border-purple-500">
-            <div className="text-xs text-purple-600 uppercase font-semibold">Total A (Fédération)</div>
-            <div className="text-xl font-bold text-purple-700">
-              {formatMontant(totalA) || '0'} Ar
-            </div>
-          </div>
-          <div className="bg-yellow-50 p-3 rounded-lg shadow border-l-4 border-yellow-500">
-            <div className="text-xs text-yellow-600 uppercase font-semibold">Nombre d'églises</div>
-            <div className="text-xl font-bold text-yellow-700">{districtData.length}</div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {pasteurStatCards.map((card, idx) => (
+            <StatCard key={idx} {...card} />
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 no-print">
-          <div className="bg-white p-3 rounded shadow" style={{ height: 350 }}>
-            <p className="text-center font-medium text-sm">Évolution du Total A par église</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+            <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={lineData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#4b5563' }} />
+                <YAxis tick={{ fontSize: 10, fill: '#4b5563' }} />
+                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
                 <Legend wrapperStyle={{ fontSize: '10px' }} />
                 {districtData.map((eg, idx) => (
                   <Line
                     key={eg.eglise}
                     type="monotone"
                     dataKey={eg.eglise}
-                    stroke={colors[idx % colors.length]}
+                    stroke={COLORS[idx % COLORS.length]}
                     name={eg.eglise}
                     strokeWidth={2}
-                    dot={false}
+                    dot={{ r: 2 }}
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-3 rounded shadow" style={{ height: 350 }}>
-            <p className="text-center font-medium text-sm">Répartition Dîme / Offrandes (Total A)</p>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#f59e0b', '#10b981'][index % 2]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </>
-    );
-  };
-
-  // ----- VÉRIFICATEUR -----
-  const renderVerificateurDashboard = () => {
-    if (federationData.length === 0) {
-      return <div className="text-center p-4">Aucune donnée pour cette fédération.</div>;
-    }
-
-    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-    const lineData = months.map(month => {
-      const point = { month };
-      federationData.forEach(eg => {
-        point[eg.eglise] = eg.monthly[month]?.totalA || 0;
-      });
-      return point;
-    });
-
-    const pieData = federationData.map(eg => ({
-      name: eg.eglise,
-      value: eg.totalDime || 0.001
-    }));
-
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
-
-    return (
-      <>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-blue-50 p-3 rounded-lg shadow border-l-4 border-blue-500">
-            <div className="text-xs text-blue-600 uppercase font-semibold">Total Dîmes</div>
-            <div className="text-xl font-bold text-blue-700">
-              {formatMontant(federationData.reduce((acc, e) => acc + e.totalDime, 0)) || '0'} Ar
-            </div>
-          </div>
-          <div className="bg-green-50 p-3 rounded-lg shadow border-l-4 border-green-500">
-            <div className="text-xs text-green-600 uppercase font-semibold">Total Offrandes (A)</div>
-            <div className="text-xl font-bold text-green-700">
-              {formatMontant(federationData.reduce((acc, e) => acc + e.totalA, 0)) || '0'} Ar
-            </div>
-          </div>
-          <div className="bg-purple-50 p-3 rounded-lg shadow border-l-4 border-purple-500">
-            <div className="text-xs text-purple-600 uppercase font-semibold">Nombre d'églises</div>
-            <div className="text-xl font-bold text-purple-700">{federationData.length}</div>
-          </div>
-          <div className="bg-yellow-50 p-3 rounded-lg shadow border-l-4 border-yellow-500">
-            <div className="text-xs text-yellow-600 uppercase font-semibold">Année</div>
-            <div className="text-xl font-bold text-yellow-700">{selectedYear}</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 no-print">
-          <div className="bg-white p-3 rounded shadow" style={{ height: 350 }}>
-            <p className="text-center font-medium text-sm">Évolution du Total A par église</p>
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={lineData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} />
-                <Legend wrapperStyle={{ fontSize: '10px' }} />
-                {federationData.map((eg, idx) => (
-                  <Line
-                    key={eg.eglise}
-                    type="monotone"
-                    dataKey={eg.eglise}
-                    stroke={colors[idx % colors.length]}
-                    name={eg.eglise}
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="bg-white p-3 rounded shadow" style={{ height: 350 }}>
-            <p className="text-center font-medium text-sm">Répartition des Dîmes par église (%)</p>
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+            <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
             <ResponsiveContainer width="100%" height={320}>
               <PieChart>
                 <Pie
@@ -669,8 +574,101 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} />
-                <Legend />
+                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  // ----- VÉRIFICATEUR -----
+  const renderVerificateurDashboard = () => {
+    if (federationData.length === 0) {
+      return <div className="text-center p-4 text-gray-500">Aucune donnée pour cette fédération.</div>;
+    }
+
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const lineData = months.map(month => {
+      const point = { month };
+      federationData.forEach(eg => {
+        point[eg.eglise] = eg.monthly[month]?.totalA || 0;
+      });
+      return point;
+    });
+
+    const totalDime = federationData.reduce((acc, e) => acc + e.totalDime, 0);
+    const totalA = federationData.reduce((acc, e) => acc + e.totalA, 0);
+    const totalOff = totalA - totalDime;
+
+    const pieData = federationData.map(eg => ({
+      name: eg.eglise,
+      value: eg.totalDime || 0.001
+    }));
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
+
+    const verifStatCards = [
+      { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', colorClass: 'border-blue-500', textColor: 'text-blue-700' },
+      { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', colorClass: 'border-green-500', textColor: 'text-green-700' },
+      { title: "Nombre d'églises", value: federationData.length, icon: 'fa-church', colorClass: 'border-purple-500', textColor: 'text-purple-700' },
+      { title: 'Année', value: selectedYear, icon: 'fa-calendar-alt', colorClass: 'border-yellow-500', textColor: 'text-yellow-700' }
+    ];
+
+    return (
+      <>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {verifStatCards.map((card, idx) => (
+            <StatCard key={idx} {...card} />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+            <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={lineData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#4b5563' }} />
+                <YAxis tick={{ fontSize: 10, fill: '#4b5563' }} />
+                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                {federationData.map((eg, idx) => (
+                  <Line
+                    key={eg.eglise}
+                    type="monotone"
+                    dataKey={eg.eglise}
+                    stroke={colors[idx % colors.length]}
+                    name={eg.eglise}
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+            <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${formatMontant(value)} Ar`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -682,23 +680,23 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   // ----- RENDU GLOBAL -----
   if (isAdmin) {
     return (
-      <div className="text-center p-8 bg-yellow-50 rounded-lg">
-        <i className="fas fa-info-circle text-yellow-500 text-4xl mb-4"></i>
-        <p className="text-yellow-700 font-semibold">Mode Admin</p>
+      <div className="text-center p-8 bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm">
+        <i className="fas fa-info-circle text-yellow-500 text-5xl mb-4"></i>
+        <p className="text-yellow-700 font-semibold text-lg">Mode Admin</p>
         <p className="text-gray-600 mt-2">Le tableau de bord est désactivé pour les administrateurs. Veuillez utiliser l'onglet <strong>Formulaire</strong> pour sélectionner une fédération, un district ou une église.</p>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="text-center p-4">Chargement du tableau de bord...</div>;
+    return <div className="text-center p-8">Chargement du tableau de bord...</div>;
   }
 
   if (error) {
     return (
-      <div className="text-center p-4 text-red-600">
+      <div className="text-center p-8 text-red-600 bg-red-50 rounded-xl border border-red-200">
         <i className="fas fa-exclamation-triangle mr-2"></i> Erreur : {error}
-        <button onClick={refresh} className="ml-4 bg-blue-600 text-white px-3 py-1 rounded text-sm">
+        <button onClick={refresh} className="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
           <i className="fas fa-sync-alt mr-1"></i> Réessayer
         </button>
       </div>
@@ -706,19 +704,22 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }
 
   const yearSelector = (
-    <div className="flex items-center gap-2 no-print">
-      <label className="text-sm font-medium">Année :</label>
+    <div className="flex items-center gap-3 no-print">
+      <label className="text-sm font-medium text-gray-700">Année :</label>
       <select
         value={selectedYear}
         onChange={e => setSelectedYear(parseInt(e.target.value))}
-        className="border rounded px-2 py-1 bg-white"
+        className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
       >
         {[selectedYear - 2, selectedYear - 1, selectedYear, selectedYear + 1, selectedYear + 2].map(y => (
           <option key={y} value={y}>{y}</option>
         ))}
       </select>
-      <button onClick={refresh} className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
-        <i className="fas fa-sync-alt mr-1"></i> Rafraîchir
+      <button
+        onClick={refresh}
+        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1"
+      >
+        <i className="fas fa-sync-alt"></i> Rafraîchir
       </button>
     </div>
   );
@@ -733,9 +734,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{title}</h2>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex flex-wrap justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
+          <i className="fas fa-chart-pie text-indigo-600"></i>
+          {title}
+        </h2>
         {yearSelector}
       </div>
 
