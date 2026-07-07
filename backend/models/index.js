@@ -1,3 +1,4 @@
+// backend/models/index.js
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { openDb } = require('./db');
@@ -347,32 +348,31 @@ async function saveChurchConfig(userId, config) {
 // ---------- Rapports mensuels ----------
 async function getMonthlyReport(month, eglise) {
   const db = await openDb();
-  // S'assurer que toutes les colonnes sont sélectionnées
   return db.get('SELECT * FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, eglise);
 }
 
+// ════════════════════════════════════════════════════════════════
+// 🔧 MODIFICATION : ajout de volamPiangonanaApetraka dans la whitelist
+// ════════════════════════════════════════════════════════════════
 async function updateReportField(month, eglise, field, value) {
   const db = await openDb();
-  // 🔒 Liste des champs autorisés (sécurité)
   const allowedFields = [
     'sabbath_dates', 'totalA', 'totalB', 'totalExpenses', 'balanceChurch',
     'saramPandefasana', 'dateVersementFME', 'rosiaNum', 'bokyBe', 'rapano',
     'tatitra', 'dateFanamarihana', 'caisseFME', 'chequeRef', 'dateCheque',
     'soraBolaDate', 'soraBolaMontant', 'soraBolaLettres', 'soraBolaSignataire',
-    'soraBolaLinesJson', 'signatures', 'endOfYear', 'receiptNumber', 'note'
+    'soraBolaLinesJson', 'signatures', 'endOfYear', 'receiptNumber', 'note',
+    'volamPiangonanaApetraka' // ✅ Nouveau champ
   ];
   if (!allowedFields.includes(field)) {
     throw new Error(`Champ non autorisé : ${field}`);
   }
-  // Exécution de la mise à jour
   await db.run(`UPDATE monthly_reports SET ${field} = ? WHERE month_id = ? AND eglise = ?`, value, month, eglise);
   console.log(`✅ updateReportField: ${field} mis à jour pour ${month} - ${eglise}`);
 }
 
-// 🔥 CORRECTION : filtrer les clés pour éviter la duplication
 async function upsertMonthlyReport(month, eglise, data) {
   const db = await openDb();
-  // Filtrer les clés pour exclure month_id et eglise (déjà passés en paramètres)
   const keys = Object.keys(data).filter(k => k !== 'month_id' && k !== 'eglise');
   const columns = ['month_id', 'eglise', ...keys];
   const values = [month, eglise, ...keys.map(k => data[k])];
@@ -393,7 +393,9 @@ async function upsertMonthlyReport(month, eglise, data) {
   }
 }
 
-// ---------- Fonction de recalcul du rapport mensuel ----------
+// ════════════════════════════════════════════════════════════════
+// 🔧 MODIFICATION : conservation de volamPiangonanaApetraka
+// ════════════════════════════════════════════════════════════════
 async function computeAndSaveMonthlyReports(monthId, eglise) {
   const db = await openDb();
 
@@ -444,6 +446,8 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   const endOfYear = oldReport?.endOfYear || "";
   const receiptNumber = oldReport?.receiptNumber || "";
   const note = oldReport?.note || "";
+  // ✅ Récupération du champ volamPiangonanaApetraka
+  const volamPiangonanaApetraka = oldReport?.volamPiangonanaApetraka || 0;
 
   const balanceChurch = totalB - totalExpenses;
 
@@ -471,11 +475,11 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     signatures,
     endOfYear,
     receiptNumber,
-    note
+    note,
+    volamPiangonanaApetraka // ✅ Inclus dans le rapport
   };
 
   await upsertMonthlyReport(monthId, eglise, report);
-
   console.log(`✅ Rapport mensuel recalculé pour ${monthId} - ${eglise}`);
 }
 

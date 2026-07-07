@@ -44,13 +44,16 @@ router.put('/field', checkAccess, async (req, res) => {
   try {
     const { month, eglise, field, value } = req.body;
 
-    // 🔒 Liste des champs autorisés (sécurité)
+    // ════════════════════════════════════════════════════════════════
+    // 🔧 MODIFICATION : ajout de volamPiangonanaApetraka
+    // ════════════════════════════════════════════════════════════════
     const allowedFields = [
       'sabbath_dates', 'totalA', 'totalB', 'totalExpenses', 'balanceChurch',
       'saramPandefasana', 'dateVersementFME', 'rosiaNum', 'bokyBe', 'rapano',
       'tatitra', 'dateFanamarihana', 'caisseFME', 'chequeRef', 'dateCheque',
       'soraBolaDate', 'soraBolaMontant', 'soraBolaLettres', 'soraBolaSignataire',
-      'soraBolaLinesJson', 'signatures', 'endOfYear', 'receiptNumber', 'note'
+      'soraBolaLinesJson', 'signatures', 'endOfYear', 'receiptNumber', 'note',
+      'volamPiangonanaApetraka' // ✅
     ];
     if (!allowedFields.includes(field)) {
       console.warn(`⛔ Champ non autorisé: ${field}`);
@@ -60,11 +63,9 @@ router.put('/field', checkAccess, async (req, res) => {
     // 1. Vérifier si le rapport existe
     let report = await getMonthlyReport(month, eglise);
     if (!report) {
-      // Le rapport n'existe pas → on le recrée
       await computeAndSaveMonthlyReports(month, eglise);
       report = await getMonthlyReport(month, eglise);
       if (!report) {
-        // Si toujours null, on crée un squelette vide
         await upsertMonthlyReport(month, eglise, {});
         report = await getMonthlyReport(month, eglise);
       }
