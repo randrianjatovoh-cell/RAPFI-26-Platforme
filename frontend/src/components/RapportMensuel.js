@@ -111,6 +111,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setReport(r);
 
       if (r) {
+        console.log('📦 [loadData] Rapport complet reçu:', r);
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -305,11 +306,34 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('soraBolaLettres', lettres);
   };
 
-  const handleVolamPiangonanaChange = async (val) => {
+  // Gestion du champ volamPiangonanaApetraka avec formatage
+  const [volamPiangonanaInput, setVolamPiangonanaInput] = useState('');
+  useEffect(() => {
+    setVolamPiangonanaInput(formatMontant(volamPiangonanaApetraka));
+  }, [volamPiangonanaApetraka]);
+
+  const handleVolamPiangonanaChange = (e) => {
     if (isReadOnlyMode()) return;
-    const num = parseFloat(val) || 0;
-    setVolamPiangonanaApetraka(num);
-    await updateField('volamPiangonanaApetraka', num);
+    const raw = e.target.value.replace(/\s/g, '');
+    const num = parseFloat(raw);
+    if (!isNaN(num)) {
+      const intValue = Math.floor(num);
+      setVolamPiangonanaApetraka(intValue);
+      setVolamPiangonanaInput(formatMontant(intValue));
+      updateField('volamPiangonanaApetraka', intValue);
+    } else if (raw === '') {
+      setVolamPiangonanaApetraka(0);
+      setVolamPiangonanaInput('');
+      updateField('volamPiangonanaApetraka', 0);
+    }
+  };
+
+  const handleVolamPiangonanaBlur = () => {
+    if (volamPiangonanaInput === '') {
+      setVolamPiangonanaInput('0');
+      setVolamPiangonanaApetraka(0);
+      updateField('volamPiangonanaApetraka', 0);
+    }
   };
 
   const renderDateField = (value) => {
@@ -397,6 +421,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           text-align: left;
           font-family: inherit;
           font-size: inherit;
+        }
+        .align-right {
+          text-align: right;
+        }
+        .flex-grow {
+          flex: 1;
         }
       `}</style>
 
@@ -532,20 +562,21 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       </div>
 
       {/* ✅ Ligne corrigée : alignée à droite, sans "Ar" */}
-      <div className="text-right mt-1">
-        <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
-        <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold ml-1">
+      <div className="flex justify-end items-center mt-1">
+        <span className="font-bold mr-1">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
+        <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold">
           {formatMontant(totalNetFederation)}
         </span>
       </div>
 
-      {/* ✅ Champ corrigé : aligné à droite, sans "Ar" à côté */}
-      <div className="text-right mt-1 flex items-center justify-end gap-2">
-        <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
+      {/* ✅ Champ corrigé : aligné à droite, sans "Ar" à côté, avec formatage */}
+      <div className="flex justify-end items-center mt-1">
+        <span className="font-bold mr-1">Volam-piangonana apetraka any @ FME :</span>
         <input
-          type="number"
-          value={volamPiangonanaApetraka}
-          onChange={(e) => handleVolamPiangonanaChange(e.target.value)}
+          type="text"
+          value={volamPiangonanaInput}
+          onChange={handleVolamPiangonanaChange}
+          onBlur={handleVolamPiangonanaBlur}
           className="rounded p-0.5 text-right border"
           style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
           disabled={readOnlyMode}
