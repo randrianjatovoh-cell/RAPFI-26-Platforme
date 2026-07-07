@@ -1,390 +1,252 @@
-// src/components/Receipts.js
-import React from 'react';
-import { formatNumber, nombreEnLettresCapitalized } from '../services/helpers';
+// src/components/Login.js
+import React, { useState, useEffect, useRef } from 'react';
+import { useUser } from '../context/UserContext';
 
-export default function Receipts({ entries, eglise, district, federation, sabbathDate, monthId, sabbathIndex, onClose }) {
-  const validEntries = entries.filter(e => e.memberName && (
-    (e.f1 || 0) + (e.f2 || 0) + (e.f3 || 0) + (e.f4 || 0) +
-    (e.f5 || 0) + (e.f6 || 0) + (e.f7 || 0) + (e.f8 || 0) +
-    (e.b9 || 0) + (e.b10 || 0) > 0
-  ));
+export default function Login({ onLogin }) {
+  const { login } = useUser();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailValid, setEmailValid] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
+  const emailInputRef = useRef(null);
 
-  if (validEntries.length === 0) {
-    return (
-      <div className="text-center p-8 text-gray-500">
-        Aucune donnée pour générer des reçus.
-        <button onClick={onClose} className="ml-4 bg-gray-600 text-white px-4 py-2 rounded">Fermer</button>
-      </div>
-    );
-  }
+  // Charger l'email sauvegardé
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('loginEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(savedEmail));
+    }
+    emailInputRef.current?.focus();
+  }, []);
 
-  const chunkSize = 4;
-  const receiptChunks = [];
-  for (let i = 0; i < validEntries.length; i += chunkSize) {
-    receiptChunks.push(validEntries.slice(i, i + chunkSize));
-  }
+  // Validation en temps réel
+  useEffect(() => {
+    setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    setPasswordValid(password.length >= 4); // Mot de passe minimum 4 caractères
+  }, [email, password]);
 
-  const monthName = monthId ? new Date(monthId + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '';
-  const sabbathLabel = sabbathIndex ? `Sabata Faha-${sabbathIndex}` : '';
-  const formattedDistrict = district ? district.charAt(0).toUpperCase() + district.slice(1).toLowerCase() : '________';
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-  const renderReceipt = (entry, key) => {
-    const total = (entry.f1 || 0) + (entry.f2 || 0) + (entry.f3 || 0) + (entry.f4 || 0) +
-                  (entry.f5 || 0) + (entry.f6 || 0) + (entry.f7 || 0) + (entry.f8 || 0) +
-                  (entry.b9 || 0) + (entry.b10 || 0);
-    const totalLetters = nombreEnLettresCapitalized(total);
-    const dateStr = sabbathDate ? new Date(sabbathDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '___/__/____';
-    const rosiaNumber = entry.rosia || '________';
+    // Validation côté client
+    if (!emailValid) {
+      setError('Veuillez entrer une adresse email valide.');
+      emailInputRef.current?.focus();
+      return;
+    }
+    if (!passwordValid) {
+      setError('Le mot de passe doit contenir au moins 4 caractères.');
+      return;
+    }
 
-    const f1 = entry.f1 || 0;
-    const f2 = entry.f2 || 0;
-    const f3 = entry.f3 || 0;
-    const f4 = entry.f4 || 0;
-    const f5 = entry.f5 || 0;
-    const f6 = entry.f6 || 0;
-    const f7 = entry.f7 || 0;
-    const f8 = entry.f8 || 0;
-    const b9 = entry.b9 || 0;
-    const b10 = entry.b10 || 0;
+    setLoading(true);
 
-    const rows = [
-      { label: 'Sekoly Sabata / S. faha-13', miakatra: f2, mijanona: b9 },
-      { label: 'Fanambinana', miakatra: f3, mijanona: 0 },
-      { label: 'Tingerin-tana', miakatra: f4, mijanona: 0 },
-      { label: 'Fanompoam-pivavahana', miakatra: f5, mijanona: b10 },
-      { label: 'Federasion', miakatra: f6, mijanona: 0 },
-      { label: 'Maneran-tany', miakatra: f7, mijanona: 0 },
-      { label: 'Manokana 1', miakatra: f8, mijanona: 0 },
-      { label: 'Manokana 2', miakatra: 0, mijanona: 0 },
-      { label: 'Manokana 3', miakatra: 0, mijanona: 0 },
-    ];
-
-    let totalMiakatra = 0, totalMijanona = 0;
-    rows.forEach(row => {
-      totalMiakatra += row.miakatra || 0;
-      totalMijanona += row.mijanona || 0;
-    });
-    const totalFanatitra = totalMiakatra + totalMijanona;
-    const totalNarotsaka = f1 + totalFanatitra;
-
-    return (
-      <div key={key} className="receipt">
-        {/* En-tête */}
-        <div className="receipt-header">
-          <div className="header-top">
-            <div className="logo-title-group">
-              <img 
-                src="/FINANCE.png" 
-                alt="Finance" 
-                className="header-logo" 
-                onError={(e) => e.target.style.display = 'none'} 
-              />
-              <img 
-                src="/Noir.png" 
-                alt="Noir" 
-                className="header-logo" 
-                onError={(e) => e.target.style.display = 'none'} 
-              />
-              <div className="church-titles">
-                <div className="church-line">FIANGONANA ADVANTISTA</div>
-                <div className="sabbath-line">MITANDRINA NY ANDRO FAHA-FITO</div>
-                <div className="federation-line">{federation || 'FÉDÉRATION'}</div>
-              </div>
-            </div>
-            <div className="rosia-number">ROSIA N° {rosiaNumber}</div>
-          </div>
-        </div>
-
-        {/* Corps */}
-        <div className="receipt-body">
-          <div className="title-box">
-            <div className="receipt-title">AMPAHAFOLONY SY FANATITRA HO AN'I JEHOVAH</div>
-            <div className="verse">Chak 28:20a « vifany olona mahatotely tokoa dia ho be fitakianana »</div>
-          </div>
-
-          <div className="member-info">
-            <div className="member-line">
-              <span className="label">Fiangonana ao :</span>
-              <span className="value">{eglise || '________'}</span>
-              <span className="label district-label">DISTRIKA :</span>
-              <span className="value">{formattedDistrict}</span>
-            </div>
-            <div className="member-line">
-              <span className="label">Voaray tamin-dR :</span>
-              <span className="value">{entry.memberName || '________'}</span>
-            </div>
-          </div>
-
-          <div className="amount-row">
-            <span className="label">Ny vola :</span>
-            <span className="value">{formatNumber(totalNarotsaka)} Ar</span>
-          </div>
-
-          {/* Tableau 3 colonnes avec largeurs fixes */}
-          <table className="receipt-table">
-            <thead>
-              <tr>
-                <th className="title-cell" style={{ width: '40%' }}>AMPAHAFOLONY</th>
-                <th className="header-cell" style={{ width: '30%' }}>Fanatitra Miakatra</th>
-                <th className="header-cell" style={{ width: '30%' }}>Fanatitra Mijanona</th>
-              </tr>
-              <tr>
-                <th className="title-cell" style={{ width: '40%' }}>FANATITRA</th>
-                <th className="header-cell" style={{ width: '30%' }}></th>
-                <th className="header-cell" style={{ width: '30%' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="title-cell">AMPAHAFOLONY</td>
-                <td className="amount-cell" colSpan="2">{formatNumber(f1)}</td>
-              </tr>
-              {rows.map((row, idx) => (
-                <tr key={idx}>
-                  <td className="category-cell">{row.label}</td>
-                  <td className="amount-cell">{formatNumber(row.miakatra)}</td>
-                  <td className="amount-cell">{formatNumber(row.mijanona)}</td>
-                </tr>
-              ))}
-              <tr className="total-row">
-                <td className="title-cell">Tontalin'ny fanatitra</td>
-                <td className="total-cell">{formatNumber(totalMiakatra)}</td>
-                <td className="total-cell">{formatNumber(totalMijanona)}</td>
-              </tr>
-              <tr className="total-row">
-                <td className="title-cell">Tontalin'ny vola narotsaka</td>
-                <td className="total-cell" colSpan="2">{formatNumber(totalNarotsaka)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="footer-note">(Rosia omena ny mambra mamerina ny 1/10 sy ny fanatitra)</div>
-        </div>
-      </div>
-    );
+    try {
+      const data = await login(email, password);
+      // Sauvegarder l'email pour la prochaine connexion
+      localStorage.setItem('loginEmail', email);
+      if (onLogin) onLogin(data.user);
+    } catch (err) {
+      setError(err.message || 'Identifiant ou mot de passe incorrect. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const toggleShowPassword = () => {
+    setShowPassword((prev) => !prev);
   };
 
   return (
-    <div className="receipts-container">
-      <div className="receipts-header no-print flex justify-between items-center mb-4 p-3 bg-gray-100 rounded">
-        <h2 className="text-xl font-bold">Reçus personnels - {monthName} - {sabbathLabel}</h2>
-        <div className="flex gap-2">
-          <button onClick={onClose} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-            <i className="fas fa-arrow-left mr-2"></i> Retour
-          </button>
-          <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            <i className="fas fa-print mr-2"></i> Imprimer
-          </button>
+    <div
+      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url('/Login.png')` }}
+    >
+      <div className="max-w-5xl w-full bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 flex flex-col md:flex-row gap-8 items-center justify-center">
+        {/* Colonne gauche : formulaire */}
+        <div className="flex-1 w-full max-w-md mx-auto">
+          <div className="text-center">
+            <div className="flex justify-center">
+              <img
+                src="/FINANCE.png"
+                alt="Logo Gestion des Dîmes et Offrandes"
+                className="h-20 w-20 object-contain rounded-full shadow-lg ring-2 ring-amber-500/30"
+              />
+            </div>
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-800">
+              Gestion des Dîmes et Offrandes
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Connectez-vous à votre espace de travail
+            </p>
+          </div>
+
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-shake" role="alert">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <i className="fas fa-exclamation-circle text-red-500"></i>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Champ Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Adresse email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i className={`fas fa-envelope ${emailValid ? 'text-green-500' : 'text-amber-400'}`}></i>
+                  </div>
+                  <input
+                    ref={emailInputRef}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    aria-describedby="email-error"
+                    className={`appearance-none block w-full pl-10 pr-3 py-3 border ${emailValid ? 'border-green-500' : 'border-gray-300'} rounded-xl placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-150 bg-white/80`}
+                    placeholder="exemple@email.com"
+                    autoComplete="username"
+                  />
+                  {emailValid && (
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <i className="fas fa-check-circle text-green-500"></i>
+                    </div>
+                  )}
+                </div>
+                <p id="email-error" className="mt-1 text-xs text-gray-500">
+                  Entrez votre adresse email institutionnelle.
+                </p>
+              </div>
+
+              {/* Champ Mot de passe */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Mot de passe <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i className={`fas fa-lock ${passwordValid ? 'text-green-500' : 'text-amber-400'}`}></i>
+                  </div>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    aria-describedby="password-hint"
+                    className="appearance-none block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-150 bg-white/80"
+                    placeholder="••••••••"
+                    minLength={4}
+                    autoComplete="current-password"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <button
+                      type="button"
+                      onClick={toggleShowPassword}
+                      className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-full p-1"
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    >
+                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                </div>
+                <p id="password-hint" className="mt-1 text-xs text-gray-500">
+                  Minimum 4 caractères.
+                </p>
+              </div>
+            </div>
+
+            {/* Options supplémentaires */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Se souvenir de moi
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <a href="#" className="font-medium text-amber-600 hover:text-amber-500">
+                  Mot de passe oublié ?
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading || !emailValid || !passwordValid}
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-700 hover:via-orange-700 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Connexion en cours...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-sign-in-alt mr-2" />
+                    Se connecter
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="text-center text-xs text-gray-500 pt-4 border-t border-gray-200">
+              <p>© 2026 Gestion des Dîmes et Offrandes</p>
+              <p className="mt-1">Système sécurisé - Tous droits réservés à RH André</p>
+            </div>
+          </form>
+        </div>
+
+        {/* Colonne droite : QR Code */}
+        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs mx-auto md:border-l md:border-gray-200 md:pl-8 pt-8 md:pt-0">
+          <p className="text-sm text-gray-700 font-medium mb-4 text-center">
+            <i className="fas fa-qrcode mr-2 text-amber-500"></i>
+            Scannez ce QR Code pour demander Login
+          </p>
+          <img
+            src="/QR_Code.png"
+            alt="QR Code pour demander un identifiant de connexion"
+            className="w-48 h-48 object-contain border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="16" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
+            }}
+          />
         </div>
       </div>
 
-      {receiptChunks.map((chunk, chunkIndex) => (
-        <div key={chunkIndex} className="print-page">
-          <div className="receipts-grid">
-            {chunk.map((entry, idx) => renderReceipt(entry, chunkIndex * chunkSize + idx))}
-          </div>
-        </div>
-      ))}
-
       <style>{`
-        /* --- Styles écran (confortables) --- */
-        .receipts-container { margin-top: 1rem; padding: 0 0.5rem; }
-        .receipts-header { background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
-        .receipts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
-        .receipt {
-          border: 1.5px solid #000;
-          padding: 0.5rem 0.8rem;
-          font-size: 20px;
-          font-family: 'Times New Roman', serif;
-          background: #fff;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
-        .receipt-header { border-bottom: none !important; padding-bottom: 4px; margin-bottom: 4px; }
-        .header-top { display: flex; justify-content: space-between; align-items: center; }
-        .logo-title-group { display: flex; align-items: center; gap: 10px; }
-        .header-logo { height: 40px; width: auto; }
-        .church-titles { display: flex; flex-direction: column; line-height: 1.3; margin-left: 5px; }
-        .church-titles .church-line,
-        .church-titles .sabbath-line,
-        .church-titles .federation-line {
-          font-weight: bold; font-size: 18px; margin: 0; padding: 0;
-        }
-        .rosia-number { font-weight: bold; font-size: 18px; text-align: right; white-space: nowrap; }
-        .receipt-body { display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
-        .title-box { border: 1px solid #000; padding: 4px 6px; margin-bottom: 4px; text-align: center; }
-        .receipt-title { font-weight: bold; font-size: 18px; letter-spacing: 0.5px; margin: 0; padding: 0; }
-        .verse { font-style: italic; font-size: 14px; color: #333; margin: 0; padding: 0; }
-        .member-info { font-size: 16px; margin: 4px 0; border-bottom: none !important; padding-bottom: 4px; }
-        .member-line { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0; padding: 0; }
-        .member-line .label { font-weight: bold; min-width: 80px; margin: 0; padding: 0; }
-        .member-line .district-label { min-width: 60px; margin-left: 0.5rem; }
-        .member-line .value { margin: 0; padding: 0; }
-        .amount-row { display: flex; justify-content: flex-start; gap: 0.8rem; font-size: 16px; font-weight: bold; margin: 4px 0; border-bottom: 1px solid #000; padding-bottom: 4px; }
-        .amount-row .label { font-weight: bold; }
-        .amount-row .value { font-weight: bold; }
-        .receipt-table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 4px 0; line-height: 1.3; border-spacing: 0; table-layout: auto; }
-        .receipt-table th, .receipt-table td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
-        .receipt-table .title-cell { text-align: left; font-weight: bold; padding-left: 6px; }
-        .receipt-table .header-cell { text-align: center; font-weight: bold; background: #f0f0f0; }
-        .receipt-table .category-cell { text-align: left; padding-left: 6px; }
-        .receipt-table .amount-cell { text-align: right; padding-right: 6px; }
-        .receipt-table .total-cell { text-align: right; font-weight: bold; padding-right: 6px; }
-        .receipt-table .total-row td { font-weight: bold; background: #f9f9f9; }
-        .footer-note { text-align: left; font-size: 14px; margin-top: 4px; padding-top: 4px; border-top: 1px dotted #ccc; font-style: italic; margin-bottom: 0; padding-bottom: 0; line-height: 1.3; }
-
-        /* --- Impression : 4 reçus par page A4 paysage — marges réduites et colonnes serrées --- */
-        @media print {
-          @page {
-            size: A4 landscape;
-            margin: 1mm; /* marges réduites à 1 mm */
-          }
-          html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-          }
-          .no-print { display: none !important; }
-          
-          .print-page {
-            page-break-after: always;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            margin: 0;
-            padding: 0;
-          }
-          .print-page:last-child { page-break-after: avoid; }
-          
-          .receipts-container {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-          }
-          
-          .receipts-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 1mm; /* espace réduit à 1 mm */
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 1mm; /* padding externe réduit à 1 mm */
-            box-sizing: border-box;
-          }
-          
-          .receipt {
-            border: 0.5px solid #000;
-            padding: 0.2mm 0.5mm;
-            margin: 0;
-            font-size: 34px; /* légère réduction pour gagner de la place */
-            height: 100%;
-            width: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            background: white;
-            line-height: 0.8;
-          }
-          .receipt-header { padding: 0; margin: 0; border-bottom: none !important; }
-          .header-top { padding: 0; margin: 0; gap: 0; }
-          .logo-title-group { gap: 2px; margin: 0; padding: 0; }
-          .header-logo { height: 18px; margin: 0; padding: 0; }
-          .church-titles { margin: 0; padding: 0; line-height: 0.8; }
-          .church-titles .church-line,
-          .church-titles .sabbath-line,
-          .church-titles .federation-line {
-            font-size: 17px;
-            margin: 0;
-            padding: 0;
-            line-height: 0.8;
-          }
-          .rosia-number { font-size: 17px; margin: 0; padding: 0; line-height: 0.8; }
-          .title-box { border: 0.5px solid #000; padding: 0.2mm 0.5mm; margin: 0; text-align: center; }
-          .receipt-title { font-size: 19px; margin: 0; padding: 0; letter-spacing: 0; line-height: 0.8; }
-          .verse { font-size: 12px; margin: 0; padding: 0; line-height: 0.8; }
-          .member-info { font-size: 17px; margin: 0; padding: 0; border-bottom: none !important; line-height: 0.8; }
-          .member-line { display: flex; align-items: center; gap: 1px; margin: 0; padding: 0; flex-wrap: nowrap; line-height: 0.8; }
-          .member-line .label { font-size: 15px; min-width: auto; margin: 0; padding: 0; }
-          .member-line .district-label { font-size: 15px; min-width: auto; margin: 0; padding: 0; }
-          .member-line .value { font-size: 15px; margin: 0; padding: 0; }
-          .amount-row { display: flex; justify-content: flex-start; gap: 2px; font-size: 17px; font-weight: bold; margin: 0; padding: 0; border-bottom: 0.5px solid #000; line-height: 0.8; }
-          .amount-row .label { font-size: 15px; margin: 0; padding: 0; }
-          .amount-row .value { font-size: 15px; margin: 0; padding: 0; }
-          /* Tableau : colonnes forcées plus petites */
-          .receipt-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px; /* encore réduit */
-            margin: 0;
-            padding: 0;
-            line-height: 0.75;
-            border-spacing: 0;
-            table-layout: fixed; /* ← pour forcer les largeurs */
-          }
-          .receipt-table th, 
-          .receipt-table td {
-            border: 0.5px solid #000;
-            padding: 0.2mm 0.3mm;
-            margin: 0;
-            text-align: center;
-            vertical-align: middle;
-          }
-          .receipt-table .title-cell {
-            font-size: 10px;
-            padding-left: 0.3mm;
-            text-align: left;
-            width: 40%; /* colonne des libellés */
-          }
-          .receipt-table .category-cell {
-            font-size: 9px;
-            padding-left: 0.3mm;
-            text-align: left;
-          }
-          .receipt-table .header-cell {
-            font-size: 10px;
-            width: 30%; /* colonne en-tête "Miakatra" */
-          }
-          .receipt-table .amount-cell {
-            font-size: 10px;
-            padding-right: 0.3mm;
-            text-align: right;
-            width: 30%; /* colonne "Mijanona" */
-          }
-          .receipt-table .total-cell {
-            font-size: 10px;
-            padding-right: 0.3mm;
-            text-align: right;
-          }
-          .receipt-table .total-row td {
-            font-weight: bold;
-            background: #f9f9f9;
-          }
-          .footer-note {
-            font-size: 9px;
-            margin: 0;
-            padding: 0;
-            border-top: 0.5px dotted #ccc;
-            font-style: italic;
-            line-height: 0.8;
-          }
-          .receipt-body {
-            flex: 1;
-            justify-content: flex-start;
-            padding: 0;
-            margin: 0;
-          }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
         }
       `}</style>
     </div>
