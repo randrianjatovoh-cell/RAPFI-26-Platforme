@@ -130,10 +130,18 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setFrais(fraisVal);
 
-      // Récupérer volamPiangonanaApetraka depuis le rapport
-      if (r) {
-        setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
+      // Récupérer volamPiangonanaApetraka depuis le rapport ou localStorage
+      let volamValue = 0;
+      if (r && r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null) {
+        volamValue = r.volamPiangonanaApetraka;
+      } else {
+        const fallbackKey = `volamPiangonanaApetraka_${currentMonth}_${eglise}`;
+        const stored = localStorage.getItem(fallbackKey);
+        if (stored) {
+          volamValue = parseFloat(stored) || 0;
+        }
       }
+      setVolamPiangonanaApetraka(volamValue);
 
       const savedOpening = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const opening = savedOpening ? parseFloat(savedOpening) : 0;
@@ -341,7 +349,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
             <tr className="font-bold">
               <td className="border p-1">Volam-piangonana apetraka any @ FME</td>
               <td className="border p-1 text-right" colSpan="2">
-                {formatNumber(volamPiangonanaApetraka)} Ar
+                {formatNumber(volamPiangonanaApetraka)}
               </td>
               <td className="separator-col p-1" style={{border:'none'}}></td>
             </tr>
