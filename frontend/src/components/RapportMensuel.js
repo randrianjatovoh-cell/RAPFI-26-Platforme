@@ -67,6 +67,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [error, setError] = useState(null);
 
   const abortControllerRef = useRef(null);
+  const fallbackKey = `volamPiangonanaApetraka_${currentMonth}_${eglise}`;
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -131,8 +132,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaMontant(r.soraBolaMontant || 0);
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
-        setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
-        console.log('📦 [loadData] volamPiangonanaApetraka récupéré :', r.volamPiangonanaApetraka);
+
+        // --- Récupération de volamPiangonanaApetraka avec fallback localStorage ---
+        let volamValue = r.volamPiangonanaApetraka;
+        if (volamValue === undefined || volamValue === null) {
+          const stored = localStorage.getItem(fallbackKey);
+          if (stored) {
+            volamValue = parseFloat(stored) || 0;
+            console.log('📦 [loadData] volamPiangonanaApetraka restauré depuis localStorage:', volamValue);
+          } else {
+            volamValue = 0;
+          }
+        }
+        setVolamPiangonanaApetraka(volamValue);
 
         // Restauration du tableau cheque/sora-bola
         let loadedFromBackend = false;
@@ -160,8 +172,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch (e) { /* ignore */ }
         }
         if (!loadedFromBackend) {
-          const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
-          const stored = localStorage.getItem(fallbackKey);
+          const fallbackKeyCheque = `chequeSora_${currentMonth}_${eglise}`;
+          const stored = localStorage.getItem(fallbackKeyCheque);
           if (stored) {
             try {
               const parsed = JSON.parse(stored);
@@ -310,6 +322,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
+    localStorage.setItem(fallbackKey, num.toString());
     await updateField('volamPiangonanaApetraka', num);
   };
 
@@ -352,7 +365,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         .rapport-mensuel .border-black { border-color: #000 !important; }
         .rapport-mensuel .protected-cell { background-color: #f9f9f9; }
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        /* Styles pour l'impression */
         @media print {
           @page { size: A4 portrait; margin: 0.1cm; }
           body, .rapport-mensuel { font-size: 7.5pt !important; line-height: 1.15 !important; }
@@ -367,7 +379,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .rapport-mensuel .mt-2 { margin-top: 0.1cm !important; }
           .rapport-mensuel .gap-1 { gap: 0.05cm !important; }
           .rapport-mensuel .p-1 { padding: 1px !important; }
-          /* Colonnes du tableau cheque/sora-bola */
           .cheque-table { table-layout: fixed !important; width: 100% !important; }
           .cheque-table .cheque-col { width: 70% !important; }
           .cheque-table .sora-col { width: 30% !important; }
@@ -380,13 +391,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .table-volam-piangonana th:nth-child(1), .table-volam-piangonana td:nth-child(1) { width: 28% !important; }
           .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
-          /* Alignement à droite des montants en impression */
-          .print-right {
-            text-align: right !important;
-          }
-          .print-amount {
-            font-weight: bold;
-          }
+          .print-right { text-align: right !important; }
+          .print-amount { font-weight: bold; }
         }
         .cheque-table { table-layout: fixed; width: 100%; }
         .cheque-col { width: 70%; }
@@ -532,7 +538,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       {/* Section des montants alignés à droite (écran et impression) */}
       <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-        {/* SARAM-PANDEFASANA */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
           <span className="print-amount" style={{ minWidth: '80px', textAlign: 'right' }}>
@@ -540,7 +545,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
-        {/* TONTALIN'NY VOLA MIAKATRA any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
           <span className="inline-block border border-gray-800 bg-gray-100 px-2 py-0.5 rounded font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
@@ -548,14 +552,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
-        {/* Volam-piangonana apetraka any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
-          {/* Affichage en impression (caché à l'écran) */}
           <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right' }}>
             {formatMontant(volamPiangonanaApetraka)}
           </span>
-          {/* Champ de saisie à l'écran (caché en impression) */}
           <input
             type="number"
             value={volamPiangonanaApetraka}
