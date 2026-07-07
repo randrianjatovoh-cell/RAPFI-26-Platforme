@@ -357,13 +357,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return { label: `Sabata ${i}`, date: dateDisplay };
   });
 
-  // Styles supplémentaires pour les améliorations visuelles
-  const headerStyle = { color: '#1e3a5f', fontWeight: '700' };
-  const sectionStyle = { background: '#ffffff', borderRadius: '12px', padding: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: '16px' };
-  const tableHeaderStyle = { backgroundColor: '#f0f4ff', fontWeight: '600', color: '#1e3a5f' };
-
   return (
-    <div className="rapport-mensuel" style={{ maxWidth: '100%', margin: '0 auto', padding: '8px 12px', fontSize: '11pt', fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+    <div className="rapport-mensuel" style={{ maxWidth: '100%', margin: '0 auto', padding: '0 4px', fontSize: '11pt' }}>
       <style>{`
         .rapport-mensuel input { font-family: inherit; font-size: inherit; }
         .rapport-mensuel .border-black { border-color: #000 !important; }
@@ -406,6 +401,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .rapport-mensuel .mt-2 { margin-top: 0.1cm !important; }
           .rapport-mensuel .gap-1 { gap: 0.05cm !important; }
           .rapport-mensuel .p-1 { padding: 1px !important; }
+
           .cheque-table { table-layout: fixed !important; width: 100% !important; }
           .cheque-table .cheque-col { width: 80% !important; }
           .cheque-table .sora-col { width: 20% !important; }
@@ -430,6 +426,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .cheque-table .sora-bola-col input {
             text-align: right !important;
           }
+
           .table-volam-piangonana { table-layout: fixed !important; width: 100% !important; }
           .table-volam-piangonana td { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
           .table-volam-piangonana th { white-space: normal !important; word-break: break-word !important; }
@@ -442,14 +439,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
           .print-right { text-align: right !important; }
           .print-amount { font-weight: bold; }
-          .shadow, .shadow-sm, .shadow-md { box-shadow: none !important; }
-          .bg-white, .bg-gray-50, .bg-indigo-50 { background: transparent !important; }
         }
         .cheque-table { table-layout: fixed; width: 100%; }
         .cheque-col { width: 70%; }
         .sora-col { width: 30%; }
-        .cheque-col input, .sora-col input { width: 100%; box-sizing: border-box; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; transition: border-color 0.2s; }
-        .cheque-col input:focus, .sora-col input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+        .cheque-col input, .sora-col input { width: 100%; box-sizing: border-box; padding: 2px 4px; border: 1px solid #ccc; border-radius: 2px; }
+        .cheque-col input:focus, .sora-col input:focus { outline: 2px solid #1a3c6e; }
         .cheque-table td, .cheque-table th { word-wrap: break-word; overflow-wrap: break-word; text-align: center; }
         .cheque-table .sora-bola-col input { text-align: right; }
         .checkbox-group { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
@@ -465,60 +460,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           font-family: inherit;
           font-size: inherit;
         }
-        .summary-card {
-          background: #f8fafc;
-          border-radius: 8px;
-          padding: 8px 12px;
-          margin-top: 6px;
-        }
-        .section-title {
-          font-size: 1.05rem;
-          font-weight: 700;
-          color: #1e3a5f;
-          border-bottom: 2px solid #dbeafe;
-          padding-bottom: 4px;
-          margin-bottom: 12px;
-        }
-        .input-field {
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          padding: 4px 6px;
-          background: #fff;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .input-field:focus {
-          outline: none;
-          border-color: #4f46e5;
-          box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
-        }
-        .input-field:disabled {
-          background: transparent;
-          border: none;
-          color: #000;
-          cursor: default;
-        }
-        .btn-print {
-          background: #1e293b;
-          color: white;
-          padding: 4px 12px;
-          border-radius: 6px;
-          font-size: 0.85rem;
-          font-weight: 500;
-          border: none;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-        .btn-print:hover { background: #0f172a; }
-        .btn-print i { margin-right: 4px; }
-        .total-highlight {
-          background: #eef2ff;
-          border-radius: 6px;
-          padding: 2px 8px;
-          font-weight: 700;
-        }
       `}</style>
 
-      <div className="relative mb-3 flex items-start justify-between" style={{ marginBottom: '8px' }}>
+      <div className="relative mb-1 flex items-start justify-between" style={{ marginBottom: '4px' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ width: '50px', height: '50px' }}>
             <img src="/FINANCE.png" alt="Finance" style={{ maxHeight: '100%', maxWidth: '100%' }} onError={(e) => e.target.style.display = 'none'} />
@@ -529,20 +473,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
         </div>
         <div className="flex-1 text-center">
-          {displayFederation && <div className="font-bold uppercase" style={{ fontSize: '12pt', marginBottom: '2px', color: '#1e3a5f' }}>{displayFederation}</div>}
-          <div className="font-bold" style={{ fontSize: '13pt', color: '#1e3a5f' }}>RAPAOROM-BOLAN'NY FIANGONANA</div>
+          {displayFederation && <div className="font-bold uppercase" style={{ fontSize: '12pt', marginBottom: '2px' }}>{displayFederation}</div>}
+          <div className="font-bold" style={{ fontSize: '13pt' }}>RAPAOROM-BOLAN'NY FIANGONANA</div>
           <div className="italic" style={{ fontSize: '9pt' }}>"IZAY OLONA MAHATOKY TOKOA DIA HO BE FITAHIANA" (Ohab. 28:20a)</div>
         </div>
-        <button onClick={() => window.print()} className="btn-print no-print"><i className="fas fa-print"></i> Imprimer</button>
+        <button onClick={() => window.print()} className="bg-gray-600 text-white px-3 py-1 rounded text-sm no-print">Imprimer</button>
       </div>
 
-      <div style={{ height: '6px' }}></div>
+      <div style={{ height: '10px' }}></div>
 
       <div style={{ fontSize: '10pt' }} className="mb-2">
         <div className="flex justify-between">
-          <div><strong>FIANGONANA:</strong> <span className="font-medium">{eglise}</span></div>
+          <div><strong>FIANGONANA:</strong> {eglise}</div>
           <div style={{ textAlign: 'center' }}><strong>Code:</strong> {report?.code || ''}</div>
-          <div><strong>Volana:</strong> <span className="font-medium">{formatMonthYear(currentMonth).split(' ')[0]}</span></div>
+          <div><strong>Volana:</strong> {formatMonthYear(currentMonth).split(' ')[0]}</div>
         </div>
         <div className="flex justify-between mt-1">
           <div><strong>DISTRIKA:</strong> {user?.district || 'ANTSAHATANTERAKA'}</div>
@@ -550,103 +494,100 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </div>
       </div>
 
-      {/* Section I - Tableau des offrandes */}
-      <div style={sectionStyle}>
-        <h3 className="section-title">I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-black" style={{ fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={tableHeaderStyle}>
-                <th className="border border-black p-1">DATY</th>
-                {sabbathHeaders.map((h, idx) => (
-                  <th key={idx} className="border border-black p-1">
-                    {h.label}<br />
-                    {h.date || ''}
-                  </th>
-                ))}
-                <th className="border border-black p-1">TONTALINY</th>
-                <th className="border border-black p-1">RAPAORO</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((cat, idx) => {
-                if (idx >= categories.length - 2) {
-                  return (
-                    <tr key={`category-${idx}`}>
-                      <td className="border border-black p-1 font-bold">{cat}</td>
-                      <td className="border p-1 text-right">-</td>
-                      <td className="border p-1 text-right">-</td>
-                      <td className="border p-1 text-right">-</td>
-                      <td className="border p-1 text-right">-</td>
-                      <td className="border p-1 text-right">-</td>
-                      <td className="border p-1 text-right">-</td>
-                      <td className="border p-1 text-right">-</td>
-                    </tr>
-                  );
+      <h3 className="font-bold mt-1">I- MOMBA NY VOLA HAROTSAKA ANY AMIN'NY FEDERASIONA</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-black">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="border border-black p-1">DATY</th>
+              {sabbathHeaders.map((h, idx) => (
+                <th key={idx} className="border border-black p-1">
+                  {h.label}<br />
+                  {h.date || ''}
+                </th>
+              ))}
+              <th className="border border-black p-1">TONTALINY</th>
+              <th className="border border-black p-1">RAPAORO</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((cat, idx) => {
+              if (idx >= categories.length - 2) {
+                return (
+                  <tr key={`category-${idx}`}>
+                    <td className="border border-black p-1 font-bold">{cat}</td>
+                    <td className="border p-1 text-right">-</td>
+                    <td className="border p-1 text-right">-</td>
+                    <td className="border p-1 text-right">-</td>
+                    <td className="border p-1 text-right">-</td>
+                    <td className="border p-1 text-right">-</td>
+                    <td className="border p-1 text-right">-</td>
+                    <td className="border p-1 text-right">-</td>
+                  </tr>
+                );
+              }
+              const sabVals = categorySums[idx] || [0, 0, 0, 0, 0];
+              const total = sabVals.reduce((a, b) => a + b, 0);
+              if (idx === 1) {
+                let sumRapaoro = 0;
+                for (let i = 1; i <= 4; i++) {
+                  sumRapaoro += (categorySums[i] || [0, 0, 0, 0, 0]).reduce((a, b) => a + b, 0);
                 }
-                const sabVals = categorySums[idx] || [0, 0, 0, 0, 0];
-                const total = sabVals.reduce((a, b) => a + b, 0);
-                if (idx === 1) {
-                  let sumRapaoro = 0;
-                  for (let i = 1; i <= 4; i++) {
-                    sumRapaoro += (categorySums[i] || [0, 0, 0, 0, 0]).reduce((a, b) => a + b, 0);
-                  }
-                  return (
-                    <tr key={`category-${idx}`}>
-                      <td className="border p-1 font-bold">{cat}</td>
-                      {sabVals.map((v, i) => (
-                        <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
-                      ))}
-                      <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
-                      <td rowSpan="4" className="border p-1 text-right align-middle font-bold">
-                        {formatMontant(sumRapaoro)}
-                      </td>
-                    </tr>
-                  );
-                } else if (idx >= 2 && idx <= 4) {
-                  return (
-                    <tr key={`category-${idx}`}>
-                      <td className="border p-1 font-bold">{cat}</td>
-                      {sabVals.map((v, i) => (
-                        <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
-                      ))}
-                      <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
-                    </tr>
-                  );
-                } else {
-                  return (
-                    <tr key={`category-${idx}`}>
-                      <td className="border p-1 font-bold">{cat}</td>
-                      {sabVals.map((v, i) => (
-                        <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
-                      ))}
-                      <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
-                      <td className="border p-1 text-right">{formatMontant(total)}</td>
-                    </tr>
-                  );
-                }
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="font-bold" style={{ backgroundColor: '#eef2ff' }}>
-                <td className="border p-1">TONTALIN'NY VOLA MIAKATRA any @ FME</td>
-                {totalsBySabbathA.map((s, i) => (
-                  <td key={i} className="border p-1 text-right">{formatMontant(s)}</td>
-                ))}
-                <td className="border p-1 text-right">{formatMontant(totalA)}</td>
-                <td className="border p-1 text-right">{formatMontant(totalA)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+                return (
+                  <tr key={`category-${idx}`}>
+                    <td className="border p-1 font-bold">{cat}</td>
+                    {sabVals.map((v, i) => (
+                      <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
+                    ))}
+                    <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
+                    <td rowSpan="4" className="border p-1 text-right align-middle font-bold">
+                      {formatMontant(sumRapaoro)}
+                    </td>
+                  </tr>
+                );
+              } else if (idx >= 2 && idx <= 4) {
+                return (
+                  <tr key={`category-${idx}`}>
+                    <td className="border p-1 font-bold">{cat}</td>
+                    {sabVals.map((v, i) => (
+                      <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
+                    ))}
+                    <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
+                  </tr>
+                );
+              } else {
+                return (
+                  <tr key={`category-${idx}`}>
+                    <td className="border p-1 font-bold">{cat}</td>
+                    {sabVals.map((v, i) => (
+                      <td key={i} className="border p-1 text-right">{formatMontant(v)}</td>
+                    ))}
+                    <td className="border p-1 text-right font-bold">{formatMontant(total)}</td>
+                    <td className="border p-1 text-right">{formatMontant(total)}</td>
+                  </tr>
+                );
+              }
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="font-bold bg-gray-50">
+              <td className="border p-1">TONTALIN'NY VOLA MIAKATRA any @ FME</td>
+              {totalsBySabbathA.map((s, i) => (
+                <td key={i} className="border p-1 text-right">{formatMontant(s)}</td>
+              ))}
+              <td className="border p-1 text-right">{formatMontant(totalA)}</td>
+              <td className="border p-1 text-right">{formatMontant(totalA)}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
-      {/* Section des montants FME */}
-      <div className="summary-card no-print" style={{ marginTop: '12px', marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-        {/* Ligne 1 : date à gauche, SARAM-PANDEFASANA à droite */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginBottom: '4px' }}>
+      {/* 🔥 NOUVELLE SECTION : ligne avec date à gauche et SARAM-PANDEFASANA à droite */}
+      <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        {/* Première ligne : date à gauche, SARAM-PANDEFASANA à droite */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span className="font-bold" style={{ color: '#1e3a5f' }}>Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
+            <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
             <input
               type="date"
               value={dateVersementFME}
@@ -657,107 +598,105 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 }
               }}
               disabled={readOnlyMode}
-              className="input-field no-print"
-              style={{ width: '160px' }}
+              style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '2px 4px', fontSize: 'inherit' }}
+              className="no-print"
             />
             <span className="print-only" style={{ display: 'none' }}>{dateVersementFME ? formatDateInput(dateVersementFME) : '__/__/____'}</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="font-bold" style={{ color: '#1e3a5f' }}>SARAM-PANDEFASANA (Ar) :</span>
-            <span className="print-amount" style={{ minWidth: '80px', textAlign: 'right', fontWeight: '600', color: '#1e3a5f' }}>
+            <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
+            <span className="print-amount" style={{ minWidth: '80px', textAlign: 'right' }}>
               {formatMontant(saramPandefasana)}
             </span>
           </div>
         </div>
 
-        {/* Ligne 2 : TONTALIN'NY VOLA MIAKATRA any @ FME */}
-        <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end', marginBottom: '4px' }}>
-          <span className="font-bold" style={{ color: '#1e3a5f' }}>TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
-          <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right', color: '#1e3a5f', background: '#eef2ff', padding: '0 8px', borderRadius: '4px' }}>
+        {/* Deuxième ligne : TONTALIN'NY VOLA MIAKATRA any @ FME */}
+        <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
+          <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
+          <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
             {formatMontant(totalNetFederation)}
           </span>
         </div>
 
-        {/* Ligne 3 : Volam-piangonana apetraka any @ FME */}
+        {/* Troisième ligne : Volam-piangonana apetraka any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
-          <span className="font-bold" style={{ color: '#1e3a5f' }}>Volam-piangonana apetraka any @ FME :</span>
-          <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right', fontWeight: '600', color: '#1e3a5f' }}>
+          <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
+          <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right' }}>
             {formatMontant(volamPiangonanaApetraka)}
           </span>
           <input
             type="number"
             value={volamPiangonanaApetraka}
             onChange={(e) => handleVolamPiangonanaChange(e.target.value)}
-            className="rounded p-0.5 text-right border no-print input-field"
+            className="rounded p-0.5 text-right border no-print"
             style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
             disabled={readOnlyMode}
           />
         </div>
       </div>
 
-      {/* Section FANAMARIHANA et ROSIA */}
-      <div className="grid grid-cols-2 gap-3 mt-1" style={{ marginBottom: '16px' }}>
-        <div className="border p-3 rounded-md shadow-sm" style={{ background: '#fafafa' }}>
-          <div className="font-bold mb-1" style={{ color: '#1e3a5f' }}>FANAMARIHANA ATAON'NY MPANAMARIM-BOKY</div>
+      <div className="grid grid-cols-2 gap-1 mt-1">
+        <div className="border p-1">
+          <div className="font-bold mb-1">FANAMARIHANA ATAON'NY MPANAMARIM-BOKY</div>
           <div className="checkbox-group">
             <input type="checkbox" checked={checkBokyBe} onChange={e => { if (!readOnlyMode) setCheckBokyBe(e.target.checked); }} disabled={readOnlyMode} />
             <span className="label">Boky Be :</span>
-            <input type="text" value={remarkBokyBe} onChange={e => { if (!readOnlyMode) setRemarkBokyBe(e.target.value); }} className="rounded p-0.5 ml-1 input-field" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={remarkBokyBe} onChange={e => { if (!readOnlyMode) setRemarkBokyBe(e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
             <input type="checkbox" checked={checkRapano} onChange={e => { if (!readOnlyMode) setCheckRapano(e.target.checked); }} disabled={readOnlyMode} />
             <span className="label">Rapaoro :</span>
-            <input type="text" value={remarkRapano} onChange={e => { if (!readOnlyMode) setRemarkRapano(e.target.value); }} className="rounded p-0.5 ml-1 input-field" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={remarkRapano} onChange={e => { if (!readOnlyMode) setRemarkRapano(e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
           <div className="checkbox-group">
             <input type="checkbox" checked={checkTatitra} onChange={e => { if (!readOnlyMode) setCheckTatitra(e.target.checked); }} disabled={readOnlyMode} />
             <span className="label">Tatitra :</span>
-            <input type="text" value={remarkTatitra} onChange={e => { if (!readOnlyMode) setRemarkTatitra(e.target.value); }} className="rounded p-0.5 ml-1 input-field" disabled={readOnlyMode} style={{ flex: 1 }} />
+            <input type="text" value={remarkTatitra} onChange={e => { if (!readOnlyMode) setRemarkTatitra(e.target.value); }} className="rounded p-0.5 ml-1" disabled={readOnlyMode} style={{ flex: 1 }} />
           </div>
         </div>
-        <div className="border p-3 rounded-md shadow-sm" style={{ background: '#fafafa' }}>
+        <div className="border p-1">
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>Rosia N° :</span>
-            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); updateField('rosiaNum', e.target.value); } }} className="rounded p-0.5 input-field" style={{ width: '160px' }} disabled={readOnlyMode} />
+            <span className="font-semibold">Rosia N° :</span>
+            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); updateField('rosiaNum', e.target.value); } }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
           </div>
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>Daty :</span>
+            <span className="font-semibold">Daty :</span>
             <span className="date-display">{renderDateField(dateFanamarihana)}</span>
           </div>
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>Anarana sy Sonian'ny CAISSE-FME :</span>
-            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); updateField('caisseFME', e.target.value); } }} className="rounded p-0.5 w-full input-field" disabled={readOnlyMode} />
+            <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
+            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); updateField('caisseFME', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
       </div>
 
-      {/* Section CHEQUE / SORA-BOLA */}
-      <div className="grid grid-cols-2 gap-3 mt-1" style={{ marginBottom: '16px' }}>
-        <div className="border p-3 rounded-md shadow-sm" style={{ background: '#fafafa' }}>
-          <div className="font-bold italic text-center" style={{ color: '#1e3a5f' }}>"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
+      <div className="grid grid-cols-2 gap-1 mt-1">
+        <div className="border p-1">
+          <div className="font-bold italic text-center">"Faritra tsy maintsy fenoina eto raha ny pasitora no nandray ny vola"</div>
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>Voaray androany (daty) :</span>
+            <span className="font-semibold">Voaray androany (daty) :</span>
             <span className="date-display">{renderDateField(soraBolaDate)}</span>
           </div>
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>Ny vola Ar :</span>
-            <input type="number" value={soraBolaMontant} onChange={e => { if (!readOnlyMode) handleMontantChange(e.target.value); }} className="rounded text-right p-0.5 input-field" step="any" disabled={readOnlyMode} />
+            <span className="font-semibold">Ny vola Ar :</span>
+            <input type="number" value={soraBolaMontant} onChange={e => { if (!readOnlyMode) handleMontantChange(e.target.value); }} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
           </div>
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>An-tsoratra :</span>
-            <input type="text" value={soraBolaLettres} readOnly style={{ backgroundColor: '#f1f5f9' }} className="rounded p-0.5 w-full input-field" />
+            <span className="font-semibold">An-tsoratra :</span>
+            <input type="text" value={soraBolaLettres} readOnly style={{ backgroundColor: '#f9f9f9' }} className="rounded p-0.5" />
           </div>
           <div>
-            <span className="font-semibold" style={{ color: '#1e3a5f' }}>Anarana sy sonian'ny nandray vola :</span>
-            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); updateField('soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full input-field" disabled={readOnlyMode} />
+            <span className="font-semibold">Anarana sy sonian'ny nandray vola :</span>
+            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); updateField('soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
           </div>
         </div>
-        <div className="border p-3 rounded-md shadow-sm" style={{ background: '#fafafa' }}>
+        <div className="border p-1">
           <table className="w-full border-collapse cheque-table">
             <thead>
-              <tr style={{ backgroundColor: '#eef2ff' }}>
-                <th className="border border-black p-0.5 cheque-col" style={{ color: '#1e3a5f' }}>CHEQUE/BANQUE</th>
-                <th className="border border-black p-0.5 sora-col" style={{ color: '#1e3a5f' }}>SORA-BOLA</th>
+              <tr>
+                <th className="border border-black p-0.5 cheque-col">CHEQUE/BANQUE</th>
+                <th className="border border-black p-0.5 sora-col">SORA-BOLA</th>
               </tr>
             </thead>
             <tbody>
@@ -768,7 +707,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                       type="text"
                       value={chequeLines[idx] || ''}
                       onChange={(e) => handleChequeChange(idx, e.target.value)}
-                      className="w-full p-0.5 border-none input-field"
+                      className="w-full p-0.5 border-none"
                       disabled={readOnlyMode}
                     />
                   </td>
@@ -777,14 +716,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                       type="text"
                       value={formatMontant(soraBolaLines[idx])}
                       onChange={(e) => handleSoraBolaChange(idx, e.target.value)}
-                      className="w-full p-0.5 border-none input-field"
+                      className="w-full p-0.5 border-none"
                       style={{ textAlign: 'right' }}
                       disabled={readOnlyMode}
                     />
                   </td>
                 </tr>
               ))}
-              <tr className="font-bold" style={{ backgroundColor: '#eef2ff' }}>
+              <tr className="font-bold bg-gray-100">
                 <td className="border border-black p-0.5 text-right">TOTAL :</td>
                 <td className="border border-black p-0.5 text-right" style={{ textAlign: 'right' }}>
                   {formatMontant(totalChequeSora)} Ar
@@ -795,72 +734,68 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </div>
       </div>
 
-      {/* Section II - VOLAM-PIANGONANA ETO AN-TOERANA */}
-      <div style={sectionStyle}>
-        <h3 className="section-title">II- MOMBA NY VOLAM-PIANGONANA ETO AN-TOERANA</h3>
-        <div className="overflow-x-auto mt-0">
-          <table className="w-full border-collapse border border-black table-volam-piangonana" style={{ fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={tableHeaderStyle}>
-                <th className="border border-black p-0.5">ANTONY</th>
-                {sabbathHeaders.map((h, idx) => (
-                  <th key={idx} className="border border-black p-0.5">
-                    {h.label} {h.date ? `(${h.date})` : ''}
-                  </th>
-                ))}
-                <th className="border border-black p-0.5">TONTALINY</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border p-0.5 font-bold">VOLA SISA tamin'ny volana teo aloha:</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right">{formatMontant(volaSisaTeoAloha)} Ar</td>
-              </tr>
-              <tr>
-                <td className="border p-0.5 font-bold">VOLA NIDITRA nandritra ny volana:</td>
-                {totalsBySabbathB.map((s, i) => (
-                  <td key={i} className="border p-0.5 text-right">{formatMontant(s)} Ar</td>
-                ))}
-                <td className="border p-0.5 text-right">{formatMontant(totalB)} Ar</td>
-              </tr>
-              <tr>
-                <td className="border p-0.5 font-bold">VOLA NIVOAKA nandritra ny volana:</td>
-                {expensesBySabbath.map((s, i) => (
-                  <td key={i} className="border p-0.5 text-right">{formatMontant(s)} Ar</td>
-                ))}
-                <td className="border p-0.5 text-right">{formatMontant(totalExpenses)} Ar</td>
-              </tr>
-              <tr>
-                <td className="border p-0.5 font-bold">VOLA SISA tamin'ny faran'ny volana:</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right protected-cell">-</td>
-                <td className="border p-0.5 text-right">{formatMontant(balanceChurch)} Ar</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <h3 className="font-bold mt-2">II- MOMBA NY VOLAM-PIANGONANA ETO AN-TOERANA</h3>
+      <div className="overflow-x-auto mt-0">
+        <table className="w-full border-collapse border border-black table-volam-piangonana">
+          <thead>
+            <tr>
+              <th className="border border-black p-0.5">ANTONY</th>
+              {sabbathHeaders.map((h, idx) => (
+                <th key={idx} className="border border-black p-0.5">
+                  {h.label} {h.date ? `(${h.date})` : ''}
+                </th>
+              ))}
+              <th className="border border-black p-0.5">TONTALINY</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border p-0.5 font-bold">VOLA SISA tamin'ny volana teo aloha:</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right">{formatMontant(volaSisaTeoAloha)} Ar</td>
+            </tr>
+            <tr>
+              <td className="border p-0.5 font-bold">VOLA NIDITRA nandritra ny volana:</td>
+              {totalsBySabbathB.map((s, i) => (
+                <td key={i} className="border p-0.5 text-right">{formatMontant(s)} Ar</td>
+              ))}
+              <td className="border p-0.5 text-right">{formatMontant(totalB)} Ar</td>
+            </tr>
+            <tr>
+              <td className="border p-0.5 font-bold">VOLA NIVOAKA nandritra ny volana:</td>
+              {expensesBySabbath.map((s, i) => (
+                <td key={i} className="border p-0.5 text-right">{formatMontant(s)} Ar</td>
+              ))}
+              <td className="border p-0.5 text-right">{formatMontant(totalExpenses)} Ar</td>
+            </tr>
+            <tr>
+              <td className="border p-0.5 font-bold">VOLA SISA tamin'ny faran'ny volana:</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right protected-cell">-</td>
+              <td className="border p-0.5 text-right">{formatMontant(balanceChurch)} Ar</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {/* Signatures */}
-      <div className="grid grid-cols-3 gap-2 mt-2 border-t pt-2" style={{ gap: '6px', fontSize: '10pt' }}>
+      <div className="grid grid-cols-3 gap-2 mt-1 border-t pt-1" style={{ gap: '6px', fontSize: '10pt' }}>
         <div>
-          <div className="font-bold" style={{ color: '#1e3a5f' }}>Ny Mpitahiry vola</div>
+          <div className="font-bold">Ny Mpitahiry vola</div>
           <div>Anarana: ________</div><div>Adiresy: ________</div><div>Tel: ________</div><div>(sonia)</div>
         </div>
         <div>
-          <div className="font-bold" style={{ color: '#1e3a5f' }}>Ny Mpitahiry vola Mpanampy</div>
+          <div className="font-bold">Ny Mpitahiry vola Mpanampy</div>
           <div>Anarana: ________</div><div>Adiresy: ________</div><div>Tel: ________</div><div>(sonia)</div>
         </div>
         <div>
-          <div className="font-bold" style={{ color: '#1e3a5f' }}>Ny Loholona na ny Tale</div>
+          <div className="font-bold">Ny Loholona na ny Tale</div>
           <div>Anarana: ________</div><div>Adiresy: ________</div><div>Tel: ________</div><div>(sonia)</div>
         </div>
       </div>
