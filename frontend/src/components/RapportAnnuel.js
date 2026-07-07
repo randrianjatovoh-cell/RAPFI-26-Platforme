@@ -50,7 +50,7 @@ function formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs) {
     }
   }
   if (chequeRefs && chequeRefs !== '') {
-    parts.push(`chèques : ${chequeRefs}`);
+    parts.push(chequeRefs); // ✅ Suppression du libellé "chèques :"
   }
   return parts.join(' ; ');
 }
