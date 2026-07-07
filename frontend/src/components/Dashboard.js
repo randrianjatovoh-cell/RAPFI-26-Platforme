@@ -441,7 +441,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
       { name: 'Entrées', value: annualData.volaNiditra !== 0 ? Math.abs(annualData.volaNiditra) : 0.001 },
       { name: 'Sorties', value: annualData.volaNivoaka !== 0 ? Math.abs(annualData.volaNivoaka) : 0.001 }
     ];
-    const pieColors = ['#f59e0b', '#3b82f6', '#ef4444'];
+    // 🔥 Changement de couleur : Entrées en vert (#10b981)
+    const pieColors = ['#f59e0b', '#10b981', '#ef4444'];
 
     return (
       <>
@@ -475,7 +476,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </ResponsiveContainer>
           </div>
 
-          {/* Graphique secteurs - EGLISE LOCALE */}
+          {/* Graphique secteurs - EGLISE LOCALE avec effet 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
@@ -497,9 +498,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
+                  paddingAngle={2}  // Espace entre les parts pour un effet 3D
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={pieColors[index % pieColors.length]}
+                      style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.25))' }} // Ombre portée 3D
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -592,9 +598,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
+                  paddingAngle={2}
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#f59e0b', '#10b981'][index % 2]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={['#f59e0b', '#10b981'][index % 2]}
+                      style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.25))' }}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -686,9 +697,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
+                  paddingAngle={2}
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={colors[index % colors.length]}
+                      style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.25))' }}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
