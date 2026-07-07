@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
-import { formatNumber, formatReferences } from '../services/helpers'; // ← import ajouté
+import { formatNumber, formatReferences } from '../services/helpers';
 
 const MONTHS_LIST = [
   { id: '01', name: 'Janvier', english: 'January' },
@@ -32,6 +32,27 @@ function parseBalanceString(str) {
   const cleaned = str.replace(/[^\d.]/g, '');
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
+}
+
+// Fonction utilitaire pour formater la référence complète (numéro de reçu + date + chèques)
+function formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs) {
+  const parts = [];
+  if (rosiaNum && rosiaNum.trim() !== '') {
+    parts.push(`Rosia ${rosiaNum.trim()}`);
+  }
+  if (dateFanamarihana) {
+    const d = new Date(dateFanamarihana);
+    if (!isNaN(d)) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      parts.push(`date ${day}/${month}/${year}`);
+    }
+  }
+  if (chequeRefs && chequeRefs !== '') {
+    parts.push(`chèques : ${chequeRefs}`);
+  }
+  return parts.join(' ; ');
 }
 
 export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly = false }) {
@@ -166,26 +187,52 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         updatedMonthlyData[i].expenses = totalExpenses;
         updatedMonthlyData[i].balance = income - totalExpenses;
 
-        // 🔥 Utilisation de formatReferences depuis helpers
-        let refs = [];
-        if (existingReport && existingReport.soraBolaLinesJson) {
-          try {
-            const parsed = JSON.parse(existingReport.soraBolaLinesJson);
-            let chequeArray = [];
-            if (parsed && typeof parsed === 'object') {
-              if (Array.isArray(parsed.cheque)) {
-                chequeArray = parsed.cheque;
-              } else if (Array.isArray(parsed)) {
-                // ancien format
-                chequeArray = parsed;
-              }
-            }
-            refs = formatReferences(chequeArray);
-          } catch(e) { /* ignore */ }
-        }
-        updatedMonthlyData[i].receiptNumber = refs; // déjà une chaîne formatée
+        // 🔥 Récupération des informations de reçu / chèques
+        let chequeRefs = '';
+        let rosiaNum = '';
+        let dateFanamarihana = '';
 
         if (existingReport) {
+          // Récupérer rosiaNum et dateFanamarihana
+          rosiaNum = existingReport.rosiaNum || '';
+          dateFanamarihana = existingReport.dateFanamarihana || '';
+
+          // Récupérer les chèques depuis soraBolaLinesJson
+          if (existingReport.soraBolaLinesJson) {
+            try {
+              const parsed = JSON.parse(existingReport.soraBolaLinesJson);
+              let chequeArray = [];
+              if (parsed && typeof parsed === 'object') {
+                if (Array.isArray(parsed.cheque)) {
+                  chequeArray = parsed.cheque;
+                } else if (Array.isArray(parsed)) {
+                  // ancien format
+                  chequeArray = parsed;
+                }
+              }
+              chequeRefs = formatReferences(chequeArray);
+            } catch(e) { /* ignore */ }
+          }
+
+          // Si pas de soraBolaLinesJson, tenter de récupérer depuis localStorage
+          if (!chequeRefs) {
+            const fallbackKey = `chequeSora_${monthKey}_${eglise}`;
+            const stored = localStorage.getItem(fallbackKey);
+            if (stored) {
+              try {
+                const parsed = JSON.parse(stored);
+                if (parsed && Array.isArray(parsed.cheque)) {
+                  chequeRefs = formatReferences(parsed.cheque);
+                }
+              } catch(e) { /* ignore */ }
+            }
+          }
+
+          // Combiner le tout dans receiptNumber
+          const receiptInfo = formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs);
+          updatedMonthlyData[i].receiptNumber = receiptInfo || '';
+
+          // Note
           updatedMonthlyData[i].note = existingReport.note || '';
         }
       }
@@ -259,7 +306,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
 
   return (
     <div className="rapport-annuel-container p-1 font-sans text-sm">
-      {/* Styles identiques à ceux fournis précédemment – inchangés */}
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 0; }
