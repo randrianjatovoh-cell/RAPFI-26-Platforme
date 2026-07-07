@@ -1,254 +1,415 @@
-// src/components/Login.js
-import React, { useState, useEffect, useRef } from 'react';
+// src/components/Profile.js
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
+import { api } from '../services/api';
 
-export default function Login({ onLogin }) {
-  const { login } = useUser();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [emailValid, setEmailValid] = useState(false);
-  const [passwordValid, setPasswordValid] = useState(false);
-  const emailInputRef = useRef(null);
+// Constantes pour les messages (évite les chaînes magiques)
+const MESSAGES = {
+  PHOTO_SUCCESS: 'Photo mise à jour avec succès !',
+  PHOTO_ERROR: 'Erreur lors du téléchargement de la photo',
+  PHOTO_INVALID_TYPE: 'Le fichier doit être une image',
+  PHOTO_TOO_LARGE: 'La photo ne doit pas dépasser 5 Mo',
+  PASSWORD_MISMATCH: 'Les mots de passe ne correspondent pas',
+  PASSWORD_TOO_SHORT: 'Le mot de passe doit contenir au moins 4 caractères',
+  PASSWORD_SUCCESS: 'Mot de passe modifié avec succès !',
+  PASSWORD_ERROR: 'Erreur lors du changement de mot de passe',
+  PASSWORD_ADMIN_FORBIDDEN: "Le mot de passe de l'administrateur ne peut pas être modifié.",
+  CONTACT_SUCCESS: 'Adresse et contact mis à jour !',
+  CONTACT_NO_CHANGE: 'Aucune modification détectée',
+  CONTACT_ERROR: 'Erreur lors de la mise à jour des coordonnées',
+  GENERIC_ERROR: 'Une erreur est survenue',
+};
 
-  // Charger l'email sauvegardé
+// Composant pour afficher un message stylisé (extraire pour réutilisabilité)
+const StatusMessage = ({ message, type }) => {
+  if (!message) return null;
+  const typeMap = {
+    success: 'bg-green-50 border-green-400 text-green-700',
+    error: 'bg-red-50 border-red-400 text-red-700',
+    info: 'bg-blue-50 border-blue-400 text-blue-700',
+  };
+  const iconMap = {
+    success: 'fa-check-circle',
+    error: 'fa-exclamation-circle',
+    info: 'fa-info-circle',
+  };
+  const classes = typeMap[type] || typeMap.info;
+  const icon = iconMap[type] || iconMap.info;
+  return (
+    <div className={`mt-4 p-3 rounded border ${classes} flex items-center`} role="alert">
+      <i className={`fas ${icon} mr-2`} aria-hidden="true"></i>
+      <span>{message}</span>
+    </div>
+  );
+};
+
+// Composant principal
+export default function Profile({ onClose }) {
+  const { user, updateUser } = useUser();
+  const [photo, setPhoto] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [adresse, setAdresse] = useState('');
+  const [contact, setContact] = useState('');
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Initialisation des champs depuis user (et mise à jour si user change)
   useEffect(() => {
-    const savedEmail = localStorage.getItem('loginEmail');
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(savedEmail));
+    if (user) {
+      setPhoto(user.photo || '');
+      setAdresse(user.adresse || '');
+      setContact(user.contact || '');
     }
-    emailInputRef.current?.focus();
+  }, [user]);
+
+  // Nettoyage du message après un délai
+  const clearMessageAfterDelay = useCallback((delay = 5000) => {
+    const timer = setTimeout(() => setMessage(''), delay);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Validation en temps réel
-  useEffect(() => {
-    setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-    setPasswordValid(password.length >= 4); // Mot de passe minimum 4 caractères
-  }, [email, password]);
+  // Fonction pour afficher un message d'erreur ou succès
+  const showMessage = useCallback((msg, type = 'success', delay = 5000) => {
+    setMessage(msg);
+    setMessageType(type);
+    clearMessageAfterDelay(delay);
+  }, [clearMessageAfterDelay]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  // Gestion du téléchargement de la photo
+  const handlePhotoChange = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // Validation côté client
-    if (!emailValid) {
-      setError('Veuillez entrer une adresse email valide.');
-      emailInputRef.current?.focus();
+    // Validation du fichier
+    if (!file.type.startsWith('image/')) {
+      showMessage(MESSAGES.PHOTO_INVALID_TYPE, 'error');
       return;
     }
-    if (!passwordValid) {
-      setError('Le mot de passe doit contenir au moins 4 caractères.');
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage(MESSAGES.PHOTO_TOO_LARGE, 'error');
       return;
     }
 
-    setLoading(true);
-
+    setIsUploadingPhoto(true);
     try {
-      const data = await login(email, password);
-      // Sauvegarder l'email pour la prochaine connexion
-      localStorage.setItem('loginEmail', email);
-      if (onLogin) onLogin(data.user);
+      const formData = new FormData();
+      formData.append('photo', file);
+      const result = await api.uploadUserPhoto(user.id, formData);
+      
+      setPhoto(result.photoUrl);
+      updateUser({ photo: result.photoUrl });
+      showMessage(MESSAGES.PHOTO_SUCCESS, 'success', 3000);
     } catch (err) {
-      setError(err.message || 'Identifiant ou mot de passe incorrect. Veuillez réessayer.');
+      console.error('❌ Erreur upload photo:', err);
+      showMessage(`${MESSAGES.PHOTO_ERROR} : ${err.message || ''}`, 'error');
     } finally {
-      setLoading(false);
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Réinitialiser l'input
+      }
     }
-  };
+  }, [user, updateUser, showMessage]);
 
-  const toggleShowPassword = () => {
-    setShowPassword((prev) => !prev);
-  };
+  // Gestion du changement de mot de passe
+  const handlePasswordChange = useCallback(async (e) => {
+    e.preventDefault();
+    // Empêcher l'admin de changer son mot de passe (si c'est la règle métier)
+    if (user?.fonction === 'Admin') {
+      showMessage(MESSAGES.PASSWORD_ADMIN_FORBIDDEN, 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showMessage(MESSAGES.PASSWORD_MISMATCH, 'error');
+      return;
+    }
+    if (newPassword.length < 4) {
+      showMessage(MESSAGES.PASSWORD_TOO_SHORT, 'error');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.updateUserPassword(user.id, newPassword);
+      showMessage(MESSAGES.PASSWORD_SUCCESS, 'success', 3000);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      console.error('❌ Erreur changement mot de passe:', err);
+      showMessage(`${MESSAGES.PASSWORD_ERROR} : ${err.message || ''}`, 'error');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }, [user, newPassword, confirmPassword, showMessage]);
+
+  // Gestion de l'enregistrement adresse/contact
+  const handleSaveContact = useCallback(async () => {
+    // Vérifier s'il y a des changements par rapport aux valeurs initiales (stockées dans user)
+    const originalAdresse = user?.adresse || '';
+    const originalContact = user?.contact || '';
+    if (adresse === originalAdresse && contact === originalContact) {
+      showMessage(MESSAGES.CONTACT_NO_CHANGE, 'info', 3000);
+      return;
+    }
+
+    setIsSavingContact(true);
+    try {
+      await api.updateUser(user.id, { adresse, contact });
+      // Mise à jour du contexte avec les nouvelles valeurs
+      updateUser({ adresse, contact });
+      showMessage(MESSAGES.CONTACT_SUCCESS, 'success', 3000);
+    } catch (err) {
+      console.error('❌ Erreur mise à jour coordonnées:', err);
+      showMessage(`${MESSAGES.CONTACT_ERROR} : ${err.message || ''}`, 'error');
+    } finally {
+      setIsSavingContact(false);
+    }
+  }, [user, adresse, contact, updateUser, showMessage]);
+
+  // Vérifier si les champs adresse/contact ont changé par rapport à l'original
+  const hasContactChanged = user
+    ? adresse !== (user.adresse || '') || contact !== (user.contact || '')
+    : false;
+
+  // Si user est null ou undefined, on affiche un message de chargement ou on redirige
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl text-center">
+        <p className="text-gray-500">Chargement du profil...</p>
+      </div>
+    );
+  }
+
+  const isAdmin = user.fonction === 'Admin';
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url('/Login.png')` }}
-    >
-      <div className="max-w-5xl w-full bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 flex flex-col md:flex-row gap-8 items-center justify-center">
-        {/* Colonne gauche : formulaire */}
-        <div className="flex-1 w-full max-w-md mx-auto">
-          <div className="text-center">
-            <div className="flex justify-center">
-              <img
-                src="/FINANCE.png"
-                alt="Logo Gestion des Dîmes et Offrandes"
-                className="h-20 w-20 object-contain rounded-full shadow-lg ring-2 ring-amber-500/30"
-              />
-            </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-800">
-              Gestion des Dîmes et Offrandes
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Connectez-vous à votre espace de travail
-            </p>
-          </div>
-
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-shake" role="alert">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <i className="fas fa-exclamation-circle text-red-500"></i>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {/* Champ Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Adresse email <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i className={`fas fa-envelope ${emailValid ? 'text-green-500' : 'text-amber-400'}`}></i>
-                  </div>
-                  <input
-                    ref={emailInputRef}
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    aria-describedby="email-error"
-                    className={`appearance-none block w-full pl-10 pr-3 py-3 border ${emailValid ? 'border-green-500' : 'border-gray-300'} rounded-xl placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-150 bg-white/80`}
-                    placeholder="exemple@email.com"
-                    autoComplete="username"
-                  />
-                  {emailValid && (
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <i className="fas fa-check-circle text-green-500"></i>
-                    </div>
-                  )}
-                </div>
-                <p id="email-error" className="mt-1 text-xs text-gray-500">
-                  Entrez votre adresse email institutionnelle.
-                </p>
-              </div>
-
-              {/* Champ Mot de passe */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Mot de passe <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i className={`fas fa-lock ${passwordValid ? 'text-green-500' : 'text-amber-400'}`}></i>
-                  </div>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    aria-describedby="password-hint"
-                    className="appearance-none block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition duration-150 bg-white/80"
-                    placeholder="••••••••"
-                    minLength={4}
-                    autoComplete="current-password"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={toggleShowPassword}
-                      className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-full p-1"
-                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                    >
-                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                    </button>
-                  </div>
-                </div>
-                <p id="password-hint" className="mt-1 text-xs text-gray-500">
-                  Minimum 4 caractères.
-                </p>
-              </div>
-            </div>
-
-            {/* Options supplémentaires */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Se souvenir de moi
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a href="#" className="font-medium text-amber-600 hover:text-amber-500">
-                  Mot de passe oublié ?
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading || !emailValid || !passwordValid}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-700 hover:via-orange-700 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Connexion en cours...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-sign-in-alt mr-2" />
-                    Se connecter
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="text-center text-xs text-gray-500 pt-4 border-t border-gray-200">
-              <p>© 2026 Gestion des Dîmes et Offrandes</p>
-              <p className="mt-1">Système sécurisé - Tous droits réservés à RH André</p>
-            </div>
-          </form>
-        </div>
-
-        {/* Colonne droite : QR Code */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs mx-auto md:border-l md:border-gray-200 md:pl-8 pt-8 md:pt-0">
-          <p className="text-sm text-gray-700 font-medium mb-4 text-center">
-            <i className="fas fa-qrcode mr-2 text-amber-500"></i>
-            Scannez ce QR Code pour demander Login
-          </p>
-          <img
-            src="/QR_Code.png"
-            alt="QR Code pour demander un identifiant de connexion"
-            className="w-48 h-48 object-contain border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="16" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
-            }}
-          />
-        </div>
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl">
+      {/* En-tête avec bouton de fermeture */}
+      <div className="flex items-center mb-6 relative border-b pb-4">
+        <h2 className="text-2xl font-bold flex-1 text-center text-indigo-700">
+          <i className="fas fa-user-circle mr-2" aria-hidden="true"></i>
+          Mon profil
+        </h2>
+        <button
+          onClick={onClose}
+          className="absolute right-0 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          aria-label="Fermer le profil"
+        >
+          <i className="fas fa-times text-xl" aria-hidden="true"></i>
+        </button>
       </div>
 
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-          20%, 40%, 60%, 80% { transform: translateX(4px); }
-        }
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
-        }
-      `}</style>
+      {/* Photo de profil */}
+      <section className="flex flex-col items-center mb-6" aria-label="Photo de profil">
+        <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center mb-3 border-4 border-indigo-100 shadow-md">
+          {photo ? (
+            <img
+              src={photo}
+              alt="Photo de profil"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // En cas d'erreur de chargement, on affiche l'icône par défaut
+                e.target.style.display = 'none';
+                const parent = e.target.parentElement;
+                if (parent) {
+                  parent.innerHTML = '<i class="fas fa-user-circle text-6xl text-gray-400" aria-hidden="true"></i>';
+                }
+              }}
+            />
+          ) : (
+            <i className="fas fa-user-circle text-6xl text-gray-400" aria-hidden="true"></i>
+          )}
+        </div>
+        <label
+          htmlFor="photo-upload"
+          className={`cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${
+            isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          <i className="fas fa-camera" aria-hidden="true"></i>
+          {isUploadingPhoto ? 'Téléchargement...' : 'Changer la photo'}
+        </label>
+        <input
+          id="photo-upload"
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handlePhotoChange}
+          className="hidden"
+          disabled={isUploadingPhoto}
+          aria-disabled={isUploadingPhoto}
+        />
+      </section>
+
+      {/* Informations personnelles (lecture seule) */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4" aria-label="Informations personnelles">
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <i className="fas fa-user mr-1" aria-hidden="true"></i> Nom complet
+          </label>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">
+            {user.nom} {user.prenom}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <i className="fas fa-envelope mr-1" aria-hidden="true"></i> Email
+          </label>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.email}</div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <i className="fas fa-briefcase mr-1" aria-hidden="true"></i> Fonction
+          </label>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.fonction}</div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <i className="fas fa-church mr-1" aria-hidden="true"></i> Église
+          </label>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.eglise || 'Non renseigné'}</div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <i className="fas fa-map-marker-alt mr-1" aria-hidden="true"></i> District
+          </label>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.district || 'Non renseigné'}</div>
+        </div>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            <i className="fas fa-globe mr-1" aria-hidden="true"></i> Fédération
+          </label>
+          <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">{user.federation || 'Non renseigné'}</div>
+        </div>
+      </section>
+
+      {/* Modification adresse et contact */}
+      <section className="mt-6 border-t pt-4" aria-label="Modifier les coordonnées">
+        <h3 className="text-lg font-semibold text-gray-700 mb-3">
+          <i className="fas fa-address-card mr-2" aria-hidden="true"></i>
+          Coordonnées
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="adresse-input" className="block text-sm font-medium text-gray-700 mb-1">
+              <i className="fas fa-home mr-1" aria-hidden="true"></i> Adresse
+            </label>
+            <input
+              id="adresse-input"
+              type="text"
+              value={adresse}
+              onChange={(e) => setAdresse(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              placeholder="Entrez votre adresse"
+              aria-describedby="contact-message"
+            />
+          </div>
+          <div>
+            <label htmlFor="contact-input" className="block text-sm font-medium text-gray-700 mb-1">
+              <i className="fas fa-phone mr-1" aria-hidden="true"></i> Contact (téléphone)
+            </label>
+            <input
+              id="contact-input"
+              type="tel"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              placeholder="Entrez votre numéro de téléphone"
+              aria-describedby="contact-message"
+            />
+          </div>
+          <button
+            onClick={handleSaveContact}
+            disabled={isSavingContact || !hasContactChanged}
+            className={`w-full py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
+              isSavingContact || !hasContactChanged
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
+            aria-live="polite"
+          >
+            {isSavingContact ? (
+              <>
+                <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Enregistrement...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-save" aria-hidden="true"></i> Enregistrer adresse et contact
+              </>
+            )}
+          </button>
+        </div>
+      </section>
+
+      {/* Changement de mot de passe (caché pour Admin) */}
+      {!isAdmin && (
+        <section className="mt-6 border-t pt-4" aria-label="Changer le mot de passe">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">
+            <i className="fas fa-key mr-2" aria-hidden="true"></i>
+            Changer le mot de passe
+          </h3>
+          <form onSubmit={handlePasswordChange} className="space-y-3">
+            <div>
+              <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+                Nouveau mot de passe (min 4 caractères)
+              </label>
+              <input
+                id="new-password"
+                type="password"
+                placeholder="Nouveau mot de passe"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                required
+                minLength="4"
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirmer le nouveau mot de passe
+              </label>
+              <input
+                id="confirm-password"
+                type="password"
+                placeholder="Confirmer le nouveau mot de passe"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isChangingPassword}
+              className={`w-full py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
+                isChangingPassword
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+              aria-live="polite"
+            >
+              {isChangingPassword ? (
+                <>
+                  <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Modification...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-key" aria-hidden="true"></i> Modifier le mot de passe
+                </>
+              )}
+            </button>
+          </form>
+        </section>
+      )}
+
+      {/* Affichage des messages */}
+      <StatusMessage message={message} type={messageType} />
     </div>
   );
 }
