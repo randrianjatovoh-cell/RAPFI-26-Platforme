@@ -51,7 +51,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // ---- Fonction de chargement des données (inchangée) ----
+  // ---- Chargement des données (inchangé) ----
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -376,7 +376,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
 
   // =================== RENDU ===================
 
-  // Composant réutilisable pour une carte de statistique avec dégradé et animation
+  // Composant StatCard avec animations
   const StatCard = ({ title, value, icon, color, delay }) => {
     const gradientMap = {
       blue: 'from-blue-500 to-blue-600',
@@ -432,7 +432,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     { title: 'Année', value: year, icon: 'fa-calendar-alt', color: 'yellow', delay: 400 }
   ];
 
-  // ----- ANCIEN / TRÉSORIER (avec camembert 3D) -----
+  // ----- ANCIEN / TRÉSORIER -----
   const renderAncienDashboard = () => {
     const { monthlyData } = annualData;
 
@@ -452,8 +452,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* Graphique courbes - FEDERATION */}
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          {/* Graphique courbes */}
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
               <div className="text-sm font-medium text-gray-500">Évolution de la Dîme et des Offrandes</div>
@@ -468,15 +468,15 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                   contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} animationDuration={1500} />
+                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} animationDuration={1500} />
+                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} animationDuration={1500} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Graphique secteurs - EGLISE LOCALE avec effet 3D */}
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative" style={{ perspective: '1000px' }}>
+          {/* Graphique secteur 3D */}
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms', perspective: '1000px' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
               <div className="text-sm font-medium text-gray-500">Répartition Reste / Entrées / Sorties</div>
@@ -532,7 +532,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     );
   };
 
-  // ----- PASTEUR (avec camembert 3D) -----
+  // ----- PASTEUR -----
   const renderPasteurDashboard = () => {
     if (districtData.length === 0) {
       return <div className="text-center p-4 text-gray-500">Aucune donnée pour ce district.</div>;
@@ -568,7 +568,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={lineData}>
@@ -589,12 +589,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     name={eg.eglise}
                     strokeWidth={2}
                     dot={{ r: 2 }}
+                    animationDuration={1500}
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative" style={{ perspective: '1000px' }}>
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms', perspective: '1000px' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
             <div
               style={{
@@ -639,7 +640,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     );
   };
 
-  // ----- VÉRIFICATEUR (avec camembert 3D) -----
+  // ----- VÉRIFICATEUR -----
   const renderVerificateurDashboard = () => {
     if (federationData.length === 0) {
       return <div className="text-center p-4 text-gray-500">Aucune donnée pour cette fédération.</div>;
@@ -676,7 +677,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={lineData}>
@@ -697,12 +698,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     name={eg.eglise}
                     strokeWidth={2}
                     dot={{ r: 2 }}
+                    animationDuration={1500}
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative" style={{ perspective: '1000px' }}>
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms', perspective: '1000px' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
             <div
               style={{
