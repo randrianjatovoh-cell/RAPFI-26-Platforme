@@ -20,45 +20,42 @@ import RecapFederation from './components/RecapFederation';
 import Receipts from './components/Receipts';
 import { formatMonthYear } from './services/helpers';
 
-// 🔥 Définition des couleurs des onglets
-const tabColorMap = {
-  // Couleurs inactives
-  inactive: {
-    dashboard: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
-    formulaire: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700',
-    grandlivre: 'bg-blue-50 hover:bg-blue-100 text-blue-700',
-    recap: 'bg-green-50 hover:bg-green-100 text-green-700',
-    rapport: 'bg-purple-50 hover:bg-purple-100 text-purple-700',
-    rapcomite: 'bg-orange-50 hover:bg-orange-100 text-orange-700',
-    rapportannuel: 'bg-red-50 hover:bg-red-100 text-red-700',
-    depenses: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700',
-    carnet: 'bg-pink-50 hover:bg-pink-100 text-pink-700',
-    recapdistrict: 'bg-teal-50 hover:bg-teal-100 text-teal-700',
-    recapfederation: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700',
-    users: 'bg-amber-50 hover:bg-amber-100 text-amber-700',
-    receipts: 'bg-rose-50 hover:bg-rose-100 text-rose-700',
-  },
-  // Couleurs actives
-  active: {
-    dashboard: 'bg-gray-600 text-white hover:bg-gray-700',
-    formulaire: 'bg-indigo-600 text-white hover:bg-indigo-700',
-    grandlivre: 'bg-blue-600 text-white hover:bg-blue-700',
-    recap: 'bg-green-600 text-white hover:bg-green-700',
-    rapport: 'bg-purple-600 text-white hover:bg-purple-700',
-    rapcomite: 'bg-orange-600 text-white hover:bg-orange-700',
-    rapportannuel: 'bg-red-600 text-white hover:bg-red-700',
-    depenses: 'bg-yellow-600 text-white hover:bg-yellow-700',
-    carnet: 'bg-pink-600 text-white hover:bg-pink-700',
-    recapdistrict: 'bg-teal-600 text-white hover:bg-teal-700',
-    recapfederation: 'bg-cyan-600 text-white hover:bg-cyan-700',
-    users: 'bg-amber-600 text-white hover:bg-amber-700',
-    receipts: 'bg-rose-600 text-white hover:bg-rose-700',
-  }
+// Couleurs dynamiques pour les onglets actifs
+const tabColors = {
+  dashboard: { bg: 'from-blue-500 to-indigo-600', hover: 'hover:from-blue-600 hover:to-indigo-700', text: 'text-white' },
+  formulaire: { bg: 'from-emerald-500 to-teal-600', hover: 'hover:from-emerald-600 hover:to-teal-700', text: 'text-white' },
+  grandlivre: { bg: 'from-cyan-500 to-blue-600', hover: 'hover:from-cyan-600 hover:to-blue-700', text: 'text-white' },
+  recap: { bg: 'from-purple-500 to-pink-600', hover: 'hover:from-purple-600 hover:to-pink-700', text: 'text-white' },
+  rapport: { bg: 'from-amber-500 to-orange-600', hover: 'hover:from-amber-600 hover:to-orange-700', text: 'text-white' },
+  rapcomite: { bg: 'from-rose-500 to-red-600', hover: 'hover:from-rose-600 hover:to-red-700', text: 'text-white' },
+  rapportannuel: { bg: 'from-violet-500 to-purple-600', hover: 'hover:from-violet-600 hover:to-purple-700', text: 'text-white' },
+  depenses: { bg: 'from-yellow-500 to-amber-600', hover: 'hover:from-yellow-600 hover:to-amber-700', text: 'text-white' },
+  carnet: { bg: 'from-pink-500 to-rose-600', hover: 'hover:from-pink-600 hover:to-rose-700', text: 'text-white' },
+  recapdistrict: { bg: 'from-teal-500 to-cyan-600', hover: 'hover:from-teal-600 hover:to-cyan-700', text: 'text-white' },
+  recapfederation: { bg: 'from-indigo-500 to-blue-600', hover: 'hover:from-indigo-600 hover:to-blue-700', text: 'text-white' },
+  users: { bg: 'from-gray-600 to-gray-700', hover: 'hover:from-gray-700 hover:to-gray-800', text: 'text-white' },
+  receipts: { bg: 'from-rose-500 to-pink-600', hover: 'hover:from-rose-600 hover:to-pink-700', text: 'text-white' },
 };
 
-// Liste des onglets de consultation (pour le vérificateur)
-const consultationTabIds = ['grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses', 'carnet'];
+// Couleurs inactives
+const inactiveColors = {
+  dashboard: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  formulaire: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  grandlivre: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  recap: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  rapport: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  rapcomite: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  rapportannuel: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  depenses: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  carnet: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  recapdistrict: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  recapfederation: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  users: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+  receipts: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+};
 
+// Liste des onglets de consultation pour le vérificateur
+const consultationTabIds = ['grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses', 'carnet'];
 const consultationTabsLabels = {
   grandlivre: 'Grand Livre',
   recap: 'RECAP GL',
@@ -162,23 +159,7 @@ function AppContent() {
     }
   }, [user, selectedEglise, isAncienOrTresorier]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
-        <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-sky-600 rounded-full animate-spin"></div>
-          <p className="mt-2 text-gray-600">Vérification de la session...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const token = localStorage.getItem('token');
-  if (!user || !token) {
-    if (user && !token) logout();
-    return <Login onLogin={() => {}} />;
-  }
-
+  // Fonctions de rafraîchissement
   const refreshMonths = async () => {
     if (!user) return;
     try {
@@ -251,7 +232,6 @@ function AppContent() {
     setSelectedSabbath(null);
   };
 
-  // 🔥 Pour le vérificateur : sélectionner un district depuis RecapFederation
   const handleSelectDistrictFromFederation = (district) => {
     setSelectedDistrictForVerif(district);
     setVerifEgliseSelected(false);
@@ -259,7 +239,6 @@ function AppContent() {
     setActiveTab('recapdistrict');
   };
 
-  // 🔥 Pour le vérificateur : revenir à la fédération depuis RecapDistrict
   const handleBackToFederation = () => {
     setSelectedDistrictForVerif(null);
     setVerifEgliseSelected(false);
@@ -267,14 +246,12 @@ function AppContent() {
     setActiveTab('recapfederation');
   };
 
-  // 🔥 Pour le vérificateur : revenir à la liste des districts (depuis la consultation d'une église)
   const handleBackToDistrictList = () => {
     setVerifEgliseSelected(false);
     setSelectedEglise(null);
     setActiveTab('recapdistrict');
   };
 
-  // 🔥 Pour le vérificateur : sélectionner une église depuis RecapDistrict
   const handleSelectEgliseForVerificateur = (eglise) => {
     setSelectedEglise(eglise);
     setVerifEgliseSelected(true);
@@ -286,6 +263,7 @@ function AppContent() {
     }
   };
 
+  // Liste de tous les onglets disponibles
   const allTabs = [
     { id: 'dashboard', label: 'Tableau de bord', icon: 'fas fa-chart-line', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
     { id: 'formulaire', label: 'Formulaire de remplissage', icon: 'fas fa-edit', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] },
@@ -327,7 +305,7 @@ function AppContent() {
       return [];
     }
     
-    // 🔥 VÉRIFICATEUR
+    // Vérificateur
     if (isVerificateur) {
       let tabsForVerif = tabs.filter(tab => tab.id === 'dashboard' || tab.id === 'recapfederation');
       
@@ -350,8 +328,6 @@ function AppContent() {
     
     return tabs;
   };
-
-  const visibleTabs = getVisibleTabs();
 
   const isTabDisabled = (tab) => {
     if (!user) return true;
@@ -379,6 +355,27 @@ function AppContent() {
     return false;
   };
 
+  const getTitleWithName = () => {
+    const base = `GESTION DES DÎMES ET OFFRANDES - `;
+    if (isAdmin) return base + 'ADMINISTRATION';
+    if (isVerificateur) return base + `${user?.federation || 'FÉDÉRATION'}`.trim().toUpperCase();
+    if (isPasteur) return base + `DISTRICT ${user?.district || ''}`.trim().toUpperCase();
+    if (isAncienOrTresorier) return base + `ÉGLISE ${user?.eglise || ''}`.trim().toUpperCase();
+    return base + 'UTILISATEUR';
+  };
+
+  // Fonction pour obtenir les classes d'un onglet selon son état
+  const getTabClasses = (tabId, isActive) => {
+    if (isActive) {
+      const active = tabColors[tabId] || tabColors.dashboard;
+      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-md transform hover:scale-105 transition-all duration-200`;
+    } else {
+      const inactive = inactiveColors[tabId] || 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+      return `${inactive} transition-all duration-200 hover:shadow`;
+    }
+  };
+
+  // Rendu du contenu actif
   const renderActiveTab = () => {
     if (!user) return null;
     const readOnly = isReadOnlyForPasteur() || isVerificateur;
@@ -467,45 +464,19 @@ function AppContent() {
     }
   };
 
-  const getTitleWithName = () => {
-    const base = `GESTION DES DÎMES ET OFFRANDES - `;
-    if (isAdmin) return base + 'ADMINISTRATION';
-    if (isVerificateur) return base + `${user?.federation || 'FÉDÉRATION'}`.trim().toUpperCase();
-    if (isPasteur) return base + `DISTRICT ${user?.district || ''}`.trim().toUpperCase();
-    if (isAncienOrTresorier) return base + `ÉGLISE ${user?.eglise || ''}`.trim().toUpperCase();
-    return base + 'UTILISATEUR';
-  };
-
-  const mainTitle = getTitleWithName();
-
-  const showTabsBar = !showProfile && (
-    !isPasteur ||
-    pasteurMode === 'ajout' ||
-    pasteurMode === 'voir' ||
-    pasteurMode === 'accueil' ||
-    pasteurMode === null
-  );
-
-  // 🔥 Fonction pour obtenir les classes CSS d'un onglet selon son état actif
-  const getTabClasses = (tabId, isActive) => {
-    const inactiveClass = tabColorMap.inactive[tabId] || 'bg-gray-50 hover:bg-gray-100 text-gray-700';
-    const activeClass = tabColorMap.active[tabId] || 'bg-gray-600 text-white hover:bg-gray-700';
-    return isActive ? activeClass : inactiveClass;
-  };
-
-  // 🔥 Barre de navigation personnalisée pour le vérificateur
+  // Rendu de la barre de navigation vérificateur
   const renderVerificateurNavigation = () => {
     if (!isVerificateur || !selectedEglise || !verifEgliseSelected) return null;
 
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 no-print">
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-indigo-200 no-print">
         <button
           onClick={handleBackToDistrictList}
-          className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition"
+          className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1"
         >
-          <i className="fas fa-arrow-left mr-1"></i> Retour
+          <i className="fas fa-arrow-left"></i> Retour
         </button>
-        <div className="font-bold text-blue-800">
+        <div className="font-bold text-indigo-800">
           <i className="fas fa-church mr-1"></i> ÉGLISE : {selectedEglise}
         </div>
         <div className="flex-1"></div>
@@ -514,24 +485,23 @@ function AppContent() {
           <select
             value={currentMonth || ''}
             onChange={(e) => setCurrentMonth(e.target.value)}
-            className="border rounded px-2 py-1 bg-white text-sm"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
           >
             {months.map((m) => (
               <option key={m.id} value={m.id}>{formatMonthYear(m.id)}</option>
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap gap-1">
           {consultationTabIds.map((id) => {
             const isActive = activeTab === id;
-            const label = consultationTabsLabels[id] || id;
             return (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`px-3 py-1 rounded text-sm font-medium transition ${getTabClasses(id, isActive)}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${getTabClasses(id, isActive)}`}
               >
-                {label}
+                {consultationTabsLabels[id] || id}
               </button>
             );
           })}
@@ -540,57 +510,84 @@ function AppContent() {
     );
   };
 
+  // ----------------------------------------------------------------------
+  // RENDU GLOBAL
+  // ----------------------------------------------------------------------
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-indigo-600 rounded-full animate-spin"></div>
+          <p className="mt-2 text-gray-600">Vérification de la session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const token = localStorage.getItem('token');
+  if (!user || !token) {
+    if (user && !token) logout();
+    return <Login onLogin={() => {}} />;
+  }
+
+  const visibleTabs = getVisibleTabs();
+  const mainTitle = getTitleWithName();
+  const showTabsBar = !showProfile && (
+    !isPasteur ||
+    pasteurMode === 'ajout' ||
+    pasteurMode === 'voir' ||
+    pasteurMode === 'accueil' ||
+    pasteurMode === null
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* En-tête */}
-        <div className="flex flex-wrap justify-between items-center bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-4 rounded-xl shadow-lg mb-6 no-print text-white">
-          <div className="flex items-center gap-3">
-            <img
-              src="/FINANCE.png"
-              alt="Finance"
-              className="h-10 w-10 object-contain"
-              onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<i class="fas fa-coins text-white text-2xl"></i>'; }}
-            />
-            <h1 className="text-xl font-bold uppercase tracking-wide">{mainTitle}</h1>
+        {/* En-tête avec dégradé moderne */}
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 p-4 rounded-2xl shadow-lg mb-6 no-print text-white relative overflow-hidden">
+          <div className="flex items-center gap-3 z-10">
+            <div className="h-12 w-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-inner">
+              <img
+                src="/FINANCE.png"
+                alt="Finance"
+                className="h-8 w-8 object-contain"
+                onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<i class="fas fa-coins text-white text-2xl"></i>'; }}
+              />
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-md">
+              {mainTitle}
+            </h1>
           </div>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3 z-10 flex-wrap">
             {isPasteur && (
-              <div className="flex gap-2">
+              <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl">
                 <button
                   onClick={handleAccueil}
-                  className={`px-3 py-1 rounded text-sm font-medium transition ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     pasteurMode === 'accueil'
-                      ? 'bg-white text-sky-700'
-                      : 'bg-white/20 text-white hover:bg-white/30'
+                      ? 'bg-white text-indigo-700 shadow'
+                      : 'text-white hover:bg-white/20'
                   }`}
                 >
                   ACCUEIL
                 </button>
                 <button
-                  onClick={() => {
-                    setPasteurMode('ajout');
-                    setConsultationMode(false);
-                    setActiveTab('formulaire');
-                  }}
-                  className={`px-3 py-1 rounded text-sm font-medium transition ${
+                  onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     pasteurMode === 'ajout'
-                      ? 'bg-white text-sky-700'
-                      : 'bg-white/20 text-white hover:bg-white/30'
+                      ? 'bg-white text-indigo-700 shadow'
+                      : 'text-white hover:bg-white/20'
                   }`}
                 >
                   AJOUT
                 </button>
                 <button
-                  onClick={() => {
-                    setPasteurMode('voir');
-                    setConsultationMode(false);
-                    setActiveTab('recapdistrict');
-                  }}
-                  className={`px-3 py-1 rounded text-sm font-medium transition ${
+                  onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     pasteurMode === 'voir'
-                      ? 'bg-white text-sky-700'
-                      : 'bg-white/20 text-white hover:bg-white/30'
+                      ? 'bg-white text-indigo-700 shadow'
+                      : 'text-white hover:bg-white/20'
                   }`}
                 >
                   VOIR
@@ -599,28 +596,31 @@ function AppContent() {
             )}
             <button 
               onClick={() => setShowProfile(!showProfile)} 
-              className="flex items-center gap-2 text-sm bg-white/20 px-3 py-1 rounded-full hover:bg-white/30 transition"
+              className="flex items-center gap-2 text-sm bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-200 backdrop-blur-sm"
             >
               {user?.photo ? (
-                <img src={user.photo} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+                <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-white" />
               ) : (
-                <i className="fas fa-user-circle text-lg"></i>
+                <i className="fas fa-user-circle text-xl"></i>
               )}
-              <span>{user.nom || user.email} ({user.fonction})</span>
-              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs`}></i>
+              <span className="hidden sm:inline">{user.nom || user.email} ({user.fonction})</span>
+              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs transition-transform duration-200`}></i>
             </button>
-            <button onClick={handleLogout} className="text-red-300 hover:text-white transition text-sm">
-              <i className="fas fa-sign-out-alt"></i> Déconnexion
+            <button onClick={handleLogout} className="text-red-200 hover:text-white transition-all duration-200 text-sm flex items-center gap-1">
+              <i className="fas fa-sign-out-alt"></i> <span className="hidden sm:inline">Déconnexion</span>
             </button>
           </div>
-        </div>
+          {/* Effets de fond décoratifs */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        </header>
 
-        {/* Barre de navigation personnalisée pour le vérificateur */}
+        {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* Barre d'onglets principale avec couleurs */}
+        {/* Barre d'onglets principale */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
-          <div className="flex flex-wrap gap-2 mb-6 no-print">
+          <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
               const disabled = isTabDisabled(tab);
               const isActive = activeTab === tab.id;
@@ -628,7 +628,11 @@ function AppContent() {
                 <button
                   key={tab.id}
                   onClick={() => !disabled && setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${getTabClasses(tab.id, isActive)} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 transform ${
+                    isActive
+                      ? `bg-gradient-to-r ${tabColors[tab.id]?.bg || 'from-gray-600 to-gray-700'} text-white shadow-md hover:scale-105`
+                      : `${inactiveColors[tab.id] || 'bg-gray-100 text-gray-700 hover:bg-gray-200'} hover:shadow`
+                  } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                   disabled={disabled}
                 >
                   <i className={`${tab.icon} mr-1`}></i> {tab.label}
@@ -638,7 +642,8 @@ function AppContent() {
           </div>
         )}
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-4">
+        {/* Contenu principal */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-4 animate-fadeInUp">
           {showProfile ? (
             <Profile onClose={() => setShowProfile(false)} />
           ) : (
@@ -646,6 +651,24 @@ function AppContent() {
           )}
         </div>
       </div>
+
+      {/* Animations CSS */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+        .animate-fadeInUp {
+          animation: fadeInUp 0.4s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
