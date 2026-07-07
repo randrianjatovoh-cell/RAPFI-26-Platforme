@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
-import { formatMonthYear, nombreEnLettresCapitalized, formatReferences } from '../services/helpers'; // ← import ajouté
+import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers'; // formatReferences retiré
 
 function formatDateInput(dateStr) {
   if (!dateStr) return '';
@@ -330,9 +330,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return display;
   };
 
-  // 🔥 Calcul de la référence combinée pour l'affichage
-  const combinedReferences = formatReferences(chequeLines);
-
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
@@ -415,14 +412,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           text-align: left;
           font-family: inherit;
           font-size: inherit;
-        }
-        .reference-summary {
-          font-size: 10pt;
-          padding: 4px 6px;
-          background-color: #f0f4ff;
-          border-radius: 4px;
-          border: 1px solid #ccc;
-          margin-top: 4px;
         }
       `}</style>
 
@@ -672,12 +661,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               </tr>
             </tbody>
           </table>
-          {/* 🔥 Affichage de la référence combinée */}
-          {combinedReferences && (
-            <div className="reference-summary">
-              <strong>Références combinées :</strong> {combinedReferences}
-            </div>
-          )}
         </div>
       </div>
 
