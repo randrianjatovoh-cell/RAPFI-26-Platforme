@@ -166,61 +166,34 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         updatedMonthlyData[i].expenses = totalExpenses;
         updatedMonthlyData[i].balance = income - totalExpenses;
 
-        // --- Construction de la colonne "N° Rosia sy ny daty nadrotsahana" ---
-        let receiptParts = [];
+        // 🔥 Extraction des références depuis soraBolaLinesJson
+        let refs = [];
         if (existingReport && existingReport.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(existingReport.soraBolaLinesJson);
-            let chequeArr = [];
-            let soraArr = [];
-            if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
-              chequeArr = parsed.cheque || [];
-              soraArr = parsed.soraBola || [];
-            } else if (Array.isArray(parsed)) {
-              soraArr = parsed;
+            let chequeArray = [];
+            if (parsed && typeof parsed === 'object') {
+              if (Array.isArray(parsed.cheque)) {
+                chequeArray = parsed.cheque;
+              } else if (Array.isArray(parsed)) {
+                // ancien format
+                chequeArray = parsed;
+              }
             }
-            const maxLines = Math.min(chequeArr.length, soraArr.length);
-            for (let j = 0; j < maxLines; j++) {
-              const chequeStr = chequeArr[j] || '';
-              const soraAmount = soraArr[j] || '';
-              let ref = '';
-              let datePart = '';
-              if (chequeStr) {
-                const duIndex = chequeStr.indexOf(' du ');
-                if (duIndex !== -1) {
-                  ref = chequeStr.substring(0, duIndex).trim();
-                  datePart = chequeStr.substring(duIndex + 4).trim();
-                } else {
-                  ref = chequeStr;
-                }
-              }
-              // Construire un segment
-              let segment = '';
-              if (ref) segment += ref;
-              if (datePart) {
-                if (segment) segment += ` du ${datePart}`;
-                else segment += datePart;
-              }
-              const amountStr = soraAmount ? `, ${formatNumber(parseFloat(soraAmount))} Ar` : '';
-              if (segment || amountStr) {
-                receiptParts.push(segment + amountStr);
+            // Filtrer les références vides
+            const validRefs = chequeArray.filter(ref => ref && ref.trim() !== '');
+            if (validRefs.length > 0) {
+              // On met le dernier avec "et" et les autres avec virgule
+              if (validRefs.length === 1) {
+                refs.push(validRefs[0]);
+              } else {
+                const last = validRefs.pop();
+                refs = [...validRefs, `et ${last}`];
               }
             }
           } catch(e) { /* ignore */ }
         }
-
-        // Joindre avec virgules et "et" avant la dernière
-        let receiptDisplay = '';
-        if (receiptParts.length > 0) {
-          if (receiptParts.length === 1) {
-            receiptDisplay = receiptParts[0];
-          } else {
-            const last = receiptParts[receiptParts.length - 1];
-            const rest = receiptParts.slice(0, -1).join(', ');
-            receiptDisplay = `${rest}, et ${last}`;
-          }
-        }
-        updatedMonthlyData[i].receiptNumber = receiptDisplay;
+        updatedMonthlyData[i].receiptNumber = refs.join(', ');
 
         if (existingReport) {
           updatedMonthlyData[i].note = existingReport.note || '';
