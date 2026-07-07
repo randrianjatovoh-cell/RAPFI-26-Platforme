@@ -377,7 +377,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             width: 100% !important;
             box-sizing: border-box !important;
             font-size: 7.5pt !important;
-            /* 🔥 NOUVEAU : permettre le retour à la ligne et la coupure de mots */
             white-space: normal !important;
             word-break: break-word !important;
             height: auto !important;
@@ -403,7 +402,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .rapport-mensuel .gap-1 { gap: 0.05cm !important; }
           .rapport-mensuel .p-1 { padding: 1px !important; }
 
-          /* 🔥 MODIFICATION : plus de place pour CHEQUE, moins pour SORA */
           .cheque-table { table-layout: fixed !important; width: 100% !important; }
           .cheque-table .cheque-col { width: 80% !important; }
           .cheque-table .sora-col { width: 20% !important; }
@@ -411,7 +409,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             padding: 1px 3px !important;
             word-wrap: break-word !important;
             overflow-wrap: break-word !important;
-            white-space: normal !important; /* permet le retour à la ligne */
+            white-space: normal !important;
           }
           .cheque-table input {
             width: 100% !important;
@@ -584,14 +582,36 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </table>
       </div>
 
+      {/* 🔥 NOUVELLE SECTION : ligne avec date à gauche et SARAM-PANDEFASANA à droite */}
       <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-        <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
-          <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
-          <span className="print-amount" style={{ minWidth: '80px', textAlign: 'right' }}>
-            {formatMontant(saramPandefasana)}
-          </span>
+        {/* Première ligne : date à gauche, SARAM-PANDEFASANA à droite */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
+            <input
+              type="date"
+              value={dateVersementFME}
+              onChange={(e) => {
+                if (!readOnlyMode) {
+                  setDateVersementFME(e.target.value);
+                  updateField('dateVersementFME', e.target.value);
+                }
+              }}
+              disabled={readOnlyMode}
+              style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '2px 4px', fontSize: 'inherit' }}
+              className="no-print"
+            />
+            <span className="print-only" style={{ display: 'none' }}>{dateVersementFME ? formatDateInput(dateVersementFME) : '__/__/____'}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
+            <span className="print-amount" style={{ minWidth: '80px', textAlign: 'right' }}>
+              {formatMontant(saramPandefasana)}
+            </span>
+          </div>
         </div>
 
+        {/* Deuxième ligne : TONTALIN'NY VOLA MIAKATRA any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
           <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
@@ -599,6 +619,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
+        {/* Troisième ligne : Volam-piangonana apetraka any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
           <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right' }}>
