@@ -11,9 +11,6 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const isProduction = !!process.env.DATABASE_URL;
 let pgPool = null;
 
-// ------------------------------------------------------------------
-// Fonction pour convertir les '?' en placeholders $1, $2, ...
-// ------------------------------------------------------------------
 function convertPlaceholders(sql, params) {
   if (!params || params.length === 0) return sql;
   let index = 0;
@@ -23,9 +20,7 @@ function convertPlaceholders(sql, params) {
 function createPgWrapper(pool) {
   return {
     async run(sql, ...params) {
-      if (params.length === 1 && Array.isArray(params[0])) {
-        params = params[0];
-      }
+      if (params.length === 1 && Array.isArray(params[0])) params = params[0];
       const client = await pool.connect();
       try {
         const convertedSql = convertPlaceholders(sql, params);
@@ -40,46 +35,32 @@ function createPgWrapper(pool) {
           }
         }
         return { lastID, changes: res.rowCount };
-      } finally {
-        client.release();
-      }
+      } finally { client.release(); }
     },
     async get(sql, ...params) {
-      if (params.length === 1 && Array.isArray(params[0])) {
-        params = params[0];
-      }
+      if (params.length === 1 && Array.isArray(params[0])) params = params[0];
       const client = await pool.connect();
       try {
         const convertedSql = convertPlaceholders(sql, params);
         const res = await client.query(convertedSql, params);
         return res.rows[0] || null;
-      } finally {
-        client.release();
-      }
+      } finally { client.release(); }
     },
     async all(sql, ...params) {
-      if (params.length === 1 && Array.isArray(params[0])) {
-        params = params[0];
-      }
+      if (params.length === 1 && Array.isArray(params[0])) params = params[0];
       const client = await pool.connect();
       try {
         const convertedSql = convertPlaceholders(sql, params);
         const res = await client.query(convertedSql, params);
         return res.rows;
-      } finally {
-        client.release();
-      }
+      } finally { client.release(); }
     },
     async exec(sql) {
       const client = await pool.connect();
       try {
         const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
-        for (const stmt of statements) {
-          await client.query(stmt);
-        }
-      } finally {
-        client.release();
-      }
+        for (const stmt of statements) await client.query(stmt);
+      } finally { client.release(); }
     },
     async transaction(callback) {
       const client = await pool.connect();
@@ -91,9 +72,7 @@ function createPgWrapper(pool) {
       } catch (e) {
         await client.query('ROLLBACK');
         throw e;
-      } finally {
-        client.release();
-      }
+      } finally { client.release(); }
     },
     get isPostgres() { return true; }
   };
@@ -118,39 +97,27 @@ async function openDb() {
 }
 
 /**
- * Vérifie et ajoute la colonne soraBolaLinesJson si elle manque
+ * Vérifie et ajoute une colonne si elle manque (générique)
  */
-async function ensureColumnSoraBolaLinesJson(db) {
-  try {
-    let columnExists = false;
-    if (isProduction) {
-      // PostgreSQL
-      const result = await db.get(
-        `SELECT column_name 
-         FROM information_schema.columns 
-         WHERE table_name = 'monthly_reports' AND column_name = 'sorabolalinesjson'`
-      );
-      columnExists = !!result;
-    } else {
-      // SQLite
-      const tableInfo = await db.all(`PRAGMA table_info(monthly_reports)`);
-      columnExists = tableInfo.some(col => col.name === 'soraBolaLinesJson');
-    }
-
-    if (!columnExists) {
-      console.log('🔧 Ajout de la colonne soraBolaLinesJson dans monthly_reports...');
-      if (isProduction) {
-        await db.run(`ALTER TABLE monthly_reports ADD COLUMN soraBolaLinesJson TEXT`);
-      } else {
-        await db.run(`ALTER TABLE monthly_reports ADD COLUMN soraBolaLinesJson TEXT`);
-      }
-      console.log('✅ Colonne soraBolaLinesJson ajoutée avec succès.');
-    } else {
-      console.log('ℹ️ La colonne soraBolaLinesJson existe déjà.');
-    }
-  } catch (err) {
-    console.error('❌ Erreur lors de la vérification/ajout de la colonne soraBolaLinesJson:', err);
-    // On ne bloque pas l'initialisation, mais on log l'erreur
+async function ensureColumn(db, tableName, columnName, columnType) {
+  let columnExists = false;
+  if (isProduction) {
+    const result = await db.get(
+      `SELECT column_name FROM information_schema.columns 
+       WHERE table_name = $1 AND column_name = $2`,
+      tableName, columnName.toLowerCase()
+    );
+    columnExists = !!result;
+  } else {
+    const tableInfo = await db.all(`PRAGMA table_info(${tableName})`);
+    columnExists = tableInfo.some(col => col.name === columnName);
+  }
+  if (!columnExists) {
+    console.log(`🔧 Ajout de la colonne ${columnName} dans ${tableName}...`);
+    await db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType}`);
+    console.log(`✅ Colonne ${columnName} ajoutée.`);
+  } else {
+    console.log(`ℹ️ La colonne ${columnName} existe déjà.`);
   }
 }
 
@@ -246,6 +213,7 @@ async function initDb() {
       endOfYear TEXT,
       receiptNumber TEXT,
       note TEXT,
+      volamPiangonanaApetraka INTEGER,
       PRIMARY KEY (month_id, eglise)
     );
     CREATE TABLE IF NOT EXISTS frais (
@@ -319,6 +287,7 @@ async function initDb() {
       endOfYear TEXT,
       receiptNumber TEXT,
       note TEXT,
+      volamPiangonanaApetraka INTEGER,
       PRIMARY KEY (month_id, eglise)
     );
     CREATE TABLE IF NOT EXISTS frais (month_id TEXT, eglise TEXT, amount INTEGER, PRIMARY KEY (month_id, eglise));
@@ -339,8 +308,9 @@ async function initDb() {
 
   await db.exec(schemaSQL);
 
-  // ---------- Migration : ajout de la colonne soraBolaLinesJson si manquante ----------
-  await ensureColumnSoraBolaLinesJson(db);
+  // ---------- Migrations : ajout des colonnes manquantes ----------
+  await ensureColumn(db, 'monthly_reports', 'soraBolaLinesJson', 'TEXT');
+  await ensureColumn(db, 'monthly_reports', 'volamPiangonanaApetraka', 'INTEGER');
 
   // ---------- Insertion des mois 2026 ----------
   const months2026 = [
