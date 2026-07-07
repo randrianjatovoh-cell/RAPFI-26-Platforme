@@ -4,7 +4,7 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, formatNumber, nombreEnLettresCapitalized, escapeHtml, capitalizeFirstLetter } from '../services/helpers';
 
-const MAX_AMOUNT = 1_000_000_000;
+const MAX_AMOUNT = 1_000_000_000; // 1 milliard Ar
 
 function isValidDateStr(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return false;
@@ -155,22 +155,32 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     window.dispatchEvent(new Event('expenses-updated'));
   }
 
+  // Validation commune pour les montants
+  function validateAmount(value, fieldName = 'Montant') {
+    const num = Number(value);
+    if (isNaN(num) || num < 0) {
+      alert(`${fieldName} doit être un nombre positif.`);
+      return false;
+    }
+    if (num > MAX_AMOUNT) {
+      alert(`${fieldName} ne peut pas dépasser ${MAX_AMOUNT.toLocaleString()} Ar.`);
+      return false;
+    }
+    return true;
+  }
+
   async function handleAdd() {
     if (readOnly) return;
     if (!currentMonth) { alert("Sélectionnez un mois."); return; }
     if (!eglise) { alert("Aucune église sélectionnée."); return; }
 
     const amountVal = parseFloat(newExpense.amount);
-    if (isNaN(amountVal) || amountVal <= 0) {
-      alert("Montant de dépense invalide.");
-      return;
-    }
-    if (amountVal > MAX_AMOUNT) {
-      alert(`Montant trop élevé (max ${MAX_AMOUNT.toLocaleString()})`);
-      return;
-    }
-
     const voarayVal = parseFloat(newExpense.voaray) || 0;
+
+    // Validation du montant de la dépense
+    if (!validateAmount(amountVal, 'Montant de la dépense')) return;
+    // Validation du montant reçu (voaray) – optionnel mais cohérent
+    if (!validateAmount(voarayVal, 'Montant reçu (voaray)')) return;
 
     const newId = idCounter.current++;
     const expense = {
@@ -242,6 +252,11 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     if (readOnly) return;
     const expense = expenses.find(e => e.id === id);
     if (!expense) return;
+
+    // Validation des montants avant sauvegarde
+    if (!validateAmount(expense.amount, 'Montant de la dépense')) return;
+    if (!validateAmount(expense.voaray, 'Montant reçu (voaray)')) return;
+
     try {
       let currentList;
       if (isAdmin) {
@@ -276,6 +291,16 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
 
   function handleFieldChange(id, field, value) {
     if (readOnly) return;
+    // Pour les champs numériques, vérifier la limite immédiatement
+    if ((field === 'amount' || field === 'voaray') && value !== '') {
+      const num = parseFloat(value);
+      if (!isNaN(num) && num > MAX_AMOUNT) {
+        alert(`Le ${field === 'amount' ? 'montant' : 'voaray'} ne peut pas dépasser ${MAX_AMOUNT.toLocaleString()} Ar.`);
+        // On ne modifie pas la valeur, on reste à l'ancienne valeur
+        return;
+      }
+    }
+
     setExpenses(prev => prev.map(exp => {
       if (exp.id === id) {
         let updated = { ...exp, [field]: value };
