@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 
-// Constantes pour les messages (évite les chaînes magiques)
+// Constantes pour les messages
 const MESSAGES = {
   PHOTO_SUCCESS: 'Photo mise à jour avec succès !',
   PHOTO_ERROR: 'Erreur lors du téléchargement de la photo',
@@ -20,7 +20,7 @@ const MESSAGES = {
   GENERIC_ERROR: 'Une erreur est survenue',
 };
 
-// Composant pour afficher un message stylisé (extraire pour réutilisabilité)
+// Composant pour afficher un message stylisé
 const StatusMessage = ({ message, type }) => {
   if (!message) return null;
   const typeMap = {
@@ -45,7 +45,7 @@ const StatusMessage = ({ message, type }) => {
 
 // Composant principal
 export default function Profile({ onClose }) {
-  const { user, updateUser } = useUser();
+  const { user, updateUser, refreshUser } = useUser(); // ← ajout de refreshUser
   const [photo, setPhoto] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('success');
@@ -61,9 +61,18 @@ export default function Profile({ onClose }) {
   // Initialisation des champs depuis user (et mise à jour si user change)
   useEffect(() => {
     if (user) {
+      console.log('📦 [Profile] Données utilisateur reçues :', user);
+      // Vérifier si les champs existent
+      const hasPhoto = !!user.photo;
+      const hasAdresse = !!user.adresse;
+      const hasContact = !!user.contact;
+      console.log(`📦 [Profile] Champs : photo=${hasPhoto}, adresse=${hasAdresse}, contact=${hasContact}`);
+
       setPhoto(user.photo || '');
       setAdresse(user.adresse || '');
       setContact(user.contact || '');
+    } else {
+      console.warn('⚠️ [Profile] Aucun utilisateur dans le contexte.');
     }
   }, [user]);
 
@@ -101,8 +110,24 @@ export default function Profile({ onClose }) {
       formData.append('photo', file);
       const result = await api.uploadUserPhoto(user.id, formData);
       
-      setPhoto(result.photoUrl);
-      updateUser({ photo: result.photoUrl });
+      console.log('📸 [Profile] Réponse upload photo :', result);
+      
+      // Vérifier la structure de la réponse
+      const photoUrl = result.photoUrl || result.url || result.photo || result;
+      if (!photoUrl) {
+        throw new Error('URL de la photo non reçue du serveur');
+      }
+
+      setPhoto(photoUrl);
+      // Mettre à jour le contexte avec la nouvelle photo
+      updateUser({ photo: photoUrl });
+      
+      // Optionnel : rafraîchir tout l'utilisateur pour être sûr
+      if (refreshUser) {
+        await refreshUser();
+        console.log('🔄 [Profile] Utilisateur rafraîchi après upload photo');
+      }
+
       showMessage(MESSAGES.PHOTO_SUCCESS, 'success', 3000);
     } catch (err) {
       console.error('❌ Erreur upload photo:', err);
@@ -113,12 +138,11 @@ export default function Profile({ onClose }) {
         fileInputRef.current.value = ''; // Réinitialiser l'input
       }
     }
-  }, [user, updateUser, showMessage]);
+  }, [user, updateUser, refreshUser, showMessage]);
 
   // Gestion du changement de mot de passe
   const handlePasswordChange = useCallback(async (e) => {
     e.preventDefault();
-    // Empêcher l'admin de changer son mot de passe (si c'est la règle métier)
     if (user?.fonction === 'Admin') {
       showMessage(MESSAGES.PASSWORD_ADMIN_FORBIDDEN, 'error');
       return;
@@ -148,7 +172,6 @@ export default function Profile({ onClose }) {
 
   // Gestion de l'enregistrement adresse/contact
   const handleSaveContact = useCallback(async () => {
-    // Vérifier s'il y a des changements par rapport aux valeurs initiales (stockées dans user)
     const originalAdresse = user?.adresse || '';
     const originalContact = user?.contact || '';
     if (adresse === originalAdresse && contact === originalContact) {
@@ -159,8 +182,13 @@ export default function Profile({ onClose }) {
     setIsSavingContact(true);
     try {
       await api.updateUser(user.id, { adresse, contact });
-      // Mise à jour du contexte avec les nouvelles valeurs
       updateUser({ adresse, contact });
+      
+      if (refreshUser) {
+        await refreshUser();
+        console.log('🔄 [Profile] Utilisateur rafraîchi après mise à jour coordonnées');
+      }
+
       showMessage(MESSAGES.CONTACT_SUCCESS, 'success', 3000);
     } catch (err) {
       console.error('❌ Erreur mise à jour coordonnées:', err);
@@ -168,14 +196,14 @@ export default function Profile({ onClose }) {
     } finally {
       setIsSavingContact(false);
     }
-  }, [user, adresse, contact, updateUser, showMessage]);
+  }, [user, adresse, contact, updateUser, refreshUser, showMessage]);
 
-  // Vérifier si les champs adresse/contact ont changé par rapport à l'original
+  // Vérifier si les champs adresse/contact ont changé
   const hasContactChanged = user
     ? adresse !== (user.adresse || '') || contact !== (user.contact || '')
     : false;
 
-  // Si user est null ou undefined, on affiche un message de chargement ou on redirige
+  // Si user est null ou undefined, on affiche un message de chargement
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl text-center">
