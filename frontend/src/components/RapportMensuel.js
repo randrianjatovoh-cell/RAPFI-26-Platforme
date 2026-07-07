@@ -370,25 +370,74 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           .no-print { display: none !important; }
           .border, .border-black { border-color: #000 !important; border-width: 0.5pt !important; }
           th, td { padding: 1px 3px !important; }
-          input:not([type="checkbox"]):not([type="radio"]) { border: none !important; background: transparent !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important; font-size: 7.5pt !important; }
-          input[type="checkbox"] { appearance: auto !important; -webkit-appearance: checkbox !important; width: 12px !important; height: 12px !important; margin: 0 4px 0 0 !important; display: inline-block !important; opacity: 1 !important; border: 1px solid #000 !important; background: #fff !important; flex-shrink: 0; }
+          input:not([type="checkbox"]):not([type="radio"]) {
+            border: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            font-size: 7.5pt !important;
+            /* 🔥 NOUVEAU : permettre le retour à la ligne et la coupure de mots */
+            white-space: normal !important;
+            word-break: break-word !important;
+            height: auto !important;
+            min-height: 1.2em;
+            overflow: visible !important;
+          }
+          input[type="checkbox"] {
+            appearance: auto !important;
+            -webkit-appearance: checkbox !important;
+            width: 12px !important;
+            height: 12px !important;
+            margin: 0 4px 0 0 !important;
+            display: inline-block !important;
+            opacity: 1 !important;
+            border: 1px solid #000 !important;
+            background: #fff !important;
+            flex-shrink: 0;
+          }
           table { page-break-inside: auto !important; }
           .rapport-mensuel .mb-2 { margin-bottom: 0.1cm !important; }
           .rapport-mensuel .mt-1 { margin-top: 0.05cm !important; }
           .rapport-mensuel .mt-2 { margin-top: 0.1cm !important; }
           .rapport-mensuel .gap-1 { gap: 0.05cm !important; }
           .rapport-mensuel .p-1 { padding: 1px !important; }
+
+          /* 🔥 MODIFICATION : plus de place pour CHEQUE, moins pour SORA */
           .cheque-table { table-layout: fixed !important; width: 100% !important; }
-          .cheque-table .cheque-col { width: 70% !important; }
-          .cheque-table .sora-col { width: 30% !important; }
-          .cheque-table th, .cheque-table td { padding: 1px 3px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-          .cheque-table input { width: 100% !important; box-sizing: border-box !important; border: none !important; background: transparent !important; padding: 0 2px !important; text-align: left !important; }
-          .cheque-table .sora-bola-col input { text-align: right !important; }
+          .cheque-table .cheque-col { width: 80% !important; }
+          .cheque-table .sora-col { width: 20% !important; }
+          .cheque-table th, .cheque-table td {
+            padding: 1px 3px !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: normal !important; /* permet le retour à la ligne */
+          }
+          .cheque-table input {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            border: none !important;
+            background: transparent !important;
+            padding: 0 2px !important;
+            text-align: left !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          .cheque-table .sora-bola-col input {
+            text-align: right !important;
+          }
+
           .table-volam-piangonana { table-layout: fixed !important; width: 100% !important; }
           .table-volam-piangonana td { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
           .table-volam-piangonana th { white-space: normal !important; word-break: break-word !important; }
           .table-volam-piangonana th:nth-child(1), .table-volam-piangonana td:nth-child(1) { width: 28% !important; }
-          .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2), .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3), .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4), .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5), .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
+          .table-volam-piangonana th:nth-child(2), .table-volam-piangonana td:nth-child(2),
+          .table-volam-piangonana th:nth-child(3), .table-volam-piangonana td:nth-child(3),
+          .table-volam-piangonana th:nth-child(4), .table-volam-piangonana td:nth-child(4),
+          .table-volam-piangonana th:nth-child(5), .table-volam-piangonana td:nth-child(5),
+          .table-volam-piangonana th:nth-child(6), .table-volam-piangonana td:nth-child(6) { width: 11% !important; }
           .table-volam-piangonana th:nth-child(7), .table-volam-piangonana td:nth-child(7) { width: 17% !important; }
           .print-right { text-align: right !important; }
           .print-amount { font-weight: bold; }
@@ -543,7 +592,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
-        {/* 🔥 Modification ici : suppression de la bordure et du fond */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
           <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
