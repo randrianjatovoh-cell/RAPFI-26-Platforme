@@ -132,7 +132,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     try {
       let loadedPreviousBalance = 0;
 
-      // 🔥 Lire endOfYear depuis le backend (pas de localStorage)
+      // 🔥 Priorité au backend pour endOfYear
       let firstMonthReport = null;
       try {
         firstMonthReport = await api.getMonthlyReport(`${selectedYear}-01`, eglise);
@@ -322,6 +322,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         </div>
       )}
 
+      {/* EN-TÊTE AVEC LOGOS */}
       <div className="flex items-center justify-between mb-2" style={{ borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ width: '50px', height: '50px' }}>

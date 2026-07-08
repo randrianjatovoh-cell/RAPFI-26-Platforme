@@ -57,20 +57,19 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     try {
       console.log('🔄 [RapportComite] Chargement des données pour', currentMonth, eglise);
 
-      // Récupérer le rapport mensuel (source unique)
       let r = await api.getMonthlyReport(currentMonth, eglise);
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
       }
       setReport(r);
 
-      // 🔥 Lecture de volamPiangonanaApetraka depuis le rapport (backend uniquement)
+      // 🔥 Volam-piangonana apetraka depuis le backend
       const volamValue = (r && r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null)
         ? r.volamPiangonanaApetraka
         : 0;
       setVolamPiangonanaApetraka(volamValue);
 
-      // 🔥 Lecture des références depuis le rapport (backend uniquement)
+      // 🔥 Références depuis le backend
       let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
       if (r && r.soraBolaLinesJson) {
         try {
@@ -81,7 +80,6 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
               chequeArr = parsed.cheque || [];
               soraArr = parsed.soraBola || [];
             } else if (Array.isArray(parsed)) {
-              // ancien format
               soraArr = parsed;
             }
           }
@@ -108,7 +106,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       }
       setReferences(newRefs);
 
-      // GL et dépenses
+      // GL et dépenses (inchangé)
       const glData = await api.getGL(currentMonth, null, null, eglise) || {};
       const categoryTotals = { f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0 };
       let b9=0, b10=0;
@@ -132,6 +130,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setFrais(fraisVal);
 
+      // Opening church : on conserve localStorage pour ce champ, car c'est une saisie locale
       const savedOpening = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const opening = savedOpening ? parseFloat(savedOpening) : 0;
       setOpeningChurch(opening);
@@ -358,7 +357,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         </table>
       </div>
 
-      {/* Tableau des références – maintenant alimenté par le backend uniquement */}
+      {/* Tableau des références – depuis le backend uniquement */}
       <div className="mt-6">
         <h4 className="font-bold mb-2">Références des versements</h4>
         <table className="w-full text-sm border border-black">
