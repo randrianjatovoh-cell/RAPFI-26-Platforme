@@ -1,3 +1,4 @@
+// frontend/src/components/RapportComite.js
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -56,32 +57,33 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
     try {
       console.log('🔄 [RapportComite] Chargement des données pour', currentMonth, eglise);
 
+      // Récupérer le rapport mensuel (source unique)
       let r = await api.getMonthlyReport(currentMonth, eglise);
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
       }
       setReport(r);
 
-      // Extraire les références
-      let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
-      let rawJson = null;
-      if (r && r.soraBolaLinesJson) {
-        rawJson = r.soraBolaLinesJson;
-      } else {
-        const fallbackKey = `chequeSora_${currentMonth}_${eglise}`;
-        const stored = localStorage.getItem(fallbackKey);
-        if (stored) rawJson = stored;
-      }
+      // 🔥 Lecture de volamPiangonanaApetraka depuis le rapport (backend uniquement)
+      const volamValue = (r && r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null)
+        ? r.volamPiangonanaApetraka
+        : 0;
+      setVolamPiangonanaApetraka(volamValue);
 
-      if (rawJson) {
+      // 🔥 Lecture des références depuis le rapport (backend uniquement)
+      let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
+      if (r && r.soraBolaLinesJson) {
         try {
-          const parsed = JSON.parse(rawJson);
+          const parsed = JSON.parse(r.soraBolaLinesJson);
           let chequeArr = [], soraArr = [];
-          if (parsed && typeof parsed === 'object' && parsed.cheque && parsed.soraBola) {
-            chequeArr = parsed.cheque || [];
-            soraArr = parsed.soraBola || [];
-          } else if (Array.isArray(parsed)) {
-            soraArr = parsed;
+          if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
+              chequeArr = parsed.cheque || [];
+              soraArr = parsed.soraBola || [];
+            } else if (Array.isArray(parsed)) {
+              // ancien format
+              soraArr = parsed;
+            }
           }
           const maxLines = Math.min(chequeArr.length, soraArr.length, 5);
           for (let i = 0; i < maxLines; i++) {
@@ -102,7 +104,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
             }
             newRefs[i] = { date: dateFormatted, soraBola: soraAmount, rosia: ref };
           }
-        } catch(e) { console.warn("Erreur parsing:", e); }
+        } catch(e) { console.warn("Erreur parsing soraBolaLinesJson:", e); }
       }
       setReferences(newRefs);
 
@@ -129,19 +131,6 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
 
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setFrais(fraisVal);
-
-      // Récupérer volamPiangonanaApetraka depuis le rapport ou localStorage
-      let volamValue = 0;
-      if (r && r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null) {
-        volamValue = r.volamPiangonanaApetraka;
-      } else {
-        const fallbackKey = `volamPiangonanaApetraka_${currentMonth}_${eglise}`;
-        const stored = localStorage.getItem(fallbackKey);
-        if (stored) {
-          volamValue = parseFloat(stored) || 0;
-        }
-      }
-      setVolamPiangonanaApetraka(volamValue);
 
       const savedOpening = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const opening = savedOpening ? parseFloat(savedOpening) : 0;
@@ -369,7 +358,7 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         </table>
       </div>
 
-      {/* Tableau des références avec données en bleu/italique */}
+      {/* Tableau des références – maintenant alimenté par le backend uniquement */}
       <div className="mt-6">
         <h4 className="font-bold mb-2">Références des versements</h4>
         <table className="w-full text-sm border border-black">
@@ -384,31 +373,19 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
             {references.map((ref, idx) => (
               <tr key={idx}>
                 <td className="border p-1 reference-data">
-                  <input
-                    type="text"
-                    value={ref.date}
-                    readOnly
-                    className="w-full reference-data"
-                    style={{ textAlign: 'left', backgroundColor: '#f5f5f5', border: 'none', color: 'blue', fontStyle: 'italic' }}
-                  />
+                  <span className="w-full block" style={{ textAlign: 'left', color: 'blue', fontStyle: 'italic' }}>
+                    {ref.date || ''}
+                  </span>
                 </td>
                 <td className="border p-1 reference-data">
-                  <input
-                    type="text"
-                    value={formatNumber(ref.soraBola) || ''}
-                    readOnly
-                    className="w-full reference-data"
-                    style={{ textAlign: 'right', backgroundColor: '#f5f5f5', border: 'none', color: 'blue', fontStyle: 'italic' }}
-                  />
+                  <span className="w-full block" style={{ textAlign: 'right', color: 'blue', fontStyle: 'italic' }}>
+                    {formatNumber(ref.soraBola) || ''}
+                  </span>
                 </td>
                 <td className="border p-1 reference-data">
-                  <input
-                    type="text"
-                    value={ref.rosia}
-                    readOnly
-                    className="w-full reference-data"
-                    style={{ textAlign: 'left', backgroundColor: '#f5f5f5', border: 'none', color: 'blue', fontStyle: 'italic' }}
-                  />
+                  <span className="w-full block" style={{ textAlign: 'left', color: 'blue', fontStyle: 'italic' }}>
+                    {ref.rosia || ''}
+                  </span>
                 </td>
               </tr>
             ))}
