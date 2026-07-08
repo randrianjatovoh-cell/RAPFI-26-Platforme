@@ -145,14 +145,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // 🔥 Volam-piangonana apetraka : uniquement depuis le backend
-        if (r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null) {
-          setVolamPiangonanaApetraka(Number(r.volamPiangonanaApetraka));
-        } else {
-          setVolamPiangonanaApetraka(0);
-        }
+        // 🔥 Volam-piangonana apetraka
+        setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
 
-        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA : uniquement depuis le backend
+        // 🔥 Vola sisa teo aloha (depuis le backend)
+        setVolaSisaTeoAloha(r.volaSisaTeoAloha || 0);
+
+        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -174,7 +173,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             }
           } catch (e) { /* ignore */ }
         } else {
-          // Initialisation vide
           setChequeLines(['', '', '', '', '']);
           setSoraBolaLines(['', '', '', '', '']);
           setTotalChequeSora(0);
@@ -235,13 +233,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       } else expensesByWeek[0] = totalExp;
       setExpensesBySabbath(expensesByWeek);
 
-      // Vola sisa teo aloha : on conserve localStorage pour ce champ, car il est spécifique à l'utilisateur
-      // et n'a pas besoin d'être partagé entre appareils (c'est un état de session).
-      // Mais si vous voulez aussi le supprimer, on peut.
-      const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-      const sisa = saved ? parseFloat(saved) : 0;
-      setVolaSisaTeoAloha(sisa);
-      setBalanceChurch(sisa + totalB - totalExp);
+      // Calcul du balanceChurch avec volaSisaTeoAloha
+      setBalanceChurch(volaSisaTeoAloha + totalB - totalExp);
 
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -257,6 +250,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
   }, [currentMonth, eglise]);
 
+  // Sauvegarde générique
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
@@ -268,6 +262,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }
   };
 
+  // Sauvegarde tableau chèques
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
@@ -323,6 +318,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setVolamPiangonanaApetraka(num);
     try {
       await updateField('volamPiangonanaApetraka', num);
+      await loadData();
+    } catch (err) {}
+  };
+
+  // 🔥 Sauvegarde de volaSisaTeoAloha
+  const handleVolaSisaChange = async (val) => {
+    if (isReadOnlyMode()) return;
+    const num = parseFloat(val) || 0;
+    setVolaSisaTeoAloha(num);
+    try {
+      await updateField('volaSisaTeoAloha', num);
+      // Recalcul du solde final
+      setBalanceChurch(num + totalB - totalExpenses);
       await loadData();
     } catch (err) {}
   };
@@ -765,7 +773,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
-              <td className="border p-0.5 text-right">{formatMontant(volaSisaTeoAloha)} Ar</td>
+              <td className="border p-0.5 text-right">
+                <input
+                  type="number"
+                  value={volaSisaTeoAloha}
+                  onChange={(e) => handleVolaSisaChange(e.target.value)}
+                  className="rounded p-0.5 text-right border no-print"
+                  style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
+                  disabled={readOnlyMode}
+                />
+              </td>
             </tr>
             <tr>
               <td className="border p-0.5 font-bold">VOLA NIDITRA nandritra ny volana:</td>

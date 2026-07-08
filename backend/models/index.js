@@ -458,6 +458,8 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   const receiptNumber = oldReport?.receiptNumber || "";
   const note = oldReport?.note || "";
   const volamPiangonanaApetraka = oldReport?.volamPiangonanaApetraka || 0;
+  // 🔥 Récupération de volaSisaTeoAloha depuis l'ancien rapport
+  const volaSisaTeoAloha = oldReport?.volaSisaTeoAloha || 0;
 
   const balanceChurch = totalB - totalExpenses;
 
@@ -486,7 +488,8 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     endOfYear,
     receiptNumber,
     note,
-    volamPiangonanaApetraka
+    volamPiangonanaApetraka,
+    volaSisaTeoAloha // ✅ Ajout
   };
 
   await upsertMonthlyReport(monthId, eglise, report);

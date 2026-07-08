@@ -96,9 +96,6 @@ async function openDb() {
   }
 }
 
-/**
- * Vérifie et ajoute une colonne si elle manque (générique)
- */
 async function ensureColumn(db, tableName, columnName, columnType) {
   let columnExists = false;
   if (isProduction) {
@@ -214,6 +211,7 @@ async function initDb() {
       receiptNumber TEXT,
       note TEXT,
       volamPiangonanaApetraka INTEGER,
+      volaSisaTeoAloha INTEGER,
       PRIMARY KEY (month_id, eglise)
     );
     CREATE TABLE IF NOT EXISTS frais (
@@ -288,6 +286,7 @@ async function initDb() {
       receiptNumber TEXT,
       note TEXT,
       volamPiangonanaApetraka INTEGER,
+      volaSisaTeoAloha INTEGER,
       PRIMARY KEY (month_id, eglise)
     );
     CREATE TABLE IF NOT EXISTS frais (month_id TEXT, eglise TEXT, amount INTEGER, PRIMARY KEY (month_id, eglise));
@@ -311,6 +310,7 @@ async function initDb() {
   // ---------- Migrations : ajout des colonnes manquantes ----------
   await ensureColumn(db, 'monthly_reports', 'soraBolaLinesJson', 'TEXT');
   await ensureColumn(db, 'monthly_reports', 'volamPiangonanaApetraka', 'INTEGER');
+  await ensureColumn(db, 'monthly_reports', 'volaSisaTeoAloha', 'INTEGER');
 
   // ---------- Insertion des mois 2026 ----------
   const months2026 = [
