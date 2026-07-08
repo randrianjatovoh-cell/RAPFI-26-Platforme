@@ -473,12 +473,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Colonne groupée */}
+          {/* Graphique FEDERATION */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-500">Colonne groupée</div>
-              <div className="text-xs text-gray-400">Évolution de la Dîme, des Offrandes et du Total A</div>
+              <div className="text-sm font-medium text-gray-500">Évolution de la Dîme, des Offrandes et du Total A</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart
@@ -557,12 +556,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </ResponsiveContainer>
           </div>
 
-          {/* 🔥 Secteurs en 3D */}
+          {/* Graphique EGLISE LOCALE */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
-              <div className="text-sm font-medium text-gray-500">Secteurs en 3D</div>
-              <div className="text-xs text-gray-400">Répartition Reste / Entrées / Sorties</div>
+              <div className="text-sm font-medium text-gray-500">Répartition Reste / Entrées / Sorties</div>
             </div>
             <div
               style={{
@@ -681,10 +679,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Colonne groupée */}
+          {/* Graphique 1 */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Colonne groupée</p>
-            <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
                 data={lineData}
@@ -738,10 +735,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </ResponsiveContainer>
           </div>
 
-          {/* 🔥 Secteurs en 3D */}
+          {/* Graphique 2 */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Secteurs en 3D</p>
-            <p className="text-center text-xs text-gray-400 mb-3">Répartition Dîme / Offrandes (Total A)</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
             <div
               style={{
                 transform: 'rotateX(8deg) rotateY(6deg)',
@@ -855,10 +851,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Colonne groupée */}
+          {/* Graphique 1 */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Colonne groupée</p>
-            <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
                 data={lineData}
@@ -912,10 +907,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </ResponsiveContainer>
           </div>
 
-          {/* 🔥 Secteurs en 3D */}
+          {/* Graphique 2 */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Secteurs en 3D</p>
-            <p className="text-center text-xs text-gray-400 mb-3">Répartition des Dîmes par église</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
             <div
               style={{
                 transform: 'rotateX(8deg) rotateY(6deg)',
