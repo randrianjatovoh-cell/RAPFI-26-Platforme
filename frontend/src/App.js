@@ -774,7 +774,7 @@ function AppContent() {
                   className={`h-10 w-10 object-contain transition-all duration-700 filter drop-shadow-lg ${logoHover ? 'scale-110 rotate-3' : 'scale-100 rotate-0'}`}
                   onError={(e) => { 
                     e.target.style.display = 'none'; 
-                    e.target.parentNode.innerHTML = '<i class="fas fa-coins text-white text-3xl"></i>'; 
+                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-3xl"></i>'; 
                   }}
                 />
                 
@@ -801,8 +801,10 @@ function AppContent() {
             </div>
           </div>
 
-          {/* Boutons utilisateur avec effets 3D */}
-          <div className="flex items-center gap-3 z-10 flex-wrap">
+          {/* ============================================================
+              BOUTONS UTILISATEUR ALIGNÉS À DROITE (ml-auto)
+              ============================================================ */}
+          <div className="flex items-center gap-3 z-10 flex-wrap ml-auto">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
                 <button
@@ -838,27 +840,34 @@ function AppContent() {
               </div>
             )}
 
-            <button 
-              onClick={() => setShowProfile(!showProfile)} 
-              className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
-            >
-              {user?.photo ? (
-                <img src={user.photo} alt="avatar" className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
-                  <i className="fas fa-user text-sm"></i>
-                </div>
-              )}
-              <span className="hidden sm:inline font-medium">{user.nom || user.email} <span className="text-xs opacity-70">({user.fonction})</span></span>
-              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
-            </button>
+            {/* PROFIL UTILISATEUR AVEC NOM ET DÉCONNEXION ALIGNÉS À DROITE */}
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowProfile(!showProfile)} 
+                className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
+              >
+                {user?.photo ? (
+                  <img src={user.photo} alt="avatar" className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                    <i className="fas fa-user text-sm"></i>
+                  </div>
+                )}
+                <span className="hidden sm:inline font-medium">
+                  {user?.nom || user?.email || 'Utilisateur'} 
+                  <span className="text-xs opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
+                </span>
+                <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
+              </button>
 
-            <button 
-              onClick={handleLogout} 
-              className="text-red-200 hover:text-white transition-all duration-300 text-sm flex items-center gap-1 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
-            >
-              <i className="fas fa-sign-out-alt"></i> <span className="hidden sm:inline">Déconnexion</span>
-            </button>
+              <button 
+                onClick={handleLogout} 
+                className="text-red-200 hover:text-white transition-all duration-300 text-sm flex items-center gap-1 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
+              >
+                <i className="fas fa-sign-out-alt"></i> 
+                <span className="hidden sm:inline">Déconnexion</span>
+              </button>
+            </div>
           </div>
         </header>
 
