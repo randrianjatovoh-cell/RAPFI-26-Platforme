@@ -22,141 +22,154 @@ import Receipts from './components/Receipts';
 import { formatMonthYear } from './services/helpers';
 
 // ============================================================
-// PALETTE "ETEEZY" - Élégance et modernité
-// Couleurs: Crème, Doré, Noir, Gris élégant
+// COULEURS MODERNES AVEC ANIMATIONS - PALETTE DYNAMIQUE
 // ============================================================
 
 const tabColors = {
   dashboard: { 
-    bg: 'from-amber-400 via-yellow-500 to-orange-500', 
-    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-orange-600', 
+    bg: 'from-blue-500 via-blue-600 to-indigo-700', 
+    hover: 'hover:from-blue-600 hover:via-blue-700 hover:to-indigo-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-blue-500/50',
+    glow: 'shadow-[0_0_40px_rgba(59,130,246,0.4)]',
+    border: 'border-blue-400/40',
+    pulse: 'animate-pulse-glow-blue'
   },
   formulaire: { 
-    bg: 'from-stone-500 via-neutral-600 to-zinc-700', 
-    hover: 'hover:from-stone-600 hover:via-neutral-700 hover:to-zinc-800', 
+    bg: 'from-emerald-500 via-emerald-600 to-teal-700', 
+    hover: 'hover:from-emerald-600 hover:via-emerald-700 hover:to-teal-800', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-emerald-500/50',
+    glow: 'shadow-[0_0_40px_rgba(16,185,129,0.4)]',
+    border: 'border-emerald-400/40',
+    pulse: 'animate-pulse-glow-emerald'
   },
   grandlivre: { 
-    bg: 'from-amber-300 via-yellow-400 to-amber-500', 
-    hover: 'hover:from-amber-400 hover:via-yellow-500 hover:to-amber-600', 
+    bg: 'from-purple-500 via-purple-600 to-fuchsia-700', 
+    hover: 'hover:from-purple-600 hover:via-purple-700 hover:to-fuchsia-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-purple-500/50',
+    glow: 'shadow-[0_0_40px_rgba(168,85,247,0.4)]',
+    border: 'border-purple-400/40',
+    pulse: 'animate-pulse-glow-purple'
   },
   recap: { 
-    bg: 'from-stone-400 via-neutral-500 to-zinc-600', 
-    hover: 'hover:from-stone-500 hover:via-neutral-600 hover:to-zinc-700', 
+    bg: 'from-pink-500 via-pink-600 to-rose-700', 
+    hover: 'hover:from-pink-600 hover:via-pink-700 hover:to-rose-800', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-pink-500/50',
+    glow: 'shadow-[0_0_40px_rgba(236,72,153,0.4)]',
+    border: 'border-pink-400/40',
+    pulse: 'animate-pulse-glow-pink'
   },
   rapport: { 
-    bg: 'from-amber-400 via-yellow-500 to-amber-600', 
-    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-amber-700', 
+    bg: 'from-amber-500 via-amber-600 to-orange-700', 
+    hover: 'hover:from-amber-600 hover:via-amber-700 hover:to-orange-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-amber-500/50',
+    glow: 'shadow-[0_0_40px_rgba(245,158,11,0.4)]',
+    border: 'border-amber-400/40',
+    pulse: 'animate-pulse-glow-amber'
   },
   rapcomite: { 
-    bg: 'from-stone-500 via-neutral-600 to-zinc-700', 
-    hover: 'hover:from-stone-600 hover:via-neutral-700 hover:to-zinc-800', 
+    bg: 'from-rose-500 via-rose-600 to-red-700', 
+    hover: 'hover:from-rose-600 hover:via-rose-700 hover:to-red-800', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-rose-500/50',
+    glow: 'shadow-[0_0_40px_rgba(244,63,94,0.4)]',
+    border: 'border-rose-400/40',
+    pulse: 'animate-pulse-glow-rose'
   },
   rapportannuel: { 
-    bg: 'from-amber-300 via-yellow-400 to-orange-400', 
-    hover: 'hover:from-amber-400 hover:via-yellow-500 hover:to-orange-500', 
+    bg: 'from-violet-500 via-violet-600 to-purple-700', 
+    hover: 'hover:from-violet-600 hover:via-violet-700 hover:to-purple-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-violet-500/50',
+    glow: 'shadow-[0_0_40px_rgba(139,92,246,0.4)]',
+    border: 'border-violet-400/40',
+    pulse: 'animate-pulse-glow-violet'
   },
   depenses: { 
-    bg: 'from-stone-400 via-neutral-500 to-zinc-600', 
-    hover: 'hover:from-stone-500 hover:via-neutral-600 hover:to-zinc-700', 
+    bg: 'from-yellow-500 via-yellow-600 to-amber-700', 
+    hover: 'hover:from-yellow-600 hover:via-yellow-700 hover:to-amber-800', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-yellow-500/50',
+    glow: 'shadow-[0_0_40px_rgba(234,179,8,0.4)]',
+    border: 'border-yellow-400/40',
+    pulse: 'animate-pulse-glow-yellow'
   },
   carnet: { 
-    bg: 'from-amber-400 via-yellow-500 to-amber-600', 
-    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-amber-700', 
+    bg: 'from-cyan-500 via-cyan-600 to-blue-700', 
+    hover: 'hover:from-cyan-600 hover:via-cyan-700 hover:to-blue-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-cyan-500/50',
+    glow: 'shadow-[0_0_40px_rgba(34,211,238,0.4)]',
+    border: 'border-cyan-400/40',
+    pulse: 'animate-pulse-glow-cyan'
   },
   recapdistrict: { 
-    bg: 'from-stone-500 via-neutral-600 to-zinc-700', 
-    hover: 'hover:from-stone-600 hover:via-neutral-700 hover:to-zinc-800', 
+    bg: 'from-teal-500 via-teal-600 to-cyan-700', 
+    hover: 'hover:from-teal-600 hover:via-teal-700 hover:to-cyan-800', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-teal-500/50',
+    glow: 'shadow-[0_0_40px_rgba(20,184,166,0.4)]',
+    border: 'border-teal-400/40',
+    pulse: 'animate-pulse-glow-teal'
   },
   recapfederation: { 
-    bg: 'from-amber-300 via-yellow-400 to-amber-500', 
-    hover: 'hover:from-amber-400 hover:via-yellow-500 hover:to-amber-600', 
+    bg: 'from-indigo-500 via-indigo-600 to-blue-700', 
+    hover: 'hover:from-indigo-600 hover:via-indigo-700 hover:to-blue-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-indigo-500/50',
+    glow: 'shadow-[0_0_40px_rgba(99,102,241,0.4)]',
+    border: 'border-indigo-400/40',
+    pulse: 'animate-pulse-glow-indigo'
   },
   users: { 
-    bg: 'from-stone-600 via-neutral-700 to-zinc-800', 
-    hover: 'hover:from-stone-700 hover:via-neutral-800 hover:to-zinc-900', 
+    bg: 'from-gray-700 via-gray-800 to-gray-900', 
+    hover: 'hover:from-gray-800 hover:via-gray-900 hover:to-gray-950', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-gray-500/50',
+    glow: 'shadow-[0_0_40px_rgba(107,114,128,0.4)]',
+    border: 'border-gray-400/40',
+    pulse: 'animate-pulse-glow-gray'
   },
   receipts: { 
-    bg: 'from-amber-400 via-yellow-500 to-orange-500', 
-    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-orange-600', 
+    bg: 'from-rose-500 via-rose-600 to-pink-700', 
+    hover: 'hover:from-rose-600 hover:via-rose-700 hover:to-pink-800', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/40',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
-    border: 'border-amber-400/30'
+    shadow: 'shadow-rose-500/50',
+    glow: 'shadow-[0_0_40px_rgba(244,63,94,0.4)]',
+    border: 'border-rose-400/40',
+    pulse: 'animate-pulse-glow-rose'
   },
   stats: { 
-    bg: 'from-stone-400 via-neutral-500 to-zinc-600', 
-    hover: 'hover:from-stone-500 hover:via-neutral-600 hover:to-zinc-700', 
+    bg: 'from-blue-500 via-indigo-600 to-purple-700', 
+    hover: 'hover:from-blue-600 hover:via-indigo-700 hover:to-purple-800', 
     text: 'text-white', 
-    shadow: 'shadow-stone-500/40',
-    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
-    border: 'border-stone-400/30'
+    shadow: 'shadow-indigo-500/50',
+    glow: 'shadow-[0_0_40px_rgba(99,102,241,0.4)]',
+    border: 'border-indigo-400/40',
+    pulse: 'animate-pulse-glow-indigo'
   },
 };
 
-// Couleurs inactives élégantes (style Eteezy)
+// Couleurs inactives modernes
 const inactiveColors = {
-  dashboard: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  formulaire: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  grandlivre: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  recap: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  rapport: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  rapcomite: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  rapportannuel: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  depenses: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  carnet: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  recapdistrict: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  recapfederation: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  users: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  receipts: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
-  stats: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  dashboard: 'bg-white/90 text-blue-700 hover:bg-blue-50/90 hover:text-blue-900 hover:shadow-lg hover:-translate-y-1 border border-blue-200/40',
+  formulaire: 'bg-white/90 text-emerald-700 hover:bg-emerald-50/90 hover:text-emerald-900 hover:shadow-lg hover:-translate-y-1 border border-emerald-200/40',
+  grandlivre: 'bg-white/90 text-purple-700 hover:bg-purple-50/90 hover:text-purple-900 hover:shadow-lg hover:-translate-y-1 border border-purple-200/40',
+  recap: 'bg-white/90 text-pink-700 hover:bg-pink-50/90 hover:text-pink-900 hover:shadow-lg hover:-translate-y-1 border border-pink-200/40',
+  rapport: 'bg-white/90 text-amber-700 hover:bg-amber-50/90 hover:text-amber-900 hover:shadow-lg hover:-translate-y-1 border border-amber-200/40',
+  rapcomite: 'bg-white/90 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
+  rapportannuel: 'bg-white/90 text-violet-700 hover:bg-violet-50/90 hover:text-violet-900 hover:shadow-lg hover:-translate-y-1 border border-violet-200/40',
+  depenses: 'bg-white/90 text-yellow-700 hover:bg-yellow-50/90 hover:text-yellow-900 hover:shadow-lg hover:-translate-y-1 border border-yellow-200/40',
+  carnet: 'bg-white/90 text-cyan-700 hover:bg-cyan-50/90 hover:text-cyan-900 hover:shadow-lg hover:-translate-y-1 border border-cyan-200/40',
+  recapdistrict: 'bg-white/90 text-teal-700 hover:bg-teal-50/90 hover:text-teal-900 hover:shadow-lg hover:-translate-y-1 border border-teal-200/40',
+  recapfederation: 'bg-white/90 text-indigo-700 hover:bg-indigo-50/90 hover:text-indigo-900 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
+  users: 'bg-white/90 text-gray-700 hover:bg-gray-50/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/40',
+  receipts: 'bg-white/90 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
+  stats: 'bg-white/90 text-indigo-700 hover:bg-indigo-50/90 hover:text-indigo-900 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
 };
 
 // Icônes avec animations
@@ -208,6 +221,8 @@ function AppContent() {
   const [pasteurReadOnly, setPasteurReadOnly] = useState(false);
   const [isHoveringTab, setIsHoveringTab] = useState(null);
   const [logoHover, setLogoHover] = useState(false);
+  const [logoRotation, setLogoRotation] = useState(0);
+  const [logoBounce, setLogoBounce] = useState(false);
 
   // États pour le vérificateur
   const [selectedDistrictForVerif, setSelectedDistrictForVerif] = useState(null);
@@ -217,6 +232,23 @@ function AppContent() {
   const isVerificateur = user?.fonction === 'Vérificateur';
   const isPasteur = user?.fonction === 'Pasteur';
   const isAncienOrTresorier = user?.fonction === 'Ancien' || user?.fonction === 'Trésorier';
+
+  // Animation automatique du logo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogoRotation(prev => (prev + 2) % 360);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Effet de rebond périodique
+  useEffect(() => {
+    const bounceInterval = setInterval(() => {
+      setLogoBounce(true);
+      setTimeout(() => setLogoBounce(false), 500);
+    }, 3000);
+    return () => clearInterval(bounceInterval);
+  }, []);
 
   // Vérification des données existantes pour le mois/église (Pasteur)
   useEffect(() => {
@@ -489,14 +521,14 @@ function AppContent() {
     return base + 'UTILISATEUR';
   };
 
-  // Fonction pour obtenir les classes d'un onglet
+  // Fonction pour obtenir les classes d'un onglet selon son état avec effet 3D amélioré
   const getTabClasses = (tabId, isActive) => {
     if (isActive) {
       const active = tabColors[tabId] || tabColors.dashboard;
-      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-105 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm`;
+      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-110 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm ${active.pulse}`;
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900';
-      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-102 hover:-translate-y-0.5`;
+      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
+      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1`;
     }
   };
 
@@ -650,26 +682,26 @@ function AppContent() {
     if (!isVerificateur || !selectedEglise || !verifEgliseSelected) return null;
 
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-cream-50/90 via-stone-50/90 to-neutral-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/50 no-print animate-slideDown">
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/90 to-purple-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200/50 no-print animate-slideDown">
         <button
           onClick={handleBackToDistrictList}
-          className="bg-gradient-to-r from-stone-600 to-neutral-700 hover:from-stone-700 hover:to-neutral-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
         >
           <i className="fas fa-arrow-left"></i> Retour
         </button>
-        <div className="font-bold text-stone-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
-          <i className="fas fa-church text-amber-600 animate-pulse-subtle"></i> 
-          ÉGLISE : <span className="text-stone-900">{selectedEglise}</span>
+        <div className="font-bold text-blue-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
+          <i className="fas fa-church text-blue-600 animate-pulse-subtle"></i> 
+          ÉGLISE : <span className="text-blue-900">{selectedEglise}</span>
         </div>
         <div className="flex-1"></div>
         <div className="flex items-center gap-2 bg-white/50 px-3 py-1 rounded-lg">
           <label className="text-sm font-medium text-gray-700">
-            <i className="fas fa-calendar-alt text-amber-500 mr-1"></i> Mois :
+            <i className="fas fa-calendar-alt text-blue-500 mr-1"></i> Mois :
           </label>
           <select
             value={currentMonth || ''}
             onChange={(e) => setCurrentMonth(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
           >
             {months.map((m) => (
               <option key={m.id} value={m.id}>{formatMonthYear(m.id)}</option>
@@ -700,16 +732,16 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-cream-50 via-stone-50 to-neutral-50">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center animate-pulse">
           <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 border-4 border-stone-200 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-amber-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-blue-600 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <i className="fas fa-church text-amber-400 text-2xl animate-pulse"></i>
+              <i className="fas fa-church text-blue-400 text-2xl animate-pulse"></i>
             </div>
           </div>
-          <p className="mt-4 text-stone-600 font-medium animate-pulse">Vérification de la session...</p>
+          <p className="mt-4 text-blue-600 font-medium animate-pulse">Vérification de la session...</p>
         </div>
       </div>
     );
@@ -732,76 +764,87 @@ function AppContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-stone-50 to-neutral-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE STYLE ETEEZY - Élégant et moderne */}
-        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
+        {/* EN-TÊTE AVEC LOGO ANIMÉ 3D */}
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
-          {/* Effets de fond décoratifs élégants */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-stone-400/5 to-neutral-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-amber-400/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+          {/* Effets de fond décoratifs animés */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
           
-          {/* Lignes lumineuses dorées */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
+          {/* Lignes lumineuses animées */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent animate-shimmer"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-300/50 to-transparent animate-shimmer animation-delay-500"></div>
 
           {/* =============================================
-              LOGO + TITRE À GAUCHE
+              LOGO ANIMÉ 3D + TITRE À GAUCHE
               ============================================= */}
           <div className="flex items-center gap-4 z-10">
             <div 
-              className="relative group"
+              className="relative group perspective-800"
               onMouseEnter={() => setLogoHover(true)}
               onMouseLeave={() => setLogoHover(false)}
             >
-              {/* Effet de halo doré */}
-              <div className={`absolute -inset-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 rounded-2xl blur-xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`}></div>
+              {/* Effet de halo lumineux avec animation de pulsation */}
+              <div className={`absolute -inset-2 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 rounded-2xl blur-2xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-125 animate-pulse-glow' : 'opacity-30 scale-100'}`}></div>
               
-              {/* Cercle extérieur 3D */}
-              <div className={`absolute -inset-1 rounded-2xl border-2 border-amber-400/30 transition-all duration-700 ${logoHover ? 'opacity-100 rotate-12 scale-110' : 'opacity-0 rotate-0 scale-100'}`}></div>
+              {/* Anneau extérieur en rotation 3D */}
+              <div className={`absolute -inset-1 rounded-2xl border-2 border-blue-400/30 transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow' : 'opacity-0'}`}></div>
+              <div className={`absolute -inset-2 rounded-2xl border border-purple-400/20 transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow-reverse' : 'opacity-0'}`}></div>
               
-              {/* Logo principal avec effet 3D */}
-              <div className={`relative w-14 h-14 bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu perspective-600
-                ${logoHover ? 'rotate-y-12 rotate-x-6 scale-110 shadow-[0_20px_60px_rgba(245,158,11,0.5)]' : 'rotate-y-6 rotate-x-3 shadow-[0_10px_30px_rgba(245,158,11,0.3)]'}`}
-                style={{ transformStyle: 'preserve-3d' }}
+              {/* Logo principal avec animations 3D complètes */}
+              <div 
+                className={`relative w-16 h-16 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu
+                  ${logoHover ? 'scale-110 shadow-[0_20px_60px_rgba(99,102,241,0.6)]' : 'shadow-[0_10px_30px_rgba(99,102,241,0.3)]'}`}
+                style={{
+                  transform: `perspective(800px) rotateY(${logoHover ? 20 : 5}deg) rotateX(${logoHover ? 8 : 3}deg) rotateZ(${logoHover ? 5 : 0}deg) scale(${logoBounce ? 1.15 : 1})`,
+                  transformStyle: 'preserve-3d',
+                  transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}
               >
-                {/* Effet de brillance 3D */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-white/40 rounded-2xl transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-50'}`}></div>
+                {/* Effet de brillance 3D avec animation */}
+                <div className={`absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-white/40 rounded-2xl transition-all duration-700 ${logoHover ? 'opacity-100 animate-pulse-slow' : 'opacity-50'}`}></div>
                 
-                {/* Effet de reflet 3D */}
-                <div className={`absolute -top-1 -right-1 w-6 h-6 bg-white/30 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'scale-150 opacity-50' : 'scale-100 opacity-20'}`}></div>
+                {/* Effet de reflet 3D en mouvement */}
+                <div className={`absolute -top-1 -right-1 w-6 h-6 bg-white/30 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'scale-150 opacity-60 animate-float' : 'scale-100 opacity-20'}`}></div>
                 
-                {/* Icône du logo */}
+                {/* Icône du logo avec rotation continue et rebond */}
                 <img
                   src="/FINANCE.png"
                   alt="Finance"
-                  className={`h-9 w-9 object-contain transition-all duration-700 filter drop-shadow-lg ${logoHover ? 'scale-110 rotate-3' : 'scale-100 rotate-0'}`}
+                  className={`h-10 w-10 object-contain transition-all duration-700 filter drop-shadow-lg`}
+                  style={{
+                    transform: `rotate(${logoRotation}deg) scale(${logoHover ? 1.1 : 1})`,
+                    transition: 'transform 0.1s linear',
+                    animation: logoBounce ? 'bounce-logo 0.5s ease' : 'none'
+                  }}
                   onError={(e) => { 
                     e.target.style.display = 'none'; 
-                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-2xl"></i>'; 
+                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-3xl" style={{animation: "spin-logo 2s linear infinite"}}></i>'; 
                   }}
                 />
                 
-                {/* Effet de lumière 3D */}
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/10 to-transparent transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+                {/* Effet de lumière 3D avec mouvement */}
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/10 to-transparent transition-all duration-700 ${logoHover ? 'opacity-100 animate-shimmer' : 'opacity-0'}`}></div>
+                
+                {/* Particules lumineuses en rotation */}
+                <div className={`absolute -top-3 -right-3 w-3 h-3 bg-blue-300 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow' : 'opacity-0'}`}></div>
+                <div className={`absolute -bottom-2 -left-2 w-2 h-2 bg-purple-300 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow-reverse animation-delay-500' : 'opacity-0'}`}></div>
               </div>
-              
-              {/* Particules lumineuses dorées */}
-              <div className={`absolute -top-2 -right-2 w-3 h-3 bg-amber-300 rounded-full blur-sm animate-ping-slow transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
-              <div className={`absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full blur-sm animate-ping-slow animation-delay-500 transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
             </div>
 
-            {/* Titre */}
+            {/* Titre avec animation */}
             <div className="transform-gpu perspective-600">
               <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg animate-fadeInLeft transition-all duration-300 hover:scale-105 hover:rotate-1" 
                   style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)' }}>
                 {mainTitle}
               </h1>
               <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5 animate-fadeInLeft animation-delay-200">
-                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
+                <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
                 <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
-                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
+                <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
               </div>
             </div>
           </div>
@@ -816,7 +859,7 @@ function AppContent() {
                   onClick={handleAccueil}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'accueil'
-                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-blue-700 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -826,7 +869,7 @@ function AppContent() {
                   onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'ajout'
-                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-blue-700 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -836,7 +879,7 @@ function AppContent() {
                   onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'voir'
-                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-blue-700 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -852,9 +895,9 @@ function AppContent() {
                 className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
               >
                 {user?.photo ? (
-                  <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-amber-400 shadow-lg animate-pulse-glow" />
+                  <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-blue-400 shadow-lg animate-pulse-glow" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white shadow-lg">
                     <i className="fas fa-user text-xs"></i>
                   </div>
                 )}
@@ -867,7 +910,7 @@ function AppContent() {
 
               <button 
                 onClick={handleLogout} 
-                className="text-amber-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-amber-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
+                className="text-red-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-red-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
               >
                 <i className="fas fa-sign-out-alt"></i> 
                 <span className="hidden sm:inline">Déconnexion</span>
@@ -879,7 +922,7 @@ function AppContent() {
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* Barre d'onglets principale */}
+        {/* Barre d'onglets principale avec animations 3D améliorées */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
@@ -897,12 +940,13 @@ function AppContent() {
                   className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 transform relative ${
                     isActive
                       ? `${getTabClasses(tab.id, true)}`
-                      : `${inactiveColors[tab.id] || 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-102`
+                      : `${inactiveColors[tab.id] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-105`
                   } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
                   disabled={disabled}
                   style={{
-                    transform: isActive ? 'perspective(600px) rotateX(2deg)' : 'perspective(600px) rotateX(0deg)',
-                    transformStyle: 'preserve-3d'
+                    transform: isActive ? 'perspective(600px) rotateX(3deg) scale(1.05)' : 'perspective(600px) rotateX(0deg) scale(1)',
+                    transformStyle: 'preserve-3d',
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
                   }}
                 >
                   <span className="flex items-center gap-2 text-sm">
@@ -936,7 +980,7 @@ function AppContent() {
         </div>
       </div>
 
-      {/* ANIMATIONS CSS STYLE ETEEZY */}
+      {/* ANIMATIONS CSS AVANCÉES */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -967,20 +1011,88 @@ function AppContent() {
           50% { opacity: 0.2; transform: scale(1.15); }
         }
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
-          50% { box-shadow: 0 0 30px 8px rgba(255,255,255,0.15); }
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        @keyframes pulse-glow-blue {
+          0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.2); }
+          50% { box-shadow: 0 0 40px rgba(59,130,246,0.6); }
+        }
+        @keyframes pulse-glow-emerald {
+          0%, 100% { box-shadow: 0 0 20px rgba(16,185,129,0.2); }
+          50% { box-shadow: 0 0 40px rgba(16,185,129,0.6); }
+        }
+        @keyframes pulse-glow-purple {
+          0%, 100% { box-shadow: 0 0 20px rgba(168,85,247,0.2); }
+          50% { box-shadow: 0 0 40px rgba(168,85,247,0.6); }
+        }
+        @keyframes pulse-glow-pink {
+          0%, 100% { box-shadow: 0 0 20px rgba(236,72,153,0.2); }
+          50% { box-shadow: 0 0 40px rgba(236,72,153,0.6); }
+        }
+        @keyframes pulse-glow-amber {
+          0%, 100% { box-shadow: 0 0 20px rgba(245,158,11,0.2); }
+          50% { box-shadow: 0 0 40px rgba(245,158,11,0.6); }
+        }
+        @keyframes pulse-glow-rose {
+          0%, 100% { box-shadow: 0 0 20px rgba(244,63,94,0.2); }
+          50% { box-shadow: 0 0 40px rgba(244,63,94,0.6); }
+        }
+        @keyframes pulse-glow-violet {
+          0%, 100% { box-shadow: 0 0 20px rgba(139,92,246,0.2); }
+          50% { box-shadow: 0 0 40px rgba(139,92,246,0.6); }
+        }
+        @keyframes pulse-glow-yellow {
+          0%, 100% { box-shadow: 0 0 20px rgba(234,179,8,0.2); }
+          50% { box-shadow: 0 0 40px rgba(234,179,8,0.6); }
+        }
+        @keyframes pulse-glow-cyan {
+          0%, 100% { box-shadow: 0 0 20px rgba(34,211,238,0.2); }
+          50% { box-shadow: 0 0 40px rgba(34,211,238,0.6); }
+        }
+        @keyframes pulse-glow-teal {
+          0%, 100% { box-shadow: 0 0 20px rgba(20,184,166,0.2); }
+          50% { box-shadow: 0 0 40px rgba(20,184,166,0.6); }
+        }
+        @keyframes pulse-glow-indigo {
+          0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.2); }
+          50% { box-shadow: 0 0 40px rgba(99,102,241,0.6); }
+        }
+        @keyframes pulse-glow-gray {
+          0%, 100% { box-shadow: 0 0 20px rgba(107,114,128,0.2); }
+          50% { box-shadow: 0 0 40px rgba(107,114,128,0.6); }
         }
         @keyframes ping-slow {
           0% { transform: scale(1); opacity: 1; }
           100% { transform: scale(2.5); opacity: 0; }
         }
         @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+          0% { transform: translateX(-100%) rotate(0deg); }
+          100% { transform: translateX(100%) rotate(0deg); }
         }
         @keyframes bounce-subtle {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
+          50% { transform: translateY(-4px); }
+        }
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-slow-reverse {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
+        }
+        @keyframes spin-logo {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.1); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+        @keyframes bounce-logo {
+          0% { transform: scale(1) rotate(0deg); }
+          30% { transform: scale(1.3) rotate(-10deg); }
+          50% { transform: scale(0.9) rotate(5deg); }
+          70% { transform: scale(1.1) rotate(-3deg); }
+          100% { transform: scale(1) rotate(0deg); }
         }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
@@ -990,11 +1102,26 @@ function AppContent() {
         .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
         .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
-        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .animate-pulse-glow-blue { animation: pulse-glow-blue 2s ease-in-out infinite; }
+        .animate-pulse-glow-emerald { animation: pulse-glow-emerald 2s ease-in-out infinite; }
+        .animate-pulse-glow-purple { animation: pulse-glow-purple 2s ease-in-out infinite; }
+        .animate-pulse-glow-pink { animation: pulse-glow-pink 2s ease-in-out infinite; }
+        .animate-pulse-glow-amber { animation: pulse-glow-amber 2s ease-in-out infinite; }
+        .animate-pulse-glow-rose { animation: pulse-glow-rose 2s ease-in-out infinite; }
+        .animate-pulse-glow-violet { animation: pulse-glow-violet 2s ease-in-out infinite; }
+        .animate-pulse-glow-yellow { animation: pulse-glow-yellow 2s ease-in-out infinite; }
+        .animate-pulse-glow-cyan { animation: pulse-glow-cyan 2s ease-in-out infinite; }
+        .animate-pulse-glow-teal { animation: pulse-glow-teal 2s ease-in-out infinite; }
+        .animate-pulse-glow-indigo { animation: pulse-glow-indigo 2s ease-in-out infinite; }
+        .animate-pulse-glow-gray { animation: pulse-glow-gray 2s ease-in-out infinite; }
         .animate-ping-slow { animation: ping-slow 2s ease-in-out infinite; }
         .animate-pulse-subtle { animation: pulse 2s ease-in-out infinite; }
         .animate-bounce-subtle { animation: bounce-subtle 1s ease-in-out infinite; }
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 4s linear infinite; }
+        .animate-spin-slow-reverse { animation: spin-slow-reverse 4s linear infinite; }
+        .animate-spin-logo { animation: spin-logo 3s ease-in-out infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
@@ -1006,29 +1133,30 @@ function AppContent() {
 
         /* Effets 3D */
         .perspective-600 { perspective: 600px; }
+        .perspective-800 { perspective: 800px; }
         .rotate-y-12 { transform: rotateY(12deg); }
         .rotate-x-6 { transform: rotateX(6deg); }
         .rotate-y-6 { transform: rotateY(6deg); }
         .rotate-x-3 { transform: rotateX(3deg); }
         .transform-gpu { transform: translateZ(0); backface-visibility: hidden; }
 
-        /* Scrollbar élégante */
+        /* Scrollbar */
         ::-webkit-scrollbar {
           width: 8px;
           height: 8px;
         }
         ::-webkit-scrollbar-track {
-          background: rgba(245, 235, 220, 0.8);
+          background: rgba(241, 245, 249, 0.8);
           border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #d4a055, #c4903a, #b0802a);
+          background: linear-gradient(180deg, #6366f1, #8b5cf6, #a855f7);
           border-radius: 10px;
-          box-shadow: 0 0 20px rgba(212, 160, 85, 0.3);
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #c4903a, #b0802a, #9a7020);
-          box-shadow: 0 0 30px rgba(212, 160, 85, 0.5);
+          background: linear-gradient(180deg, #4f46e5, #7c3aed, #9333ea);
+          box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
         }
 
         /* Effet de brillance */
