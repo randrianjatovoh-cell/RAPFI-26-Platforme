@@ -5,6 +5,19 @@ import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
 import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
+// 🔧 Helper pour récupérer une valeur quel que soit la casse
+function getField(obj, name) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  // Recherche exacte
+  if (obj[name] !== undefined) return obj[name];
+  // Recherche en minuscules
+  const lowerName = name.toLowerCase();
+  for (const key of Object.keys(obj)) {
+    if (key.toLowerCase() === lowerName) return obj[key];
+  }
+  return undefined;
+}
+
 function formatDateInput(dateStr) {
   if (!dateStr) return '__/__/____';
   try {
@@ -124,37 +137,41 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       if (r) {
         // Sabbat dates
-        if (r.sabbath_dates) {
+        const sabbathDatesRaw = getField(r, 'sabbath_dates');
+        if (sabbathDatesRaw) {
           try {
-            const parsed = JSON.parse(r.sabbath_dates);
+            const parsed = JSON.parse(sabbathDatesRaw);
             if (Array.isArray(parsed) && parsed.length >= 5) setSabbathDates(parsed);
             else setSabbathDates(['', '', '', '', '']);
           } catch { setSabbathDates(['', '', '', '', '']); }
         } else setSabbathDates(['', '', '', '', '']);
 
         // Champs texte
-        setDateVersementFME(r.dateVersementFME || '');
-        setRosiaNum(r.rosiaNum || '');
-        setBokyBe(r.bokyBe || '');
-        setRapano(r.rapano || '');
-        setTatitra(r.tatitra || '');
-        setDateFanamarihana(r.dateFanamarihana || '');
-        setCaisseFME(r.caisseFME || '');
-        setSoraBolaDate(r.soraBolaDate || '');
-        setSoraBolaMontant(r.soraBolaMontant || 0);
-        setSoraBolaLettres(r.soraBolaLettres || '');
-        setSoraBolaSignataire(r.soraBolaSignataire || '');
+        setDateVersementFME(getField(r, 'dateVersementFME') || '');
+        setRosiaNum(getField(r, 'rosiaNum') || '');
+        setBokyBe(getField(r, 'bokyBe') || '');
+        setRapano(getField(r, 'rapano') || '');
+        setTatitra(getField(r, 'tatitra') || '');
+        setDateFanamarihana(getField(r, 'dateFanamarihana') || '');
+        setCaisseFME(getField(r, 'caisseFME') || '');
+        setSoraBolaDate(getField(r, 'soraBolaDate') || '');
+        setSoraBolaMontant(Number(getField(r, 'soraBolaMontant')) || 0);
+        setSoraBolaLettres(getField(r, 'soraBolaLettres') || '');
+        setSoraBolaSignataire(getField(r, 'soraBolaSignataire') || '');
 
         // 🔥 Volam-piangonana apetraka
-        setVolamPiangonanaApetraka(r.volamPiangonanaApetraka || 0);
+        const volamValue = getField(r, 'volamPiangonanaApetraka');
+        setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-        // 🔥 Vola sisa teo aloha (depuis le backend)
-        setVolaSisaTeoAloha(r.volaSisaTeoAloha || 0);
+        // 🔥 Vola sisa teo aloha
+        const sisaValue = getField(r, 'volaSisaTeoAloha');
+        setVolaSisaTeoAloha(sisaValue !== undefined ? Number(sisaValue) : 0);
 
         // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA
-        if (r.soraBolaLinesJson) {
+        const soraJson = getField(r, 'soraBolaLinesJson');
+        if (soraJson) {
           try {
-            const parsed = JSON.parse(r.soraBolaLinesJson);
+            const parsed = typeof soraJson === 'string' ? JSON.parse(soraJson) : soraJson;
             if (parsed && typeof parsed === 'object') {
               if (Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
                 const chq = parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', ''];
@@ -322,14 +339,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     } catch (err) {}
   };
 
-  // 🔥 Sauvegarde de volaSisaTeoAloha
   const handleVolaSisaChange = async (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolaSisaTeoAloha(num);
     try {
       await updateField('volaSisaTeoAloha', num);
-      // Recalcul du solde final
       setBalanceChurch(num + totalB - totalExpenses);
       await loadData();
     } catch (err) {}

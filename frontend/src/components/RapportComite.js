@@ -4,6 +4,17 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, formatNumber, escapeHtml, capitalizeFirstLetter } from '../services/helpers';
 
+// 🔧 Helper pour récupérer une valeur quel que soit la casse
+function getField(obj, name) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  if (obj[name] !== undefined) return obj[name];
+  const lowerName = name.toLowerCase();
+  for (const key of Object.keys(obj)) {
+    if (key.toLowerCase() === lowerName) return obj[key];
+  }
+  return undefined;
+}
+
 export default function RapportComite({ currentMonth, selectedEglise }) {
   const { user } = useUser();
   const [eglise, setEglise] = useState(selectedEglise || user?.eglise || '');
@@ -63,18 +74,20 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       }
       setReport(r);
 
-      // 🔥 Volam-piangonana apetraka depuis le backend
-      setVolamPiangonanaApetraka(r?.volamPiangonanaApetraka || 0);
+      // 🔥 Volam-piangonana apetraka (lecture robuste)
+      const volamValue = getField(r, 'volamPiangonanaApetraka');
+      setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-      // 🔥 Vola sisa teo aloha depuis le backend
-      const volaSisa = r?.volaSisaTeoAloha || 0;
-      setOpeningChurch(volaSisa);
+      // 🔥 Vola sisa teo aloha (lecture robuste)
+      const sisaValue = getField(r, 'volaSisaTeoAloha');
+      setOpeningChurch(sisaValue !== undefined ? Number(sisaValue) : 0);
 
       // 🔥 Références depuis le backend
       let newRefs = Array(6).fill({ date: '', soraBola: '', rosia: '' });
-      if (r && r.soraBolaLinesJson) {
+      const soraJson = getField(r, 'soraBolaLinesJson');
+      if (soraJson) {
         try {
-          const parsed = JSON.parse(r.soraBolaLinesJson);
+          const parsed = typeof soraJson === 'string' ? JSON.parse(soraJson) : soraJson;
           let chequeArr = [], soraArr = [];
           if (parsed && typeof parsed === 'object') {
             if (Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
@@ -131,8 +144,8 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
       const fraisVal = await api.getFrais(currentMonth, eglise);
       setFrais(fraisVal);
 
-      // Calcul des soldes
-      setClosingBalanceChurch(volaSisa + b9 - total);
+      // Calcul des soldes avec volaSisaTeoAloha
+      setClosingBalanceChurch(openingChurch + b9 - total);
       setClosingBalanceSpecial(0 + b10);
     } catch(err) {
       console.error("Erreur dans RapportComite:", err);

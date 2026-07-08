@@ -4,6 +4,17 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatNumber, formatReferences } from '../services/helpers';
 
+// 🔧 Helper pour récupérer une valeur quel que soit la casse
+function getField(obj, name) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  if (obj[name] !== undefined) return obj[name];
+  const lowerName = name.toLowerCase();
+  for (const key of Object.keys(obj)) {
+    if (key.toLowerCase() === lowerName) return obj[key];
+  }
+  return undefined;
+}
+
 const MONTHS_LIST = [
   { id: '01', name: 'Janvier', english: 'January' },
   { id: '02', name: 'Février', english: 'February' },
@@ -132,19 +143,28 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     try {
       let loadedPreviousBalance = 0;
 
-      // 🔥 Priorité au backend pour endOfYear
       let firstMonthReport = null;
       try {
         firstMonthReport = await api.getMonthlyReport(`${selectedYear}-01`, eglise);
-        if (firstMonthReport && firstMonthReport.endOfYear) {
-          const eoy = JSON.parse(firstMonthReport.endOfYear);
-          if (eoy && typeof eoy.previousBalance === 'number') {
-            loadedPreviousBalance = eoy.previousBalance;
+        if (firstMonthReport) {
+          // 🔥 Lecture robuste de endOfYear
+          const eoyRaw = getField(firstMonthReport, 'endOfYear');
+          if (eoyRaw) {
+            try {
+              const eoy = typeof eoyRaw === 'string' ? JSON.parse(eoyRaw) : eoyRaw;
+              if (eoy && typeof eoy.previousBalance === 'number') {
+                loadedPreviousBalance = eoy.previousBalance;
+              }
+            } catch(e) { /* ignore */ }
           }
-        }
-        if (firstMonthReport && firstMonthReport.signatures) {
-          const sig = JSON.parse(firstMonthReport.signatures);
-          setSignatures(prev => ({ ...prev, ...sig }));
+          // 🔥 Lecture robuste de signatures
+          const sigRaw = getField(firstMonthReport, 'signatures');
+          if (sigRaw) {
+            try {
+              const sig = typeof sigRaw === 'string' ? JSON.parse(sigRaw) : sigRaw;
+              setSignatures(prev => ({ ...prev, ...sig }));
+            } catch(e) { /* ignore */ }
+          }
         }
       } catch(err) {
         console.error("Erreur lors du chargement des données sauvegardées", err);
@@ -193,11 +213,12 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         let rosiaNum = '';
         let dateFanamarihana = '';
         if (existingReport) {
-          rosiaNum = existingReport.rosiaNum || '';
-          dateFanamarihana = existingReport.dateFanamarihana || '';
-          if (existingReport.soraBolaLinesJson) {
+          rosiaNum = getField(existingReport, 'rosiaNum') || '';
+          dateFanamarihana = getField(existingReport, 'dateFanamarihana') || '';
+          const soraJson = getField(existingReport, 'soraBolaLinesJson');
+          if (soraJson) {
             try {
-              const parsed = JSON.parse(existingReport.soraBolaLinesJson);
+              const parsed = typeof soraJson === 'string' ? JSON.parse(soraJson) : soraJson;
               let chequeArray = [];
               if (parsed && typeof parsed === 'object') {
                 if (Array.isArray(parsed.cheque)) {
@@ -211,7 +232,7 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
           }
           const receiptInfo = formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs);
           updatedMonthlyData[i].receiptNumber = receiptInfo || '';
-          updatedMonthlyData[i].note = existingReport.note || '';
+          updatedMonthlyData[i].note = getField(existingReport, 'note') || '';
         }
       }
       setMonthlyData(updatedMonthlyData);
