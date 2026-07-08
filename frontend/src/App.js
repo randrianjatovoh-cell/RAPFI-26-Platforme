@@ -22,7 +22,7 @@ import Receipts from './components/Receipts';
 import { formatMonthYear } from './services/helpers';
 
 // ============================================================
-// COULEURS MODERNES AVEC ANIMATIONS - PALETTE DYNAMIQUE
+// COULEURS MODERNES POUR LES ONGLETS AVEC ANIMATIONS
 // ============================================================
 
 const tabColors = {
@@ -221,8 +221,6 @@ function AppContent() {
   const [pasteurReadOnly, setPasteurReadOnly] = useState(false);
   const [isHoveringTab, setIsHoveringTab] = useState(null);
   const [logoHover, setLogoHover] = useState(false);
-  const [logoRotation, setLogoRotation] = useState(0);
-  const [logoBounce, setLogoBounce] = useState(false);
 
   // États pour le vérificateur
   const [selectedDistrictForVerif, setSelectedDistrictForVerif] = useState(null);
@@ -232,23 +230,6 @@ function AppContent() {
   const isVerificateur = user?.fonction === 'Vérificateur';
   const isPasteur = user?.fonction === 'Pasteur';
   const isAncienOrTresorier = user?.fonction === 'Ancien' || user?.fonction === 'Trésorier';
-
-  // Animation automatique du logo
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLogoRotation(prev => (prev + 2) % 360);
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Effet de rebond périodique
-  useEffect(() => {
-    const bounceInterval = setInterval(() => {
-      setLogoBounce(true);
-      setTimeout(() => setLogoBounce(false), 500);
-    }, 3000);
-    return () => clearInterval(bounceInterval);
-  }, []);
 
   // Vérification des données existantes pour le mois/église (Pasteur)
   useEffect(() => {
@@ -521,7 +502,7 @@ function AppContent() {
     return base + 'UTILISATEUR';
   };
 
-  // Fonction pour obtenir les classes d'un onglet selon son état avec effet 3D amélioré
+  // Fonction pour obtenir les classes d'un onglet avec animations 3D
   const getTabClasses = (tabId, isActive) => {
     if (isActive) {
       const active = tabColors[tabId] || tabColors.dashboard;
@@ -766,82 +747,38 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE AVEC LOGO ANIMÉ 3D */}
+        {/* EN-TÊTE CONSERVÉ - GESTION DES DÎMES ET OFFRANDES */}
         <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
-          {/* Effets de fond décoratifs animés */}
+          {/* Effets de fond décoratifs */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
           <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
           
-          {/* Lignes lumineuses animées */}
+          {/* Lignes lumineuses */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-300/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          {/* =============================================
-              LOGO ANIMÉ 3D + TITRE À GAUCHE
-              ============================================= */}
+          {/* TITRE + LOGO */}
           <div className="flex items-center gap-4 z-10">
-            <div 
-              className="relative group perspective-800"
-              onMouseEnter={() => setLogoHover(true)}
-              onMouseLeave={() => setLogoHover(false)}
-            >
-              {/* Effet de halo lumineux avec animation de pulsation */}
-              <div className={`absolute -inset-2 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 rounded-2xl blur-2xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-125 animate-pulse-glow' : 'opacity-30 scale-100'}`}></div>
-              
-              {/* Anneau extérieur en rotation 3D */}
-              <div className={`absolute -inset-1 rounded-2xl border-2 border-blue-400/30 transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow' : 'opacity-0'}`}></div>
-              <div className={`absolute -inset-2 rounded-2xl border border-purple-400/20 transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow-reverse' : 'opacity-0'}`}></div>
-              
-              {/* Logo principal avec animations 3D complètes */}
-              <div 
-                className={`relative w-16 h-16 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu
-                  ${logoHover ? 'scale-110 shadow-[0_20px_60px_rgba(99,102,241,0.6)]' : 'shadow-[0_10px_30px_rgba(99,102,241,0.3)]'}`}
-                style={{
-                  transform: `perspective(800px) rotateY(${logoHover ? 20 : 5}deg) rotateX(${logoHover ? 8 : 3}deg) rotateZ(${logoHover ? 5 : 0}deg) scale(${logoBounce ? 1.15 : 1})`,
-                  transformStyle: 'preserve-3d',
-                  transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                }}
-              >
-                {/* Effet de brillance 3D avec animation */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-white/40 rounded-2xl transition-all duration-700 ${logoHover ? 'opacity-100 animate-pulse-slow' : 'opacity-50'}`}></div>
-                
-                {/* Effet de reflet 3D en mouvement */}
-                <div className={`absolute -top-1 -right-1 w-6 h-6 bg-white/30 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'scale-150 opacity-60 animate-float' : 'scale-100 opacity-20'}`}></div>
-                
-                {/* Icône du logo avec rotation continue et rebond */}
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
                 <img
                   src="/FINANCE.png"
                   alt="Finance"
-                  className={`h-10 w-10 object-contain transition-all duration-700 filter drop-shadow-lg`}
-                  style={{
-                    transform: `rotate(${logoRotation}deg) scale(${logoHover ? 1.1 : 1})`,
-                    transition: 'transform 0.1s linear',
-                    animation: logoBounce ? 'bounce-logo 0.5s ease' : 'none'
-                  }}
+                  className="h-8 w-8 object-contain"
                   onError={(e) => { 
                     e.target.style.display = 'none'; 
-                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-3xl" style={{animation: "spin-logo 2s linear infinite"}}></i>'; 
+                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-2xl"></i>'; 
                   }}
                 />
-                
-                {/* Effet de lumière 3D avec mouvement */}
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/10 to-transparent transition-all duration-700 ${logoHover ? 'opacity-100 animate-shimmer' : 'opacity-0'}`}></div>
-                
-                {/* Particules lumineuses en rotation */}
-                <div className={`absolute -top-3 -right-3 w-3 h-3 bg-blue-300 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow' : 'opacity-0'}`}></div>
-                <div className={`absolute -bottom-2 -left-2 w-2 h-2 bg-purple-300 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'opacity-100 animate-spin-slow-reverse animation-delay-500' : 'opacity-0'}`}></div>
               </div>
             </div>
-
-            {/* Titre avec animation */}
-            <div className="transform-gpu perspective-600">
-              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg animate-fadeInLeft transition-all duration-300 hover:scale-105 hover:rotate-1" 
-                  style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)' }}>
-                {mainTitle}
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
+                GESTION DES DÎMES ET OFFRANDES - ÉGLISE ANTSAHALAVA
               </h1>
-              <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5 animate-fadeInLeft animation-delay-200">
+              <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5">
                 <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
                 <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
                 <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
@@ -849,9 +786,7 @@ function AppContent() {
             </div>
           </div>
 
-          {/* =============================================
-              AVATAR + DÉCONNEXION À DROITE
-              ============================================= */}
+          {/* AVATAR + DÉCONNEXION */}
           <div className="flex items-center gap-3 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -888,41 +823,40 @@ function AppContent() {
               </div>
             )}
 
-            {/* Avatar + Nom + Déconnexion */}
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setShowProfile(!showProfile)} 
-                className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
-              >
-                {user?.photo ? (
-                  <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-blue-400 shadow-lg animate-pulse-glow" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white shadow-lg">
-                    <i className="fas fa-user text-xs"></i>
-                  </div>
-                )}
-                <span className="hidden md:inline font-medium text-sm text-white">
-                  {user?.nom || user?.email || 'Utilisateur'} 
-                  <span className="text-[10px] opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
-                </span>
-                <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] text-white/70 transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
-              </button>
+            <button 
+              onClick={() => setShowProfile(!showProfile)} 
+              className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
+            >
+              {user?.photo ? (
+                <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-blue-400 shadow-lg animate-pulse-glow" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white shadow-lg">
+                  <i className="fas fa-user text-xs"></i>
+                </div>
+              )}
+              <span className="hidden md:inline font-medium text-sm text-white">
+                {user?.nom || user?.email || 'Utilisateur'} 
+                <span className="text-[10px] opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
+              </span>
+              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] text-white/70 transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
+            </button>
 
-              <button 
-                onClick={handleLogout} 
-                className="text-red-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-red-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
-              >
-                <i className="fas fa-sign-out-alt"></i> 
-                <span className="hidden sm:inline">Déconnexion</span>
-              </button>
-            </div>
+            <button 
+              onClick={handleLogout} 
+              className="text-red-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-red-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
+            >
+              <i className="fas fa-sign-out-alt"></i> 
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
           </div>
         </header>
 
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* Barre d'onglets principale avec animations 3D améliorées */}
+        {/* ============================================================
+            ONGLETS AMÉLIORÉS AVEC ANIMATIONS ET COULEURS
+            ============================================================ */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
@@ -980,7 +914,7 @@ function AppContent() {
         </div>
       </div>
 
-      {/* ANIMATIONS CSS AVANCÉES */}
+      {/* ANIMATIONS CSS */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -997,10 +931,6 @@ function AppContent() {
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-30px) scale(0.95) rotateX(-10deg); }
           to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-12px) rotate(2deg); }
         }
         @keyframes float-slow {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -1074,32 +1004,11 @@ function AppContent() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-4px); }
         }
-        @keyframes spin-slow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes spin-slow-reverse {
-          0% { transform: rotate(360deg); }
-          100% { transform: rotate(0deg); }
-        }
-        @keyframes spin-logo {
-          0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.1); }
-          100% { transform: rotate(360deg) scale(1); }
-        }
-        @keyframes bounce-logo {
-          0% { transform: scale(1) rotate(0deg); }
-          30% { transform: scale(1.3) rotate(-10deg); }
-          50% { transform: scale(0.9) rotate(5deg); }
-          70% { transform: scale(1.1) rotate(-3deg); }
-          100% { transform: scale(1) rotate(0deg); }
-        }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
         .animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
         .animate-fadeInLeft { animation: fadeInLeft 0.5s ease-out forwards; }
         .animate-slideDown { animation: slideDown 0.5s ease-out forwards; }
-        .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
         .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
         .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
@@ -1119,25 +1028,16 @@ function AppContent() {
         .animate-pulse-subtle { animation: pulse 2s ease-in-out infinite; }
         .animate-bounce-subtle { animation: bounce-subtle 1s ease-in-out infinite; }
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
-        .animate-spin-slow { animation: spin-slow 4s linear infinite; }
-        .animate-spin-slow-reverse { animation: spin-slow-reverse 4s linear infinite; }
-        .animate-spin-logo { animation: spin-logo 3s ease-in-out infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
         .animation-delay-200 { animation-delay: 0.2s; }
 
-        .hover\\:scale-102:hover { transform: scale(1.02); }
-        .hover\\:rotate-1:hover { transform: rotate(1deg); }
-        .hover\\:-translate-y-0\\.5:hover { transform: translateY(-2px); }
+        .hover\\:scale-105:hover { transform: scale(1.05); }
+        .hover\\:-translate-y-1:hover { transform: translateY(-4px); }
 
         /* Effets 3D */
         .perspective-600 { perspective: 600px; }
-        .perspective-800 { perspective: 800px; }
-        .rotate-y-12 { transform: rotateY(12deg); }
-        .rotate-x-6 { transform: rotateX(6deg); }
-        .rotate-y-6 { transform: rotateY(6deg); }
-        .rotate-x-3 { transform: rotateX(3deg); }
         .transform-gpu { transform: translateZ(0); backface-visibility: hidden; }
 
         /* Scrollbar */
@@ -1157,26 +1057,6 @@ function AppContent() {
         ::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(180deg, #4f46e5, #7c3aed, #9333ea);
           box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
-        }
-
-        /* Effet de brillance */
-        .glow-card {
-          position: relative;
-          overflow: hidden;
-        }
-        .glow-card::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-          animation: rotate-glow 10s linear infinite;
-        }
-        @keyframes rotate-glow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>
