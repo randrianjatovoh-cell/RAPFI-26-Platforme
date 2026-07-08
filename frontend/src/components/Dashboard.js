@@ -1,4 +1,4 @@
-// src/components/Dashboard.js
+// frontend/src/components/Dashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -51,7 +51,18 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // ---- Chargement des données (inchangé) ----
+  // Helper pour récupérer une valeur quel que soit la casse (pour les champs du rapport)
+  function getField(obj, name) {
+    if (!obj || typeof obj !== 'object') return undefined;
+    if (obj[name] !== undefined) return obj[name];
+    const lowerName = name.toLowerCase();
+    for (const key of Object.keys(obj)) {
+      if (key.toLowerCase() === lowerName) return obj[key];
+    }
+    return undefined;
+  }
+
+  // ---- Chargement des données ----
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -156,20 +167,52 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           totalExpenses += res.monthExpenses;
         });
 
+        // 🔥 Récupération du solde initial (VOLA SISA TEO ALOHA) depuis le Rapport Annuel
         let volaSisaTeoAloha = 0;
         try {
           const janMonthId = `${yearStr}-01`;
           const janReport = await api.getMonthlyReport(janMonthId, egliseNom);
-          if (janReport && janReport.endOfYear) {
-            const endOfYear = JSON.parse(janReport.endOfYear);
-            if (endOfYear && typeof endOfYear.previousBalance === 'number') {
-              volaSisaTeoAloha = endOfYear.previousBalance;
+          
+          if (janReport) {
+            // 1. Essayer de lire depuis endOfYear.previousBalance (le champ du Rapport Annuel)
+            const eoyRaw = getField(janReport, 'endOfYear');
+            if (eoyRaw) {
+              try {
+                const eoy = typeof eoyRaw === 'string' ? JSON.parse(eoyRaw) : eoyRaw;
+                if (eoy && typeof eoy.previousBalance === 'number') {
+                  volaSisaTeoAloha = eoy.previousBalance;
+                  console.log(`✅ Solde initial chargé depuis endOfYear: ${volaSisaTeoAloha}`);
+                }
+              } catch(e) { /* ignore */ }
+            }
+            
+            // 2. Si pas trouvé, essayer depuis volaSisaTeoAloha (la nouvelle colonne)
+            if (volaSisaTeoAloha === 0) {
+              const sisaValue = getField(janReport, 'volaSisaTeoAloha');
+              if (sisaValue !== undefined && sisaValue !== null) {
+                volaSisaTeoAloha = Number(sisaValue);
+                console.log(`✅ Solde initial chargé depuis volaSisaTeoAloha: ${volaSisaTeoAloha}`);
+              }
             }
           }
         } catch (err) {
           console.warn('Erreur récupération solde initial depuis janvier:', err);
         }
 
+        // 3. Fallback : si toujours 0, essayer localStorage
+        if (volaSisaTeoAloha === 0) {
+          const storageKey = `endOfYear_${yearStr}_${egliseNom}`;
+          const stored = localStorage.getItem(storageKey);
+          if (stored) {
+            const parsed = parseFloat(stored);
+            if (!isNaN(parsed)) {
+              volaSisaTeoAloha = parsed;
+              console.log(`✅ Solde initial chargé depuis localStorage: ${volaSisaTeoAloha}`);
+            }
+          }
+        }
+
+        // 4. Fallback ultime : calculer depuis décembre précédent
         if (volaSisaTeoAloha === 0) {
           try {
             const prevYear = (selectedYear - 1).toString();
@@ -187,19 +230,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             const decExpenses = await api.getDepenses(decMonthId, null, null, egliseNom);
             const decTotalExpenses = decExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
             volaSisaTeoAloha = decTotalB - decTotalExpenses;
+            console.log(`✅ Solde initial calculé depuis décembre précédent: ${volaSisaTeoAloha}`);
           } catch (err) {
             console.warn('Erreur calcul solde initial depuis décembre précédent:', err);
-          }
-        }
-
-        if (volaSisaTeoAloha === 0) {
-          const storageKey = `endOfYear_${yearStr}_${egliseNom}`;
-          const stored = localStorage.getItem(storageKey);
-          if (stored) {
-            const parsed = parseFloat(stored);
-            if (!isNaN(parsed)) {
-              volaSisaTeoAloha = parsed;
-            }
           }
         }
 
@@ -217,6 +250,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         });
 
       } else if (isPasteur) {
+        // ... (code existant pour Pasteur, inchangé)
         const district = user.district;
         if (!district) {
           setError("Votre compte n'est pas associé à un district.");
@@ -292,6 +326,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         }
 
       } else if (isVerificateur) {
+        // ... (code existant pour Vérificateur, inchangé)
         const federation = user.federation;
         if (!federation) {
           setError("Votre compte n'est pas associé à une fédération.");
@@ -374,7 +409,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     loadData();
   }, [loadData, refreshKey]);
 
-  // =================== RENDU ===================
+  // =================== RENDU (inchangé) ===================
 
   // Composant StatCard avec animations
   const StatCard = ({ title, value, icon, color, delay }) => {
