@@ -78,7 +78,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // ⚠️ Remis à true par défaut pour montrer le chargement au départ
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
@@ -86,7 +86,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const abortControllerRef = useRef(null);
   const isLoadingRef = useRef(false);
   const isMountedRef = useRef(true);
-  const debounceRef = useRef(null);
+  const loadingTimeoutRef = useRef(null);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -106,12 +106,25 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }, 5000);
   };
 
-  // Chargement des données
   const loadData = useCallback(async () => {
+    // Annuler tout timeout de chargement en cours
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+
+    // Si le composant est démonté, on ne fait rien
+    if (!isMountedRef.current) return;
+
+    // Si déjà en chargement, on ne relance pas
+    if (isLoadingRef.current) return;
+
+    // Vérifier les conditions minimales
     if (!currentMonth || !eglise) {
       if (isMountedRef.current) setLoading(false);
       return;
     }
+
     if (!stableCanViewEglise(eglise, user?.district, user?.federation)) {
       if (isMountedRef.current) {
         setError("Vous n'avez pas accès à cette église.");
@@ -120,15 +133,25 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       return;
     }
 
-    if (isLoadingRef.current) return;
+    // Démarrer le chargement
     isLoadingRef.current = true;
+    if (isMountedRef.current) setLoading(true);
+    setError(null);
+
+    // Timeout de sécurité : si le chargement dépasse 15 secondes, on force l'arrêt
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        console.warn('⚠️ Chargement trop long, arrêt forcé');
+        setLoading(false);
+        setError('Le chargement a pris trop de temps. Veuillez réessayer.');
+        isLoadingRef.current = false;
+        loadingTimeoutRef.current = null;
+      }
+    }, 15000);
 
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
-
-    if (isMountedRef.current) setLoading(true);
-    setError(null);
 
     try {
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
@@ -138,12 +161,28 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         api.getDepenses(currentMonth, null, null, eglise)
       ]);
 
-      if (controller.signal.aborted || !isMountedRef.current) return;
+      if (controller.signal.aborted || !isMountedRef.current) {
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+        isLoadingRef.current = false;
+        return;
+      }
+
+      // Annuler le timeout car le chargement est terminé
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
 
       let r = reportData;
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
-        if (controller.signal.aborted || !isMountedRef.current) return;
+        if (controller.signal.aborted || !isMountedRef.current) {
+          isLoadingRef.current = false;
+          return;
+        }
       }
       setReport(r);
 
@@ -260,27 +299,50 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
       setBalanceChurch(Number(currentSisa) + totalB - totalExp);
 
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      console.error('Erreur chargement:', err);
-      if (isMountedRef.current) setError(err.message);
-    } finally {
+      // Fin du chargement
       if (isMountedRef.current) setLoading(false);
+
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        if (isMountedRef.current) setLoading(false);
+        isLoadingRef.current = false;
+        return;
+      }
+      console.error('Erreur chargement:', err);
+      if (isMountedRef.current) {
+        setError(err.message || 'Erreur de chargement des données');
+        setLoading(false);
+      }
+    } finally {
       isLoadingRef.current = false;
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
     }
   }, [currentMonth, eglise, user, stableCanViewEglise, stableCanEditEglise]);
 
+  // Chargement initial
   useEffect(() => {
+    isMountedRef.current = true;
     loadData();
+
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
     };
   }, [loadData]);
 
+  // Écouter les événements de mise à jour externe
   useEffect(() => {
     const handleDataUpdate = () => {
-      if (!isLoadingRef.current) loadData();
+      if (!isLoadingRef.current && isMountedRef.current) {
+        loadData();
+      }
     };
     window.addEventListener('data-updated', handleDataUpdate);
     return () => window.removeEventListener('data-updated', handleDataUpdate);
@@ -389,10 +451,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return value ? formatDateInput(value) : '__/__/____';
   };
 
+  // ⚠️ Affichage du chargement
+  if (loading) {
+    return <div className="text-center p-4">Chargement du rapport mensuel...</div>;
+  }
+
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
-  if (loading) return <div className="text-center p-4">Chargement...</div>;
 
   const readOnlyMode = isReadOnlyMode();
   const categories = [
