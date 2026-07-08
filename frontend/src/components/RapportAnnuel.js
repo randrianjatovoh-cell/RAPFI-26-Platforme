@@ -34,7 +34,6 @@ function parseBalanceString(str) {
   return isNaN(num) ? 0 : num;
 }
 
-// Fonction utilitaire pour formater la référence complète (numéro de reçu + date + chèques)
 function formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs) {
   const parts = [];
   if (rosiaNum && rosiaNum.trim() !== '') {
@@ -50,7 +49,7 @@ function formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs) {
     }
   }
   if (chequeRefs && chequeRefs !== '') {
-    parts.push(chequeRefs); // ✅ Suppression du libellé "chèques :"
+    parts.push(chequeRefs);
   }
   return parts.join(' ; ');
 }
@@ -58,9 +57,8 @@ function formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs) {
 export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly = false }) {
   const { user: contextUser } = useUser();
   const user = propUser || contextUser;
-  
   const eglise = selectedEglise || user?.eglise || '';
-  
+
   const [selectedYear, setSelectedYear] = useState(2026);
   const [loading, setLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState(() => {
@@ -103,10 +101,8 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
   });
 
   const federationName = user?.federation || 'FEDERASIONA MADAGASIKARA';
-
   const getStorageKey = () => `endOfYear_${selectedYear}_${eglise}`;
 
-  // Notification
   const showMessage = (msg, type = 'success') => {
     setMessage(msg);
     setMessageType(type);
@@ -137,19 +133,15 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     try {
       let loadedPreviousBalance = 0;
       const storageKey = getStorageKey();
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        loadedPreviousBalance = parseFloat(stored) || 0;
-      }
 
+      // 🔥 Priorité au backend pour endOfYear
       let firstMonthReport = null;
       try {
         firstMonthReport = await api.getMonthlyReport(`${selectedYear}-01`, eglise);
         if (firstMonthReport && firstMonthReport.endOfYear) {
           const eoy = JSON.parse(firstMonthReport.endOfYear);
-          if (eoy.previousBalance !== undefined && eoy.previousBalance !== null) {
+          if (eoy && typeof eoy.previousBalance === 'number') {
             loadedPreviousBalance = eoy.previousBalance;
-            localStorage.setItem(storageKey, String(loadedPreviousBalance));
           }
         }
         if (firstMonthReport && firstMonthReport.signatures) {
@@ -159,6 +151,9 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
       } catch(err) {
         console.error("Erreur lors du chargement des données sauvegardées", err);
       }
+
+      // Mettre à jour localStorage en cache
+      localStorage.setItem(storageKey, String(loadedPreviousBalance));
 
       const updatedMonthlyData = MONTHS_LIST.map((month) => ({
         monthId: `${selectedYear}-${month.id}`,
@@ -199,17 +194,12 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         updatedMonthlyData[i].expenses = totalExpenses;
         updatedMonthlyData[i].balance = income - totalExpenses;
 
-        // 🔥 Récupération des informations de reçu / chèques
         let chequeRefs = '';
         let rosiaNum = '';
         let dateFanamarihana = '';
-
         if (existingReport) {
-          // Récupérer rosiaNum et dateFanamarihana
           rosiaNum = existingReport.rosiaNum || '';
           dateFanamarihana = existingReport.dateFanamarihana || '';
-
-          // Récupérer les chèques depuis soraBolaLinesJson
           if (existingReport.soraBolaLinesJson) {
             try {
               const parsed = JSON.parse(existingReport.soraBolaLinesJson);
@@ -218,15 +208,12 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
                 if (Array.isArray(parsed.cheque)) {
                   chequeArray = parsed.cheque;
                 } else if (Array.isArray(parsed)) {
-                  // ancien format
                   chequeArray = parsed;
                 }
               }
               chequeRefs = formatReferences(chequeArray);
             } catch(e) { /* ignore */ }
           }
-
-          // Si pas de soraBolaLinesJson, tenter de récupérer depuis localStorage
           if (!chequeRefs) {
             const fallbackKey = `chequeSora_${monthKey}_${eglise}`;
             const stored = localStorage.getItem(fallbackKey);
@@ -239,12 +226,8 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
               } catch(e) { /* ignore */ }
             }
           }
-
-          // Combiner le tout dans receiptNumber
           const receiptInfo = formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs);
           updatedMonthlyData[i].receiptNumber = receiptInfo || '';
-
-          // Note
           updatedMonthlyData[i].note = existingReport.note || '';
         }
       }
@@ -266,7 +249,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         carriedForward: loadedPreviousBalance + totals.totalIncome - totals.totalExpenses
       });
       setBalanceInput(formatBalance(loadedPreviousBalance));
-      localStorage.setItem(getStorageKey(), String(loadedPreviousBalance));
 
     } catch(err) {
       console.error(err);

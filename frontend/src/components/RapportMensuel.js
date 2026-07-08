@@ -150,7 +150,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         if (r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null) {
           const val = Number(r.volamPiangonanaApetraka);
           setVolamPiangonanaApetraka(val);
-          // Mettre à jour localStorage en cache (mais ne pas l'utiliser pour l'affichage)
           localStorage.setItem(fallbackKey, val.toString());
         } else {
           setVolamPiangonanaApetraka(0);
@@ -171,7 +170,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
                 loadedFromBackend = true;
-                // Mettre à jour localStorage en cache
                 localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: chq, soraBola: sora }));
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
@@ -199,7 +197,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               }
             } catch(e) {}
           } else {
-            // Initialisation vide
             setChequeLines(['', '', '', '', '']);
             setSoraBolaLines(['', '', '', '', '']);
             setTotalChequeSora(0);
@@ -209,7 +206,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
-      // GL et dépenses (inchangé)
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
