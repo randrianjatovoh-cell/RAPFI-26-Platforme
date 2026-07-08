@@ -1,5 +1,5 @@
 // frontend/src/components/RapportMensuel.js
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
@@ -42,9 +42,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
 
+  // Stabiliser les fonctions de permission
   const stableCanViewEglise = useMemo(() => canViewEglise, [canViewEglise]);
   const stableCanEditEglise = useMemo(() => canEditEglise, [canEditEglise]);
 
+  // États
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
   const [dateVersementFME, setDateVersementFME] = useState('');
@@ -78,15 +80,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
-  const [loading, setLoading] = useState(true); // ⚠️ Remis à true par défaut pour montrer le chargement au départ
+  const [loading, setLoading] = useState(true); // Initialisé à true pour afficher le chargement
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
   const abortControllerRef = useRef(null);
-  const isLoadingRef = useRef(false);
   const isMountedRef = useRef(true);
-  const loadingTimeoutRef = useRef(null);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -106,52 +106,24 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }, 5000);
   };
 
-  const loadData = useCallback(async () => {
-    // Annuler tout timeout de chargement en cours
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
-
-    // Si le composant est démonté, on ne fait rien
-    if (!isMountedRef.current) return;
-
-    // Si déjà en chargement, on ne relance pas
-    if (isLoadingRef.current) return;
-
-    // Vérifier les conditions minimales
+  // Chargement des données
+  const loadData = async () => {
     if (!currentMonth || !eglise) {
-      if (isMountedRef.current) setLoading(false);
+      setLoading(false);
       return;
     }
-
     if (!stableCanViewEglise(eglise, user?.district, user?.federation)) {
-      if (isMountedRef.current) {
-        setError("Vous n'avez pas accès à cette église.");
-        setLoading(false);
-      }
+      setError("Vous n'avez pas accès à cette église.");
+      setLoading(false);
       return;
     }
-
-    // Démarrer le chargement
-    isLoadingRef.current = true;
-    if (isMountedRef.current) setLoading(true);
-    setError(null);
-
-    // Timeout de sécurité : si le chargement dépasse 15 secondes, on force l'arrêt
-    loadingTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        console.warn('⚠️ Chargement trop long, arrêt forcé');
-        setLoading(false);
-        setError('Le chargement a pris trop de temps. Veuillez réessayer.');
-        isLoadingRef.current = false;
-        loadingTimeoutRef.current = null;
-      }
-    }, 15000);
 
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
+
+    setLoading(true);
+    setError(null);
 
     try {
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
@@ -161,28 +133,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         api.getDepenses(currentMonth, null, null, eglise)
       ]);
 
-      if (controller.signal.aborted || !isMountedRef.current) {
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-          loadingTimeoutRef.current = null;
-        }
-        isLoadingRef.current = false;
-        return;
-      }
-
-      // Annuler le timeout car le chargement est terminé
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
+      if (controller.signal.aborted || !isMountedRef.current) return;
 
       let r = reportData;
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
-        if (controller.signal.aborted || !isMountedRef.current) {
-          isLoadingRef.current = false;
-          return;
-        }
+        if (controller.signal.aborted || !isMountedRef.current) return;
       }
       setReport(r);
 
@@ -299,58 +255,34 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
       setBalanceChurch(Number(currentSisa) + totalB - totalExp);
 
-      // Fin du chargement
-      if (isMountedRef.current) setLoading(false);
-
     } catch (err) {
-      if (err.name === 'AbortError') {
-        if (isMountedRef.current) setLoading(false);
-        isLoadingRef.current = false;
-        return;
-      }
+      if (err.name === 'AbortError') return;
       console.error('Erreur chargement:', err);
-      if (isMountedRef.current) {
-        setError(err.message || 'Erreur de chargement des données');
-        setLoading(false);
-      }
+      if (isMountedRef.current) setError(err.message);
     } finally {
-      isLoadingRef.current = false;
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
+      if (isMountedRef.current) setLoading(false);
     }
-  }, [currentMonth, eglise, user, stableCanViewEglise, stableCanEditEglise]);
+  };
 
-  // Chargement initial
+  // Chargement initial et au changement de mois/église
   useEffect(() => {
-    isMountedRef.current = true;
     loadData();
-
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) abortControllerRef.current.abort();
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
     };
-  }, [loadData]);
+  }, [currentMonth, eglise, user, stableCanViewEglise, stableCanEditEglise]); // dépendances nécessaires
 
   // Écouter les événements de mise à jour externe
   useEffect(() => {
     const handleDataUpdate = () => {
-      if (!isLoadingRef.current && isMountedRef.current) {
-        loadData();
-      }
+      loadData();
     };
     window.addEventListener('data-updated', handleDataUpdate);
     return () => window.removeEventListener('data-updated', handleDataUpdate);
-  }, [loadData]);
+  }, []);
 
-  // ============================================================
-  // FONCTIONS DE SAUVEGARDE (appelées uniquement via onBlur)
-  // ============================================================
+  // Sauvegarde générique
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
@@ -374,7 +306,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }
   };
 
-  // Gestionnaires avec mise à jour locale immédiate, sauvegarde différée (onBlur)
+  // Gestionnaires avec sauvegarde sur blur
   const handleChequeChange = (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
@@ -382,7 +314,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setChequeLines(newLines);
   };
 
-  const handleChequeBlur = async (idx) => {
+  const handleChequeBlur = async () => {
     if (isReadOnlyMode()) return;
     await updateChequeSoraData(chequeLines, soraBolaLines);
   };
@@ -441,7 +373,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     await updateField('volaSisaTeoAloha', volaSisaTeoAloha);
   };
 
-  // Pour les champs texte simples, sauvegarde sur blur
   const handleTextBlur = (field, value) => {
     if (isReadOnlyMode()) return;
     updateField(field, value);
@@ -451,14 +382,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return value ? formatDateInput(value) : '__/__/____';
   };
 
-  // ⚠️ Affichage du chargement
-  if (loading) {
-    return <div className="text-center p-4">Chargement du rapport mensuel...</div>;
-  }
-
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
+  if (loading) return <div className="text-center p-4">Chargement...</div>;
 
   const readOnlyMode = isReadOnlyMode();
   const categories = [
@@ -870,7 +797,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                       type="text"
                       value={chequeLines[idx] || ''}
                       onChange={(e) => handleChequeChange(idx, e.target.value)}
-                      onBlur={() => handleChequeBlur(idx)}
+                      onBlur={handleChequeBlur}
                       className="w-full p-0.5 border-none"
                       disabled={readOnlyMode}
                     />
