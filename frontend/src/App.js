@@ -22,139 +22,146 @@ import Receipts from './components/Receipts';
 import { formatMonthYear } from './services/helpers';
 
 // ============================================================
-// COULEURS AMÉLIORÉES AVEC DÉGRADÉS 3D ET EFFETS LUMINEUX
+// COULEURS MODERNES 2026 - TENDANCES DU MOMENT
 // ============================================================
+// Couleurs 2026: 
+// - Peach Fuzz & Apricot Crush
+// - Cyber Lime & Digital Lavender
+// - Oceanic Blue & Mint Green
+// - Berry Bliss & Cosmic Purple
+// - Golden Hour & Sunset Orange
+
 const tabColors = {
   dashboard: { 
-    bg: 'from-blue-500 via-blue-600 to-indigo-700', 
-    hover: 'hover:from-blue-600 hover:via-blue-700 hover:to-indigo-800', 
+    bg: 'from-cyan-400 via-blue-400 to-indigo-500', 
+    hover: 'hover:from-cyan-500 hover:via-blue-500 hover:to-indigo-600', 
     text: 'text-white', 
-    shadow: 'shadow-blue-500/40',
-    glow: 'shadow-[0_0_30px_rgba(59,130,246,0.3)]',
-    border: 'border-blue-400/30'
+    shadow: 'shadow-cyan-500/40',
+    glow: 'shadow-[0_0_30px_rgba(34,211,238,0.3)]',
+    border: 'border-cyan-400/30'
   },
   formulaire: { 
-    bg: 'from-emerald-400 via-emerald-500 to-teal-600', 
-    hover: 'hover:from-emerald-500 hover:via-emerald-600 hover:to-teal-700', 
+    bg: 'from-emerald-300 via-teal-400 to-cyan-500', 
+    hover: 'hover:from-emerald-400 hover:via-teal-500 hover:to-cyan-600', 
     text: 'text-white', 
     shadow: 'shadow-emerald-500/40',
     glow: 'shadow-[0_0_30px_rgba(16,185,129,0.3)]',
     border: 'border-emerald-400/30'
   },
   grandlivre: { 
-    bg: 'from-cyan-400 via-cyan-500 to-blue-600', 
-    hover: 'hover:from-cyan-500 hover:via-cyan-600 hover:to-blue-700', 
-    text: 'text-white', 
-    shadow: 'shadow-cyan-500/40',
-    glow: 'shadow-[0_0_30px_rgba(34,211,238,0.3)]',
-    border: 'border-cyan-400/30'
-  },
-  recap: { 
-    bg: 'from-purple-400 via-purple-500 to-pink-600', 
-    hover: 'hover:from-purple-500 hover:via-purple-600 hover:to-pink-700', 
+    bg: 'from-violet-300 via-purple-400 to-fuchsia-500', 
+    hover: 'hover:from-violet-400 hover:via-purple-500 hover:to-fuchsia-600', 
     text: 'text-white', 
     shadow: 'shadow-purple-500/40',
     glow: 'shadow-[0_0_30px_rgba(168,85,247,0.3)]',
     border: 'border-purple-400/30'
   },
+  recap: { 
+    bg: 'from-pink-300 via-rose-400 to-red-500', 
+    hover: 'hover:from-pink-400 hover:via-rose-500 hover:to-red-600', 
+    text: 'text-white', 
+    shadow: 'shadow-rose-500/40',
+    glow: 'shadow-[0_0_30px_rgba(244,63,94,0.3)]',
+    border: 'border-rose-400/30'
+  },
   rapport: { 
-    bg: 'from-amber-400 via-amber-500 to-orange-600', 
-    hover: 'hover:from-amber-500 hover:via-amber-600 hover:to-orange-700', 
+    bg: 'from-amber-300 via-orange-400 to-yellow-500', 
+    hover: 'hover:from-amber-400 hover:via-orange-500 hover:to-yellow-600', 
     text: 'text-white', 
     shadow: 'shadow-amber-500/40',
     glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
     border: 'border-amber-400/30'
   },
   rapcomite: { 
-    bg: 'from-rose-400 via-rose-500 to-red-600', 
-    hover: 'hover:from-rose-500 hover:via-rose-600 hover:to-red-700', 
+    bg: 'from-rose-300 via-pink-400 to-fuchsia-500', 
+    hover: 'hover:from-rose-400 hover:via-pink-500 hover:to-fuchsia-600', 
     text: 'text-white', 
     shadow: 'shadow-rose-500/40',
     glow: 'shadow-[0_0_30px_rgba(244,63,94,0.3)]',
     border: 'border-rose-400/30'
   },
   rapportannuel: { 
-    bg: 'from-violet-400 via-violet-500 to-purple-600', 
-    hover: 'hover:from-violet-500 hover:via-violet-600 hover:to-purple-700', 
+    bg: 'from-indigo-300 via-violet-400 to-purple-500', 
+    hover: 'hover:from-indigo-400 hover:via-violet-500 hover:to-purple-600', 
     text: 'text-white', 
     shadow: 'shadow-violet-500/40',
     glow: 'shadow-[0_0_30px_rgba(139,92,246,0.3)]',
     border: 'border-violet-400/30'
   },
   depenses: { 
-    bg: 'from-yellow-400 via-yellow-500 to-amber-600', 
-    hover: 'hover:from-yellow-500 hover:via-yellow-600 hover:to-amber-700', 
+    bg: 'from-yellow-300 via-amber-400 to-orange-500', 
+    hover: 'hover:from-yellow-400 hover:via-amber-500 hover:to-orange-600', 
     text: 'text-white', 
     shadow: 'shadow-yellow-500/40',
     glow: 'shadow-[0_0_30px_rgba(234,179,8,0.3)]',
     border: 'border-yellow-400/30'
   },
   carnet: { 
-    bg: 'from-pink-400 via-pink-500 to-rose-600', 
-    hover: 'hover:from-pink-500 hover:via-pink-600 hover:to-rose-700', 
+    bg: 'from-pink-300 via-rose-400 to-pink-500', 
+    hover: 'hover:from-pink-400 hover:via-rose-500 hover:to-pink-600', 
     text: 'text-white', 
     shadow: 'shadow-pink-500/40',
     glow: 'shadow-[0_0_30px_rgba(236,72,153,0.3)]',
     border: 'border-pink-400/30'
   },
   recapdistrict: { 
-    bg: 'from-teal-400 via-teal-500 to-cyan-600', 
-    hover: 'hover:from-teal-500 hover:via-teal-600 hover:to-cyan-700', 
+    bg: 'from-teal-300 via-cyan-400 to-blue-500', 
+    hover: 'hover:from-teal-400 hover:via-cyan-500 hover:to-blue-600', 
     text: 'text-white', 
     shadow: 'shadow-teal-500/40',
     glow: 'shadow-[0_0_30px_rgba(20,184,166,0.3)]',
     border: 'border-teal-400/30'
   },
   recapfederation: { 
-    bg: 'from-indigo-400 via-indigo-500 to-blue-600', 
-    hover: 'hover:from-indigo-500 hover:via-indigo-600 hover:to-blue-700', 
+    bg: 'from-blue-300 via-indigo-400 to-violet-500', 
+    hover: 'hover:from-blue-400 hover:via-indigo-500 hover:to-violet-600', 
     text: 'text-white', 
     shadow: 'shadow-indigo-500/40',
     glow: 'shadow-[0_0_30px_rgba(99,102,241,0.3)]',
     border: 'border-indigo-400/30'
   },
   users: { 
-    bg: 'from-gray-600 via-gray-700 to-gray-800', 
-    hover: 'hover:from-gray-700 hover:via-gray-800 hover:to-gray-900', 
+    bg: 'from-slate-400 via-gray-500 to-zinc-600', 
+    hover: 'hover:from-slate-500 hover:via-gray-600 hover:to-zinc-700', 
     text: 'text-white', 
     shadow: 'shadow-gray-500/40',
     glow: 'shadow-[0_0_30px_rgba(107,114,128,0.3)]',
     border: 'border-gray-400/30'
   },
   receipts: { 
-    bg: 'from-rose-400 via-rose-500 to-pink-600', 
-    hover: 'hover:from-rose-500 hover:via-rose-600 hover:to-pink-700', 
+    bg: 'from-rose-300 via-red-400 to-pink-500', 
+    hover: 'hover:from-rose-400 hover:via-red-500 hover:to-pink-600', 
     text: 'text-white', 
     shadow: 'shadow-rose-500/40',
     glow: 'shadow-[0_0_30px_rgba(244,63,94,0.3)]',
     border: 'border-rose-400/30'
   },
   stats: { 
-    bg: 'from-indigo-400 via-indigo-500 to-purple-600', 
-    hover: 'hover:from-indigo-500 hover:via-indigo-600 hover:to-purple-700', 
+    bg: 'from-cyan-300 via-blue-400 to-indigo-500', 
+    hover: 'hover:from-cyan-400 hover:via-blue-500 hover:to-indigo-600', 
     text: 'text-white', 
-    shadow: 'shadow-indigo-500/40',
-    glow: 'shadow-[0_0_30px_rgba(99,102,241,0.3)]',
-    border: 'border-indigo-400/30'
+    shadow: 'shadow-cyan-500/40',
+    glow: 'shadow-[0_0_30px_rgba(34,211,238,0.3)]',
+    border: 'border-cyan-400/30'
   },
 };
 
-// Couleurs inactives avec effet 3D subtil
+// Couleurs inactives modernes 2026
 const inactiveColors = {
-  dashboard: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  formulaire: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  grandlivre: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  recap: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  rapport: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  rapcomite: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  rapportannuel: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  depenses: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  carnet: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  recapdistrict: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  recapfederation: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  users: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  receipts: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
-  stats: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  dashboard: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  formulaire: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  grandlivre: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  recap: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  rapport: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  rapcomite: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  rapportannuel: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  depenses: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  carnet: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  recapdistrict: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  recapfederation: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  users: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  receipts: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
+  stats: 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/50',
 };
 
 // Icônes avec animations
@@ -493,8 +500,8 @@ function AppContent() {
       const active = tabColors[tabId] || tabColors.dashboard;
       return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-110 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm`;
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900';
-      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1 border border-gray-200/30`;
+      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
+      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1`;
     }
   };
 
@@ -648,26 +655,26 @@ function AppContent() {
     if (!isVerificateur || !selectedEglise || !verifEgliseSelected) return null;
 
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-blue-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-indigo-200/50 no-print animate-slideDown">
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-cyan-50/90 via-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-cyan-200/50 no-print animate-slideDown">
         <button
           onClick={handleBackToDistrictList}
-          className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-slate-600 to-gray-700 hover:from-slate-700 hover:to-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
         >
           <i className="fas fa-arrow-left"></i> Retour
         </button>
-        <div className="font-bold text-indigo-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
-          <i className="fas fa-church text-indigo-600 animate-pulse-subtle"></i> 
-          ÉGLISE : <span className="text-indigo-900">{selectedEglise}</span>
+        <div className="font-bold text-cyan-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
+          <i className="fas fa-church text-cyan-600 animate-pulse-subtle"></i> 
+          ÉGLISE : <span className="text-cyan-900">{selectedEglise}</span>
         </div>
         <div className="flex-1"></div>
         <div className="flex items-center gap-2 bg-white/50 px-3 py-1 rounded-lg">
           <label className="text-sm font-medium text-gray-700">
-            <i className="fas fa-calendar-alt text-indigo-500 mr-1"></i> Mois :
+            <i className="fas fa-calendar-alt text-cyan-500 mr-1"></i> Mois :
           </label>
           <select
             value={currentMonth || ''}
             onChange={(e) => setCurrentMonth(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-300"
           >
             {months.map((m) => (
               <option key={m.id} value={m.id}>{formatMonthYear(m.id)}</option>
@@ -698,13 +705,13 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-100">
         <div className="text-center animate-pulse">
           <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-indigo-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-cyan-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-cyan-600 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <i className="fas fa-church text-indigo-400 text-2xl animate-pulse"></i>
+              <i className="fas fa-church text-cyan-400 text-2xl animate-pulse"></i>
             </div>
           </div>
           <p className="mt-4 text-gray-600 font-medium animate-pulse">Vérification de la session...</p>
@@ -730,35 +737,52 @@ function AppContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE AMÉLIORÉ AVEC LOGO 3D ET ANIMATIONS */}
-        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-indigo-700 via-purple-700 to-blue-800 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
-          {/* Effets de fond décoratifs animés avec dégradés 3D */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-yellow-400/20 to-orange-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-pink-400/10 to-purple-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-blue-400/5 to-indigo-400/5 rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+        {/* EN-TÊTE MODERNE 2026 AVEC LOGO À DROITE */}
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-700 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
-          {/* Lignes lumineuses 3D */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-300/50 to-transparent animate-shimmer"></div>
+          {/* Effets de fond décoratifs modernes */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-cyan-400/20 to-blue-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-indigo-400/10 to-purple-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+          
+          {/* Lignes lumineuses */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          {/* LOGO 3D AMÉLIORÉ AVEC ANIMATION */}
+          {/* TITRE À GAUCHE */}
           <div className="flex items-center gap-4 z-10">
+            <div className="transform-gpu perspective-600">
+              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg animate-fadeInLeft transition-all duration-300 hover:scale-105 hover:rotate-1" 
+                  style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)' }}>
+                {mainTitle}
+              </h1>
+              <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5 animate-fadeInLeft animation-delay-200">
+                <i className="fas fa-circle text-cyan-300 text-[6px] animate-pulse"></i>
+                <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
+                <i className="fas fa-circle text-cyan-300 text-[6px] animate-pulse"></i>
+              </div>
+            </div>
+          </div>
+
+          {/* LOGO ET PROFIL À DROITE */}
+          <div className="flex items-center gap-4 z-10 ml-auto">
+            {/* LOGO 3D À DROITE AVEC ANIMATION */}
             <div 
               className="relative group"
               onMouseEnter={() => setLogoHover(true)}
               onMouseLeave={() => setLogoHover(false)}
             >
               {/* Effet de halo lumineux 3D */}
-              <div className={`absolute -inset-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-amber-400 rounded-2xl blur-xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`}></div>
+              <div className={`absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 rounded-2xl blur-xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`}></div>
               
               {/* Cercle extérieur 3D avec animation de rotation */}
-              <div className={`absolute -inset-1 rounded-2xl border-2 border-yellow-300/30 transition-all duration-700 ${logoHover ? 'opacity-100 rotate-12 scale-110' : 'opacity-0 rotate-0 scale-100'}`}></div>
+              <div className={`absolute -inset-1 rounded-2xl border-2 border-cyan-300/30 transition-all duration-700 ${logoHover ? 'opacity-100 rotate-12 scale-110' : 'opacity-0 rotate-0 scale-100'}`}></div>
               
               {/* Logo principal avec effet 3D */}
-              <div className={`relative w-16 h-16 bg-gradient-to-br from-yellow-400 via-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu perspective-600
-                ${logoHover ? 'rotate-y-12 rotate-x-6 scale-110 shadow-[0_20px_60px_rgba(251,191,36,0.5)]' : 'rotate-y-6 rotate-x-3 shadow-[0_10px_30px_rgba(251,191,36,0.3)]'}`}
+              <div className={`relative w-14 h-14 bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu perspective-600
+                ${logoHover ? 'rotate-y-12 rotate-x-6 scale-110 shadow-[0_20px_60px_rgba(34,211,238,0.5)]' : 'rotate-y-6 rotate-x-3 shadow-[0_10px_30px_rgba(34,211,238,0.3)]'}`}
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 {/* Effet de brillance 3D */}
@@ -771,10 +795,10 @@ function AppContent() {
                 <img
                   src="/FINANCE.png"
                   alt="Finance"
-                  className={`h-10 w-10 object-contain transition-all duration-700 filter drop-shadow-lg ${logoHover ? 'scale-110 rotate-3' : 'scale-100 rotate-0'}`}
+                  className={`h-9 w-9 object-contain transition-all duration-700 filter drop-shadow-lg ${logoHover ? 'scale-110 rotate-3' : 'scale-100 rotate-0'}`}
                   onError={(e) => { 
                     e.target.style.display = 'none'; 
-                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-3xl"></i>'; 
+                    e.target.parentNode.innerHTML = '<i className="fas fa-coins text-white text-2xl"></i>'; 
                   }}
                 />
                 
@@ -783,86 +807,68 @@ function AppContent() {
               </div>
               
               {/* Particules lumineuses 3D */}
-              <div className={`absolute -top-2 -right-2 w-3 h-3 bg-yellow-300 rounded-full blur-sm animate-ping-slow transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
-              <div className={`absolute -bottom-1 -left-1 w-2 h-2 bg-amber-300 rounded-full blur-sm animate-ping-slow animation-delay-500 transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+              <div className={`absolute -top-2 -right-2 w-3 h-3 bg-cyan-300 rounded-full blur-sm animate-ping-slow transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+              <div className={`absolute -bottom-1 -left-1 w-2 h-2 bg-blue-300 rounded-full blur-sm animate-ping-slow animation-delay-500 transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
             </div>
 
-            {/* Titre avec effet 3D */}
-            <div className="transform-gpu perspective-600">
-              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg animate-fadeInLeft transition-all duration-300 hover:scale-105 hover:rotate-1" 
-                  style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)' }}>
-                {mainTitle}
-              </h1>
-              <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5 animate-fadeInLeft animation-delay-200">
-                <i className="fas fa-circle text-yellow-300 text-[6px] animate-pulse"></i>
-                <span>SYSTÈME DE GESTION FINANCIÈRE</span>
-                <i className="fas fa-circle text-yellow-300 text-[6px] animate-pulse"></i>
-              </div>
-            </div>
-          </div>
-
-          {/* ============================================================
-              BOUTONS UTILISATEUR ALIGNÉS À DROITE (ml-auto)
-              ============================================================ */}
-          <div className="flex items-center gap-3 z-10 flex-wrap ml-auto">
-            {isPasteur && (
-              <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
-                <button
-                  onClick={handleAccueil}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
-                    pasteurMode === 'accueil'
-                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105 -translate-y-0.5'
-                      : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
-                  }`}
-                >
-                  <i className="fas fa-home mr-1"></i> ACCUEIL
-                </button>
-                <button
-                  onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
-                    pasteurMode === 'ajout'
-                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105 -translate-y-0.5'
-                      : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
-                  }`}
-                >
-                  <i className="fas fa-plus-circle mr-1"></i> AJOUT
-                </button>
-                <button
-                  onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
-                    pasteurMode === 'voir'
-                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105 -translate-y-0.5'
-                      : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
-                  }`}
-                >
-                  <i className="fas fa-eye mr-1"></i> VOIR
-                </button>
-              </div>
-            )}
-
-            {/* PROFIL UTILISATEUR AVEC NOM ET DÉCONNEXION ALIGNÉS À DROITE */}
+            {/* BOUTONS UTILISATEUR */}
             <div className="flex items-center gap-2">
+              {isPasteur && (
+                <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
+                  <button
+                    onClick={handleAccueil}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
+                      pasteurMode === 'accueil'
+                        ? 'bg-white text-cyan-700 shadow-lg transform scale-105 -translate-y-0.5'
+                        : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
+                    }`}
+                  >
+                    <i className="fas fa-home mr-1"></i> ACCUEIL
+                  </button>
+                  <button
+                    onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
+                      pasteurMode === 'ajout'
+                        ? 'bg-white text-cyan-700 shadow-lg transform scale-105 -translate-y-0.5'
+                        : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
+                    }`}
+                  >
+                    <i className="fas fa-plus-circle mr-1"></i> AJOUT
+                  </button>
+                  <button
+                    onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
+                      pasteurMode === 'voir'
+                        ? 'bg-white text-cyan-700 shadow-lg transform scale-105 -translate-y-0.5'
+                        : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
+                    }`}
+                  >
+                    <i className="fas fa-eye mr-1"></i> VOIR
+                  </button>
+                </div>
+              )}
+
               <button 
                 onClick={() => setShowProfile(!showProfile)} 
                 className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
               >
                 {user?.photo ? (
-                  <img src={user.photo} alt="avatar" className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
+                  <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
-                    <i className="fas fa-user text-sm"></i>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white shadow-lg">
+                    <i className="fas fa-user text-xs"></i>
                   </div>
                 )}
-                <span className="hidden sm:inline font-medium">
+                <span className="hidden md:inline font-medium text-sm">
                   {user?.nom || user?.email || 'Utilisateur'} 
-                  <span className="text-xs opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
+                  <span className="text-[10px] opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
                 </span>
-                <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
+                <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
               </button>
 
               <button 
                 onClick={handleLogout} 
-                className="text-red-200 hover:text-white transition-all duration-300 text-sm flex items-center gap-1 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
+                className="text-red-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-red-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
               >
                 <i className="fas fa-sign-out-alt"></i> 
                 <span className="hidden sm:inline">Déconnexion</span>
@@ -892,7 +898,7 @@ function AppContent() {
                   className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 transform relative ${
                     isActive
                       ? `${getTabClasses(tab.id, true)}`
-                      : `${inactiveColors[tab.id] || 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-105`
+                      : `${inactiveColors[tab.id] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-105`
                   } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
                   disabled={disabled}
                   style={{
@@ -900,7 +906,7 @@ function AppContent() {
                     transformStyle: 'preserve-3d'
                   }}
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 text-sm">
                     <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''} ${isHovered && !isActive ? 'animate-bounce-subtle' : ''}`}></i>
                     <span>{tab.label}</span>
                     {isActive && (
@@ -910,7 +916,6 @@ function AppContent() {
                       </>
                     )}
                   </span>
-                  {/* Effet de brillance 3D sur les onglets actifs */}
                   {isActive && (
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
                   )}
@@ -932,7 +937,7 @@ function AppContent() {
         </div>
       </div>
 
-      {/* ANIMATIONS CSS AMÉLIORÉES AVEC EFFETS 3D */}
+      {/* ANIMATIONS CSS MODERNES 2026 */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -1000,7 +1005,7 @@ function AppContent() {
         .hover\\:rotate-1:hover { transform: rotate(1deg); }
         .hover\\:-translate-y-0\\.5:hover { transform: translateY(-2px); }
 
-        /* Effets 3D pour le logo */
+        /* Effets 3D */
         .perspective-600 { perspective: 600px; }
         .rotate-y-12 { transform: rotateY(12deg); }
         .rotate-x-6 { transform: rotateX(6deg); }
@@ -1008,12 +1013,7 @@ function AppContent() {
         .rotate-x-3 { transform: rotateX(3deg); }
         .transform-gpu { transform: translateZ(0); backface-visibility: hidden; }
 
-        /* Transitions douces pour tous les éléments interactifs */
-        * {
-          transition: all 0.2s ease-in-out;
-        }
-
-        /* Scrollbar personnalisée avec dégradé 3D */
+        /* Scrollbar moderne 2026 */
         ::-webkit-scrollbar {
           width: 8px;
           height: 8px;
@@ -1023,16 +1023,16 @@ function AppContent() {
           border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #6366f1, #8b5cf6, #a855f7);
+          background: linear-gradient(180deg, #22d3ee, #3b82f6, #6366f1);
           border-radius: 10px;
-          box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+          box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #4f46e5, #7c3aed, #9333ea);
-          box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+          background: linear-gradient(180deg, #06b6d4, #2563eb, #4f46e5);
+          box-shadow: 0 0 30px rgba(34, 211, 238, 0.5);
         }
 
-        /* Effet de brillance sur les cartes */
+        /* Effet de brillance */
         .glow-card {
           position: relative;
           overflow: hidden;
