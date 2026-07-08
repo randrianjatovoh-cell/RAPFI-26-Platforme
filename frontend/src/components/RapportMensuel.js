@@ -5,7 +5,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
 import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
-// 🔧 Helper pour récupérer une valeur quel que soit la casse
+// Helper pour récupérer une valeur quel que soit la casse
 function getField(obj, name) {
   if (!obj || typeof obj !== 'object') return undefined;
   if (obj[name] !== undefined) return obj[name];
@@ -42,7 +42,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
 
-  // Stabiliser les fonctions de permission
   const stableCanViewEglise = useMemo(() => canViewEglise, [canViewEglise]);
   const stableCanEditEglise = useMemo(() => canEditEglise, [canEditEglise]);
 
@@ -79,7 +78,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
-  const [loading, setLoading] = useState(false); // initial à false
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
@@ -87,6 +86,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const abortControllerRef = useRef(null);
   const isLoadingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const debounceRef = useRef(null);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -106,6 +106,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }, 5000);
   };
 
+  // Chargement des données
   const loadData = useCallback(async () => {
     if (!currentMonth || !eglise) {
       if (isMountedRef.current) setLoading(false);
@@ -119,7 +120,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       return;
     }
 
-    // Éviter les appels simultanés
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
 
@@ -148,7 +148,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setReport(r);
 
       if (r) {
-        // Sabbat dates
         const sabbathDatesRaw = getField(r, 'sabbath_dates');
         if (sabbathDatesRaw) {
           try {
@@ -158,7 +157,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch { setSabbathDates(['', '', '', '', '']); }
         } else setSabbathDates(['', '', '', '', '']);
 
-        // Champs texte
         setDateVersementFME(getField(r, 'dateVersementFME') || '');
         setRosiaNum(getField(r, 'rosiaNum') || '');
         setBokyBe(getField(r, 'bokyBe') || '');
@@ -171,15 +169,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(getField(r, 'soraBolaLettres') || '');
         setSoraBolaSignataire(getField(r, 'soraBolaSignataire') || '');
 
-        // Volam-piangonana apetraka
         const volamValue = getField(r, 'volamPiangonanaApetraka');
         setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-        // Vola sisa teo aloha
         const sisaValue = getField(r, 'volaSisaTeoAloha');
         setVolaSisaTeoAloha(sisaValue !== undefined ? Number(sisaValue) : 0);
 
-        // Tableau chèques
         const soraJson = getField(r, 'soraBolaLinesJson');
         if (soraJson) {
           try {
@@ -210,7 +205,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
-      // GL
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -263,7 +257,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       } else expensesByWeek[0] = totalExp;
       setExpensesBySabbath(expensesByWeek);
 
-      // Calcul balanceChurch avec volaSisaTeoAloha
       const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
       setBalanceChurch(Number(currentSisa) + totalB - totalExp);
 
@@ -277,7 +270,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }
   }, [currentMonth, eglise, user, stableCanViewEglise, stableCanEditEglise]);
 
-  // Chargement initial et au changement de mois/église
   useEffect(() => {
     loadData();
     return () => {
@@ -286,7 +278,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     };
   }, [loadData]);
 
-  // Écouter les événements de mise à jour externe
   useEffect(() => {
     const handleDataUpdate = () => {
       if (!isLoadingRef.current) loadData();
@@ -295,13 +286,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return () => window.removeEventListener('data-updated', handleDataUpdate);
   }, [loadData]);
 
-  // Sauvegarde générique (ne recharge pas automatiquement)
+  // ============================================================
+  // FONCTIONS DE SAUVEGARDE (appelées uniquement via onBlur)
+  // ============================================================
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
       showMessage(`Champ "${field}" mis à jour avec succès`, 'success');
-      // Ne pas recharger ici pour éviter de perturber la saisie
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
       showMessage(`Erreur lors de la sauvegarde du champ "${field}" : ${err.message}`, 'error');
@@ -320,16 +312,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }
   };
 
-  // Gestionnaires avec mise à jour locale immédiate et sauvegarde en arrière-plan
-  const handleChequeChange = async (idx, value) => {
+  // Gestionnaires avec mise à jour locale immédiate, sauvegarde différée (onBlur)
+  const handleChequeChange = (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    await updateChequeSoraData(newLines, soraBolaLines);
   };
 
-  const handleSoraBolaChange = async (idx, rawValue) => {
+  const handleChequeBlur = async (idx) => {
+    if (isReadOnlyMode()) return;
+    await updateChequeSoraData(chequeLines, soraBolaLines);
+  };
+
+  const handleSoraBolaChange = (idx, rawValue) => {
     if (isReadOnlyMode()) return;
     const numeric = rawValue.replace(/[^\d.-]/g, '');
     const num = parseFloat(numeric);
@@ -339,40 +335,60 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setSoraBolaLines(newLines);
     const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
     setTotalChequeSora(sum);
-    await updateChequeSoraData(chequeLines, newLines);
   };
 
-  const handleMontantChange = async (val) => {
+  const handleSoraBolaBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateChequeSoraData(chequeLines, soraBolaLines);
+  };
+
+  const handleMontantChange = (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setSoraBolaMontant(num);
     const lettres = nombreEnLettresCapitalized(num);
     setSoraBolaLettres(lettres);
-    await updateField('soraBolaMontant', num);
-    await updateField('soraBolaLettres', lettres);
   };
 
-  const handleVolamPiangonanaChange = async (val) => {
+  const handleMontantBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateField('soraBolaMontant', soraBolaMontant);
+    await updateField('soraBolaLettres', soraBolaLettres);
+  };
+
+  const handleVolamPiangonanaChange = (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
-    await updateField('volamPiangonanaApetraka', num);
   };
 
-  const handleVolaSisaChange = async (val) => {
+  const handleVolamPiangonanaBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateField('volamPiangonanaApetraka', volamPiangonanaApetraka);
+  };
+
+  const handleVolaSisaChange = (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolaSisaTeoAloha(num);
-    await updateField('volaSisaTeoAloha', num);
-    // Mettre à jour le solde final localement
     setBalanceChurch(num + totalB - totalExpenses);
+  };
+
+  const handleVolaSisaBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateField('volaSisaTeoAloha', volaSisaTeoAloha);
+  };
+
+  // Pour les champs texte simples, sauvegarde sur blur
+  const handleTextBlur = (field, value) => {
+    if (isReadOnlyMode()) return;
+    updateField(field, value);
   };
 
   const renderDateField = (value) => {
     return value ? formatDateInput(value) : '__/__/____';
   };
 
-  // Rendu...
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
@@ -631,9 +647,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </table>
       </div>
 
-      {/* 🔥 NOUVELLE SECTION : ligne avec date à gauche et SARAM-PANDEFASANA à droite */}
+      {/* SECTION : date + SARAM-PANDEFASANA + Volam-piangonana */}
       <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-        {/* Première ligne : date à gauche, SARAM-PANDEFASANA à droite */}
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
@@ -643,12 +658,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             <input
               type="date"
               value={dateVersementFME}
-              onChange={(e) => {
-                if (!readOnlyMode) {
-                  setDateVersementFME(e.target.value);
-                  updateField('dateVersementFME', e.target.value);
-                }
-              }}
+              onChange={(e) => setDateVersementFME(e.target.value)}
+              onBlur={(e) => handleTextBlur('dateVersementFME', e.target.value)}
               disabled={readOnlyMode}
               style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '2px 4px', fontSize: 'inherit' }}
               className="no-print"
@@ -662,7 +673,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
         </div>
 
-        {/* Deuxième ligne : TONTALIN'NY VOLA MIAKATRA any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
           <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
@@ -670,7 +680,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
-        {/* Troisième ligne : Volam-piangonana apetraka any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
           <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right' }}>
@@ -680,6 +689,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             type="number"
             value={volamPiangonanaApetraka}
             onChange={(e) => handleVolamPiangonanaChange(e.target.value)}
+            onBlur={handleVolamPiangonanaBlur}
             className="rounded p-0.5 text-right border no-print"
             style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
             disabled={readOnlyMode}
@@ -709,7 +719,15 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         <div className="border p-1">
           <div>
             <span className="font-semibold">Rosia N° :</span>
-            <input type="text" value={rosiaNum} onChange={e => { if (!readOnlyMode) { setRosiaNum(e.target.value); updateField('rosiaNum', e.target.value); } }} className="rounded p-0.5" style={{ width: '160px' }} disabled={readOnlyMode} />
+            <input
+              type="text"
+              value={rosiaNum}
+              onChange={(e) => setRosiaNum(e.target.value)}
+              onBlur={(e) => handleTextBlur('rosiaNum', e.target.value)}
+              className="rounded p-0.5"
+              style={{ width: '160px' }}
+              disabled={readOnlyMode}
+            />
           </div>
           <div>
             <span className="font-semibold">Daty :</span>
@@ -717,7 +735,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Anarana sy Sonian'ny CAISSE-FME :</span>
-            <input type="text" value={caisseFME} onChange={e => { if (!readOnlyMode) { setCaisseFME(e.target.value); updateField('caisseFME', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input
+              type="text"
+              value={caisseFME}
+              onChange={(e) => setCaisseFME(e.target.value)}
+              onBlur={(e) => handleTextBlur('caisseFME', e.target.value)}
+              className="rounded p-0.5 w-full"
+              disabled={readOnlyMode}
+            />
           </div>
         </div>
       </div>
@@ -731,15 +756,36 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
           <div>
             <span className="font-semibold">Ny vola Ar :</span>
-            <input type="number" value={soraBolaMontant} onChange={e => { if (!readOnlyMode) handleMontantChange(e.target.value); }} className="rounded text-right p-0.5" step="any" disabled={readOnlyMode} />
+            <input
+              type="number"
+              value={soraBolaMontant}
+              onChange={(e) => handleMontantChange(e.target.value)}
+              onBlur={handleMontantBlur}
+              className="rounded text-right p-0.5"
+              step="any"
+              disabled={readOnlyMode}
+            />
           </div>
           <div>
             <span className="font-semibold">An-tsoratra :</span>
-            <input type="text" value={soraBolaLettres} readOnly style={{ backgroundColor: '#f9f9f9' }} className="rounded p-0.5" />
+            <input
+              type="text"
+              value={soraBolaLettres}
+              readOnly
+              style={{ backgroundColor: '#f9f9f9' }}
+              className="rounded p-0.5"
+            />
           </div>
           <div>
             <span className="font-semibold">Anarana sy sonian'ny nandray vola :</span>
-            <input type="text" value={soraBolaSignataire} onChange={e => { if (!readOnlyMode) { setSoraBolaSignataire(e.target.value); updateField('soraBolaSignataire', e.target.value); } }} className="rounded p-0.5 w-full" disabled={readOnlyMode} />
+            <input
+              type="text"
+              value={soraBolaSignataire}
+              onChange={(e) => setSoraBolaSignataire(e.target.value)}
+              onBlur={(e) => handleTextBlur('soraBolaSignataire', e.target.value)}
+              className="rounded p-0.5 w-full"
+              disabled={readOnlyMode}
+            />
           </div>
         </div>
         <div className="border p-1">
@@ -758,6 +804,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                       type="text"
                       value={chequeLines[idx] || ''}
                       onChange={(e) => handleChequeChange(idx, e.target.value)}
+                      onBlur={() => handleChequeBlur(idx)}
                       className="w-full p-0.5 border-none"
                       disabled={readOnlyMode}
                     />
@@ -767,6 +814,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                       type="text"
                       value={formatMontant(soraBolaLines[idx])}
                       onChange={(e) => handleSoraBolaChange(idx, e.target.value)}
+                      onBlur={handleSoraBolaBlur}
                       className="w-full p-0.5 border-none"
                       style={{ textAlign: 'right' }}
                       disabled={readOnlyMode}
@@ -812,6 +860,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                   type="number"
                   value={volaSisaTeoAloha}
                   onChange={(e) => handleVolaSisaChange(e.target.value)}
+                  onBlur={handleVolaSisaBlur}
                   className="rounded p-0.5 text-right border no-print"
                   style={{ width: '120px', fontFamily: 'inherit', fontSize: 'inherit' }}
                   disabled={readOnlyMode}
