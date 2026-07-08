@@ -154,25 +154,28 @@ const tabColors = {
   },
 };
 
-// Couleurs inactives modernes
+// Couleurs inactives modernes pour les icônes
 const inactiveColors = {
-  dashboard: 'bg-white/90 text-blue-700 hover:bg-blue-50/90 hover:text-blue-900 hover:shadow-lg hover:-translate-y-1 border border-blue-200/40',
-  formulaire: 'bg-white/90 text-emerald-700 hover:bg-emerald-50/90 hover:text-emerald-900 hover:shadow-lg hover:-translate-y-1 border border-emerald-200/40',
-  grandlivre: 'bg-white/90 text-purple-700 hover:bg-purple-50/90 hover:text-purple-900 hover:shadow-lg hover:-translate-y-1 border border-purple-200/40',
-  recap: 'bg-white/90 text-pink-700 hover:bg-pink-50/90 hover:text-pink-900 hover:shadow-lg hover:-translate-y-1 border border-pink-200/40',
-  rapport: 'bg-white/90 text-amber-700 hover:bg-amber-50/90 hover:text-amber-900 hover:shadow-lg hover:-translate-y-1 border border-amber-200/40',
-  rapcomite: 'bg-white/90 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
-  rapportannuel: 'bg-white/90 text-violet-700 hover:bg-violet-50/90 hover:text-violet-900 hover:shadow-lg hover:-translate-y-1 border border-violet-200/40',
-  depenses: 'bg-white/90 text-yellow-700 hover:bg-yellow-50/90 hover:text-yellow-900 hover:shadow-lg hover:-translate-y-1 border border-yellow-200/40',
-  carnet: 'bg-white/90 text-cyan-700 hover:bg-cyan-50/90 hover:text-cyan-900 hover:shadow-lg hover:-translate-y-1 border border-cyan-200/40',
-  recapdistrict: 'bg-white/90 text-teal-700 hover:bg-teal-50/90 hover:text-teal-900 hover:shadow-lg hover:-translate-y-1 border border-teal-200/40',
-  recapfederation: 'bg-white/90 text-indigo-700 hover:bg-indigo-50/90 hover:text-indigo-900 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
-  users: 'bg-white/90 text-gray-700 hover:bg-gray-50/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/40',
-  receipts: 'bg-white/90 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
-  stats: 'bg-white/90 text-indigo-700 hover:bg-indigo-50/90 hover:text-indigo-900 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
+  dashboard: 'bg-white/90 text-blue-600 hover:bg-blue-50/90 hover:text-blue-700 hover:shadow-lg hover:-translate-y-1 border border-blue-200/40',
+  formulaire: 'bg-white/90 text-emerald-600 hover:bg-emerald-50/90 hover:text-emerald-700 hover:shadow-lg hover:-translate-y-1 border border-emerald-200/40',
+  grandlivre: 'bg-white/90 text-purple-600 hover:bg-purple-50/90 hover:text-purple-700 hover:shadow-lg hover:-translate-y-1 border border-purple-200/40',
+  recap: 'bg-white/90 text-pink-600 hover:bg-pink-50/90 hover:text-pink-700 hover:shadow-lg hover:-translate-y-1 border border-pink-200/40',
+  rapport: 'bg-white/90 text-amber-600 hover:bg-amber-50/90 hover:text-amber-700 hover:shadow-lg hover:-translate-y-1 border border-amber-200/40',
+  rapcomite: 'bg-white/90 text-rose-600 hover:bg-rose-50/90 hover:text-rose-700 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
+  rapportannuel: 'bg-white/90 text-violet-600 hover:bg-violet-50/90 hover:text-violet-700 hover:shadow-lg hover:-translate-y-1 border border-violet-200/40',
+  depenses: 'bg-white/90 text-yellow-600 hover:bg-yellow-50/90 hover:text-yellow-700 hover:shadow-lg hover:-translate-y-1 border border-yellow-200/40',
+  carnet: 'bg-white/90 text-cyan-600 hover:bg-cyan-50/90 hover:text-cyan-700 hover:shadow-lg hover:-translate-y-1 border border-cyan-200/40',
+  recapdistrict: 'bg-white/90 text-teal-600 hover:bg-teal-50/90 hover:text-teal-700 hover:shadow-lg hover:-translate-y-1 border border-teal-200/40',
+  recapfederation: 'bg-white/90 text-indigo-600 hover:bg-indigo-50/90 hover:text-indigo-700 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
+  users: 'bg-white/90 text-gray-600 hover:bg-gray-50/90 hover:text-gray-700 hover:shadow-lg hover:-translate-y-1 border border-gray-200/40',
+  receipts: 'bg-white/90 text-rose-600 hover:bg-rose-50/90 hover:text-rose-700 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
+  stats: 'bg-white/90 text-indigo-600 hover:bg-indigo-50/90 hover:text-indigo-700 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
 };
 
-// Icônes avec animations
+// ============================================================
+// LISTE DES ONGLETS AVEC UNIQUEMENT DES ICÔNES
+// ============================================================
+
 const tabIcons = {
   dashboard: 'fa-chart-pie',
   formulaire: 'fa-pen-to-square',
@@ -189,6 +192,23 @@ const tabIcons = {
   receipts: 'fa-file-invoice',
   stats: 'fa-chart-simple',
 };
+
+// Liste des onglets disponibles
+const allTabs = [
+  { id: 'dashboard', label: 'Tableau de bord', icon: 'fa-chart-pie', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'formulaire', label: 'Formulaire', icon: 'fa-pen-to-square', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] },
+  { id: 'grandlivre', label: 'Grand Livre', icon: 'fa-book-open', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'recap', label: 'RECAP GL', icon: 'fa-table', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'rapport', label: 'Rapport mensuel', icon: 'fa-chart-bar', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'rapcomite', label: 'Rapport comité', icon: 'fa-users', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'rapportannuel', label: 'Rapport annuel', icon: 'fa-calendar-alt', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'depenses', label: 'Dépenses', icon: 'fa-receipt', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'carnet', label: 'Carnet de dîme', icon: 'fa-hand-holding-heart', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'recapdistrict', label: 'RECAP District', icon: 'fa-church', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
+  { id: 'recapfederation', label: 'RECAP Fédération', icon: 'fa-globe', requireData: false, roles: ['Admin', 'Vérificateur'] },
+  { id: 'users', label: 'Utilisateurs', icon: 'fa-users-cog', requireData: false, roles: ['Admin'] },
+  { id: 'receipts', label: 'Reçus', icon: 'fa-file-invoice', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] }
+];
 
 // Liste des onglets de consultation pour le vérificateur
 const consultationTabIds = ['grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses', 'carnet'];
@@ -401,23 +421,6 @@ function AppContent() {
     }
   };
 
-  // Liste de tous les onglets disponibles
-  const allTabs = [
-    { id: 'dashboard', label: 'Tableau de bord', icon: 'fa-chart-pie', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'formulaire', label: 'Formulaire', icon: 'fa-pen-to-square', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] },
-    { id: 'grandlivre', label: 'Grand Livre', icon: 'fa-book-open', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'recap', label: 'RECAP GL', icon: 'fa-table', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'rapport', label: 'Rapport mensuel', icon: 'fa-chart-bar', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'rapcomite', label: 'Rapport comité', icon: 'fa-users', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'rapportannuel', label: 'Rapport annuel', icon: 'fa-calendar-alt', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'depenses', label: 'Dépenses', icon: 'fa-receipt', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'carnet', label: 'Carnet de dîme', icon: 'fa-hand-holding-heart', requireData: true, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'recapdistrict', label: 'RECAP District', icon: 'fa-church', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
-    { id: 'recapfederation', label: 'RECAP Fédération', icon: 'fa-globe', requireData: false, roles: ['Admin', 'Vérificateur'] },
-    { id: 'users', label: 'Utilisateurs', icon: 'fa-users-cog', requireData: false, roles: ['Admin'] },
-    { id: 'receipts', label: 'Reçus', icon: 'fa-file-invoice', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] }
-  ];
-
   const rapportGroupIds = ['grandlivre', 'recap', 'rapport', 'rapcomite', 'rapportannuel', 'depenses'];
 
   const getVisibleTabs = () => {
@@ -508,8 +511,8 @@ function AppContent() {
       const active = tabColors[tabId] || tabColors.dashboard;
       return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-110 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm ${active.pulse}`;
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
-      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1`;
+      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-600 hover:bg-gray-100/90 hover:text-gray-700';
+      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-110 hover:-translate-y-1`;
     }
   };
 
@@ -698,6 +701,7 @@ function AppContent() {
                 onClick={() => setActiveTab(id)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${getTabClasses(id, isActive)}`}
               >
+                <i className={`fas ${tabIcons[id]} mr-1`}></i>
                 {consultationTabsLabels[id] || id}
               </button>
             );
@@ -711,9 +715,7 @@ function AppContent() {
   // RENDU GLOBAL
   // ----------------------------------------------------------------------
 
-  // ============================================================
   // PAGE DE CHARGEMENT SIMPLIFIÉE AVEC LOGO RAPFI
-  // ============================================================
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -806,8 +808,10 @@ function AppContent() {
             </div>
           </div>
 
-          {/* AVATAR + DÉCONNEXION */}
-          <div className="flex items-center gap-3 z-10">
+          {/* ============================================================
+              AVATAR + DÉCONNEXION EN ICÔNES UNIQUEMENT
+              ============================================================ */}
+          <div className="flex items-center gap-2 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
                 <button
@@ -843,30 +847,28 @@ function AppContent() {
               </div>
             )}
 
+            {/* AVATAR - Cercle avec photo ou icône utilisateur */}
             <button 
               onClick={() => setShowProfile(!showProfile)} 
-              className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
+              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border-2 border-white/20 shadow-lg flex items-center justify-center overflow-hidden"
+              title="Profil"
             >
               {user?.photo ? (
-                <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-amber-400 shadow-lg animate-pulse-glow" />
+                <img src={user.photo} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
-                  <i className="fas fa-user text-xs"></i>
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white">
+                  <i className="fas fa-user text-sm"></i>
                 </div>
               )}
-              <span className="hidden md:inline font-medium text-sm text-white">
-                {user?.nom || user?.email || 'Utilisateur'} 
-                <span className="text-[10px] text-amber-200/70 ml-1">({user?.fonction || 'Rôle'})</span>
-              </span>
-              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] text-white/70 transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
             </button>
 
+            {/* DÉCONNEXION - Icône de sortie */}
             <button 
               onClick={handleLogout} 
-              className="text-red-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-red-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
+              className="w-10 h-10 rounded-full bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border border-red-400/20 flex items-center justify-center text-red-200 hover:text-white"
+              title="Déconnexion"
             >
-              <i className="fas fa-sign-out-alt"></i> 
-              <span className="hidden sm:inline">Déconnexion</span>
+              <i className="fas fa-sign-out-alt text-sm"></i>
             </button>
           </div>
         </header>
@@ -874,7 +876,9 @@ function AppContent() {
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* Barre d'onglets principale avec animations 3D */}
+        {/* ============================================================
+            BARRE D'ONGLETS AVEC UNIQUEMENT DES ICÔNES
+            ============================================================ */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
@@ -883,38 +887,48 @@ function AppContent() {
               const icon = tabIcons[tab.id] || tab.icon;
               const isHovered = isHoveringTab === tab.id;
               
+              // Récupérer le label pour le tooltip
+              const tabLabel = allTabs.find(t => t.id === tab.id)?.label || tab.id;
+              
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => !disabled && setActiveTab(tab.id)}
-                  onMouseEnter={() => setIsHoveringTab(tab.id)}
-                  onMouseLeave={() => setIsHoveringTab(null)}
-                  className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 transform relative ${
-                    isActive
-                      ? `${getTabClasses(tab.id, true)}`
-                      : `${inactiveColors[tab.id] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-105`
-                  } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
-                  disabled={disabled}
-                  style={{
-                    transform: isActive ? 'perspective(600px) rotateX(3deg) scale(1.05)' : 'perspective(600px) rotateX(0deg) scale(1)',
-                    transformStyle: 'preserve-3d',
-                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
-                >
-                  <span className="flex items-center gap-2 text-sm">
-                    <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''} ${isHovered && !isActive ? 'animate-bounce-subtle' : ''}`}></i>
-                    <span>{tab.label}</span>
+                <div key={tab.id} className="relative group">
+                  <button
+                    onClick={() => !disabled && setActiveTab(tab.id)}
+                    onMouseEnter={() => setIsHoveringTab(tab.id)}
+                    onMouseLeave={() => setIsHoveringTab(null)}
+                    className={`w-12 h-12 rounded-xl font-medium transition-all duration-300 transform relative flex items-center justify-center ${
+                      isActive
+                        ? `${getTabClasses(tab.id, true)}`
+                        : `${inactiveColors[tab.id] || 'bg-white/90 text-gray-600 hover:bg-gray-100/90 hover:text-gray-700'} hover:shadow-lg hover:-translate-y-1 hover:scale-110`
+                    } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
+                    disabled={disabled}
+                    style={{
+                      transform: isActive ? 'perspective(600px) rotateX(3deg) scale(1.1)' : 'perspective(600px) rotateX(0deg) scale(1)',
+                      transformStyle: 'preserve-3d',
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
+                    title={tabLabel}
+                  >
+                    <span className="flex items-center justify-center text-lg">
+                      <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''} ${isHovered && !isActive ? 'animate-bounce-subtle' : ''}`}></i>
+                      {isActive && (
+                        <>
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping-slow"></span>
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></span>
+                        </>
+                      )}
+                    </span>
                     {isActive && (
-                      <>
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping-slow"></span>
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></span>
-                      </>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
                     )}
-                  </span>
-                  {isActive && (
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
-                  )}
-                </button>
+                  </button>
+                  {/* Tooltip au survol */}
+                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                    <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded shadow-lg">
+                      {tabLabel}
+                    </span>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -1022,17 +1036,13 @@ function AppContent() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-4px); }
         }
-        @keyframes spin-slow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes spin-slow-reverse {
-          0% { transform: rotate(360deg); }
-          100% { transform: rotate(0deg); }
-        }
         @keyframes bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
@@ -1058,8 +1068,6 @@ function AppContent() {
         .animate-pulse-subtle { animation: pulse 2s ease-in-out infinite; }
         .animate-bounce-subtle { animation: bounce-subtle 1s ease-in-out infinite; }
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
-        .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-        .animate-spin-slow-reverse { animation: spin-slow-reverse 4s linear infinite; }
         .animate-bounce { animation: bounce 1s ease-in-out infinite; }
         .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 
@@ -1069,6 +1077,7 @@ function AppContent() {
         .animation-delay-1500 { animation-delay: 1.5s; }
 
         .hover\\:scale-105:hover { transform: scale(1.05); }
+        .hover\\:scale-110:hover { transform: scale(1.1); }
         .hover\\:-translate-y-1:hover { transform: translateY(-4px); }
 
         .perspective-600 { perspective: 600px; }
