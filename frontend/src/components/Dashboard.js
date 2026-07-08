@@ -51,7 +51,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // Helper pour récupérer une valeur quel que soit la casse (pour les champs du rapport)
+  // Helper pour récupérer une valeur quel que soit la casse
   function getField(obj, name) {
     if (!obj || typeof obj !== 'object') return undefined;
     if (obj[name] !== undefined) return obj[name];
@@ -167,39 +167,34 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           totalExpenses += res.monthExpenses;
         });
 
-        // 🔥 Récupération du solde initial (VOLA SISA TEO ALOHA) depuis le Rapport Annuel
+        // Récupération du solde initial depuis le Rapport Annuel
         let volaSisaTeoAloha = 0;
         try {
           const janMonthId = `${yearStr}-01`;
           const janReport = await api.getMonthlyReport(janMonthId, egliseNom);
           
           if (janReport) {
-            // 1. Essayer de lire depuis endOfYear.previousBalance (le champ du Rapport Annuel)
             const eoyRaw = getField(janReport, 'endOfYear');
             if (eoyRaw) {
               try {
                 const eoy = typeof eoyRaw === 'string' ? JSON.parse(eoyRaw) : eoyRaw;
                 if (eoy && typeof eoy.previousBalance === 'number') {
                   volaSisaTeoAloha = eoy.previousBalance;
-                  console.log(`✅ Solde initial chargé depuis endOfYear: ${volaSisaTeoAloha}`);
                 }
               } catch(e) { /* ignore */ }
             }
             
-            // 2. Si pas trouvé, essayer depuis volaSisaTeoAloha (la nouvelle colonne)
             if (volaSisaTeoAloha === 0) {
               const sisaValue = getField(janReport, 'volaSisaTeoAloha');
               if (sisaValue !== undefined && sisaValue !== null) {
                 volaSisaTeoAloha = Number(sisaValue);
-                console.log(`✅ Solde initial chargé depuis volaSisaTeoAloha: ${volaSisaTeoAloha}`);
               }
             }
           }
         } catch (err) {
-          console.warn('Erreur récupération solde initial depuis janvier:', err);
+          console.warn('Erreur récupération solde initial:', err);
         }
 
-        // 3. Fallback : si toujours 0, essayer localStorage
         if (volaSisaTeoAloha === 0) {
           const storageKey = `endOfYear_${yearStr}_${egliseNom}`;
           const stored = localStorage.getItem(storageKey);
@@ -207,12 +202,10 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             const parsed = parseFloat(stored);
             if (!isNaN(parsed)) {
               volaSisaTeoAloha = parsed;
-              console.log(`✅ Solde initial chargé depuis localStorage: ${volaSisaTeoAloha}`);
             }
           }
         }
 
-        // 4. Fallback ultime : calculer depuis décembre précédent
         if (volaSisaTeoAloha === 0) {
           try {
             const prevYear = (selectedYear - 1).toString();
@@ -230,7 +223,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             const decExpenses = await api.getDepenses(decMonthId, null, null, egliseNom);
             const decTotalExpenses = decExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
             volaSisaTeoAloha = decTotalB - decTotalExpenses;
-            console.log(`✅ Solde initial calculé depuis décembre précédent: ${volaSisaTeoAloha}`);
           } catch (err) {
             console.warn('Erreur calcul solde initial depuis décembre précédent:', err);
           }
@@ -409,9 +401,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     loadData();
   }, [loadData, refreshKey]);
 
-  // =================== RENDU (inchangé) ===================
+  // =================== RENDU ===================
 
-  // Composant StatCard avec animations
   const StatCard = ({ title, value, icon, color, delay }) => {
     const gradientMap = {
       blue: 'from-blue-500 to-blue-600',
@@ -442,7 +433,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     );
   };
 
-  // Cartes pour Ancien / Trésorier
   const ancienStatCards = [
     { title: 'Total A (Fédération)', value: formatMontant(annualData.totalA), icon: 'fa-chart-line', color: 'blue', delay: 100 },
     { title: 'Reste (précédent)', value: formatMontant(annualData.volaSisaTeoAloha), icon: 'fa-history', color: 'yellow', delay: 200 },
@@ -451,7 +441,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     { title: 'EGLISE (suivant)', value: formatMontant(annualData.volaAfindra), icon: 'fa-forward', color: 'purple', delay: 500 }
   ];
 
-  // Pasteur
   const pasteurStatCards = (totalDime, totalOff, totalA, count) => [
     { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', color: 'blue', delay: 100 },
     { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', color: 'green', delay: 200 },
@@ -459,7 +448,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     { title: "Nombre d'églises", value: count, icon: 'fa-church', color: 'yellow', delay: 400 }
   ];
 
-  // Vérificateur
   const verifStatCards = (totalDime, totalOff, count, year) => [
     { title: 'Total Dîmes', value: formatMontant(totalDime), icon: 'fa-hand-holding-heart', color: 'blue', delay: 100 },
     { title: 'Total Offrandes (A)', value: formatMontant(totalOff), icon: 'fa-gift', color: 'green', delay: 200 },
@@ -487,40 +475,127 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* Graphique courbes */}
+          {/* 🔥 Graphique "Nuage de points avec courbes lissées et marqueurs" */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-500">Évolution de la Dîme et des Offrandes</div>
+              <div className="text-sm font-medium text-gray-500">Nuage de points avec courbes lissées et marqueurs</div>
+              <div className="text-xs text-gray-400">Évolution de la Dîme, des Offrandes et du Total A</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#4b5563' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} />
+              <LineChart
+                data={monthlyData}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 11, fill: '#4b5563' }} 
+                  axisLine={{ stroke: '#9ca3af' }}
+                  tickLine={{ stroke: '#9ca3af' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#4b5563' }} 
+                  axisLine={{ stroke: '#9ca3af' }}
+                  tickLine={{ stroke: '#9ca3af' }}
+                  tickFormatter={(value) => formatMontant(value)}
+                />
                 <Tooltip
                   formatter={(value) => `${formatMontant(value)} Ar`}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                  contentStyle={{
+                    borderRadius: '10px',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                  labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-                <Line type="monotone" dataKey="dime" stroke="#f59e0b" name="Dîme" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} animationDuration={1500} />
-                <Line type="monotone" dataKey="other" stroke="#10b981" name="Offrandes" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} animationDuration={1500} />
-                <Line type="monotone" dataKey="totalA" stroke="#3b82f6" name="Total (versé à la Fédération)" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} animationDuration={1500} />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} 
+                  iconType="circle"
+                  iconSize={10}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="dime"
+                  stroke="#f59e0b"
+                  name="Dîme"
+                  strokeWidth={3}
+                  dot={{
+                    r: 5,
+                    fill: '#f59e0b',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  activeDot={{
+                    r: 8,
+                    fill: '#f59e0b',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  animationDuration={1500}
+                  animationEasing="ease-in-out"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="other"
+                  stroke="#10b981"
+                  name="Offrandes"
+                  strokeWidth={3}
+                  dot={{
+                    r: 5,
+                    fill: '#10b981',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  activeDot={{
+                    r: 8,
+                    fill: '#10b981',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  animationDuration={1500}
+                  animationEasing="ease-in-out"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalA"
+                  stroke="#3b82f6"
+                  name="Total A (Fédération)"
+                  strokeWidth={3}
+                  dot={{
+                    r: 6,
+                    fill: '#3b82f6',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  activeDot={{
+                    r: 9,
+                    fill: '#3b82f6',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  animationDuration={1500}
+                  animationEasing="ease-in-out"
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Graphique secteur 3D */}
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms', perspective: '1000px' }}>
+          {/* 🔥 Graphique "Secteurs en 3D" */}
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
-              <div className="text-sm font-medium text-gray-500">Répartition Reste / Entrées / Sorties</div>
+              <div className="text-sm font-medium text-gray-500">Secteurs en 3D</div>
+              <div className="text-xs text-gray-400">Répartition Reste / Entrées / Sorties</div>
             </div>
             <div
               style={{
-                transform: 'rotateX(5deg) rotateY(5deg)',
+                transform: 'rotateX(8deg) rotateY(6deg)',
                 transition: 'transform 0.4s ease-in-out',
-                transformStyle: 'preserve-3d'
+                transformStyle: 'preserve-3d',
+                perspective: '800px'
               }}
               className="hover:rotateX-0 hover:rotateY-0"
             >
@@ -530,24 +605,37 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    labelLine={true}
-                    label={({ name, value }) => {
+                    labelLine={{
+                      stroke: '#94a3b8',
+                      strokeWidth: 1.5,
+                      length: 20,
+                      length2: 30
+                    }}
+                    label={({ name, value, percent }) => {
                       const displayValue = value === 0.001 ? 0 : value;
                       const total = pieData.reduce((sum, d) => sum + d.value, 0);
-                      const percent = total > 0 ? (displayValue / total) * 100 : 0;
-                      return `${name}: ${percent.toFixed(1)}%`;
+                      const pct = total > 0 ? (displayValue / total) * 100 : 0;
+                      return `${name}\n${pct.toFixed(1)}%\n${formatMontant(displayValue)} Ar`;
                     }}
-                    outerRadius={80}
+                    outerRadius={90}
+                    innerRadius={40}
                     fill="#8884d8"
                     dataKey="value"
-                    stroke="white"
+                    stroke="#ffffff"
                     strokeWidth={3}
                     isAnimationActive={true}
-                    animationDuration={1000}
+                    animationDuration={1200}
                     animationEasing="ease-in-out"
+                    paddingAngle={2}
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={pieColors[index % pieColors.length]}
+                        style={{
+                          filter: `drop-shadow(0 8px 12px ${pieColors[index % pieColors.length]}40)`,
+                        }}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
@@ -555,9 +643,25 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                       const displayValue = value === 0.001 ? 0 : value;
                       return `${formatMontant(displayValue)} Ar`;
                     }}
-                    contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                    contentStyle={{
+                      borderRadius: '10px',
+                      border: 'none',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      backgroundColor: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(4px)'
+                    }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '12px',
+                      paddingTop: '8px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      gap: '16px'
+                    }}
+                    iconType="circle"
+                    iconSize={12}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -603,18 +707,43 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
+          {/* 🔥 Graphique "Nuage de points avec courbes lissées et marqueurs" */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Nuage de points avec courbes lissées et marqueurs</p>
+            <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={lineData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#4b5563' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#4b5563' }} />
+              <LineChart
+                data={lineData}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 10, fill: '#4b5563' }} 
+                  axisLine={{ stroke: '#9ca3af' }}
+                  tickLine={{ stroke: '#9ca3af' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: '#4b5563' }} 
+                  axisLine={{ stroke: '#9ca3af' }}
+                  tickLine={{ stroke: '#9ca3af' }}
+                  tickFormatter={(value) => formatMontant(value)}
+                />
                 <Tooltip
                   formatter={(value) => `${formatMontant(value)} Ar`}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                  contentStyle={{
+                    borderRadius: '10px',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(4px)'
+                  }}
                 />
-                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} />
+                <Legend 
+                  wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} 
+                  iconType="circle"
+                  iconSize={8}
+                />
                 {districtData.map((eg, idx) => (
                   <Line
                     key={eg.eglise}
@@ -622,21 +751,37 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     dataKey={eg.eglise}
                     stroke={COLORS[idx % COLORS.length]}
                     name={eg.eglise}
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
+                    strokeWidth={2.5}
+                    dot={{
+                      r: 4,
+                      fill: COLORS[idx % COLORS.length],
+                      stroke: '#ffffff',
+                      strokeWidth: 1.5
+                    }}
+                    activeDot={{
+                      r: 7,
+                      fill: COLORS[idx % COLORS.length],
+                      stroke: '#ffffff',
+                      strokeWidth: 1.5
+                    }}
                     animationDuration={1500}
+                    animationEasing="ease-in-out"
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms', perspective: '1000px' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
+
+          {/* 🔥 Graphique "Secteurs en 3D" */}
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
+            <p className="text-center font-semibold text-gray-700 mb-2">Secteurs en 3D</p>
+            <p className="text-center text-xs text-gray-400 mb-3">Répartition Dîme / Offrandes (Total A)</p>
             <div
               style={{
-                transform: 'rotateX(5deg) rotateY(5deg)',
+                transform: 'rotateX(8deg) rotateY(6deg)',
                 transition: 'transform 0.4s ease-in-out',
-                transformStyle: 'preserve-3d'
+                transformStyle: 'preserve-3d',
+                perspective: '800px'
               }}
               className="hover:rotateX-0 hover:rotateY-0"
             >
@@ -646,26 +791,58 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    labelLine={true}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                    outerRadius={80}
+                    labelLine={{
+                      stroke: '#94a3b8',
+                      strokeWidth: 1.5,
+                      length: 20,
+                      length2: 30
+                    }}
+                    label={({ name, percent }) => {
+                      const pct = (percent * 100);
+                      return `${name}\n${pct.toFixed(1)}%`;
+                    }}
+                    outerRadius={90}
+                    innerRadius={40}
                     fill="#8884d8"
                     dataKey="value"
-                    stroke="white"
+                    stroke="#ffffff"
                     strokeWidth={3}
                     isAnimationActive={true}
-                    animationDuration={1000}
+                    animationDuration={1200}
                     animationEasing="ease-in-out"
+                    paddingAngle={2}
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={pieColors[index % pieColors.length]}
+                        style={{
+                          filter: `drop-shadow(0 8px 12px ${pieColors[index % pieColors.length]}40)`,
+                        }}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
                     formatter={(value) => `${formatMontant(value)} Ar`}
-                    contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                    contentStyle={{
+                      borderRadius: '10px',
+                      border: 'none',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      backgroundColor: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(4px)'
+                    }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '12px',
+                      paddingTop: '8px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      gap: '16px'
+                    }}
+                    iconType="circle"
+                    iconSize={12}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -712,18 +889,43 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
+          {/* 🔥 Graphique "Nuage de points avec courbes lissées et marqueurs" */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Nuage de points avec courbes lissées et marqueurs</p>
+            <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={lineData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#4b5563' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#4b5563' }} />
+              <LineChart
+                data={lineData}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 10, fill: '#4b5563' }} 
+                  axisLine={{ stroke: '#9ca3af' }}
+                  tickLine={{ stroke: '#9ca3af' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: '#4b5563' }} 
+                  axisLine={{ stroke: '#9ca3af' }}
+                  tickLine={{ stroke: '#9ca3af' }}
+                  tickFormatter={(value) => formatMontant(value)}
+                />
                 <Tooltip
                   formatter={(value) => `${formatMontant(value)} Ar`}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                  contentStyle={{
+                    borderRadius: '10px',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(4px)'
+                  }}
                 />
-                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} />
+                <Legend 
+                  wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} 
+                  iconType="circle"
+                  iconSize={8}
+                />
                 {federationData.map((eg, idx) => (
                   <Line
                     key={eg.eglise}
@@ -731,21 +933,37 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     dataKey={eg.eglise}
                     stroke={colors[idx % colors.length]}
                     name={eg.eglise}
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
+                    strokeWidth={2.5}
+                    dot={{
+                      r: 4,
+                      fill: colors[idx % colors.length],
+                      stroke: '#ffffff',
+                      strokeWidth: 1.5
+                    }}
+                    activeDot={{
+                      r: 7,
+                      fill: colors[idx % colors.length],
+                      stroke: '#ffffff',
+                      strokeWidth: 1.5
+                    }}
                     animationDuration={1500}
+                    animationEasing="ease-in-out"
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms', perspective: '1000px' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
+
+          {/* 🔥 Graphique "Secteurs en 3D" */}
+          <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
+            <p className="text-center font-semibold text-gray-700 mb-2">Secteurs en 3D</p>
+            <p className="text-center text-xs text-gray-400 mb-3">Répartition des Dîmes par église</p>
             <div
               style={{
-                transform: 'rotateX(5deg) rotateY(5deg)',
+                transform: 'rotateX(8deg) rotateY(6deg)',
                 transition: 'transform 0.4s ease-in-out',
-                transformStyle: 'preserve-3d'
+                transformStyle: 'preserve-3d',
+                perspective: '800px'
               }}
               className="hover:rotateX-0 hover:rotateY-0"
             >
@@ -755,26 +973,60 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    labelLine={true}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                    outerRadius={80}
+                    labelLine={{
+                      stroke: '#94a3b8',
+                      strokeWidth: 1.5,
+                      length: 15,
+                      length2: 25
+                    }}
+                    label={({ name, percent }) => {
+                      const pct = (percent * 100);
+                      if (pct < 3) return '';
+                      return `${name}\n${pct.toFixed(1)}%`;
+                    }}
+                    outerRadius={90}
+                    innerRadius={30}
                     fill="#8884d8"
                     dataKey="value"
-                    stroke="white"
+                    stroke="#ffffff"
                     strokeWidth={3}
                     isAnimationActive={true}
-                    animationDuration={1000}
+                    animationDuration={1200}
                     animationEasing="ease-in-out"
+                    paddingAngle={1}
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={colors[index % colors.length]}
+                        style={{
+                          filter: `drop-shadow(0 8px 12px ${colors[index % colors.length]}40)`,
+                        }}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
                     formatter={(value) => `${formatMontant(value)} Ar`}
-                    contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}
+                    contentStyle={{
+                      borderRadius: '10px',
+                      border: 'none',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      backgroundColor: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(4px)'
+                    }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '10px',
+                      paddingTop: '8px',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                    iconType="circle"
+                    iconSize={10}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
