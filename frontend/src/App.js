@@ -22,141 +22,141 @@ import Receipts from './components/Receipts';
 import { formatMonthYear } from './services/helpers';
 
 // ============================================================
-// COULEURS PAISIBLES - Douceur et sérénité 2026
-// Palette: Sage Green, Lavender, Soft Peach, Sky Blue, Mint
+// PALETTE "ETEEZY" - Élégance et modernité
+// Couleurs: Crème, Doré, Noir, Gris élégant
 // ============================================================
 
 const tabColors = {
   dashboard: { 
-    bg: 'from-sage-400 via-mint-400 to-teal-400', 
-    hover: 'hover:from-sage-500 hover:via-mint-500 hover:to-teal-500', 
+    bg: 'from-amber-400 via-yellow-500 to-orange-500', 
+    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-orange-600', 
     text: 'text-white', 
-    shadow: 'shadow-sage-500/30',
-    glow: 'shadow-[0_0_30px_rgba(144,205,180,0.25)]',
-    border: 'border-sage-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   formulaire: { 
-    bg: 'from-lavender-300 via-purple-300 to-rose-300', 
-    hover: 'hover:from-lavender-400 hover:via-purple-400 hover:to-rose-400', 
+    bg: 'from-stone-500 via-neutral-600 to-zinc-700', 
+    hover: 'hover:from-stone-600 hover:via-neutral-700 hover:to-zinc-800', 
     text: 'text-white', 
-    shadow: 'shadow-lavender-500/30',
-    glow: 'shadow-[0_0_30px_rgba(200,180,220,0.25)]',
-    border: 'border-lavender-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
   grandlivre: { 
-    bg: 'from-sky-300 via-blue-300 to-indigo-300', 
-    hover: 'hover:from-sky-400 hover:via-blue-400 hover:to-indigo-400', 
+    bg: 'from-amber-300 via-yellow-400 to-amber-500', 
+    hover: 'hover:from-amber-400 hover:via-yellow-500 hover:to-amber-600', 
     text: 'text-white', 
-    shadow: 'shadow-sky-500/30',
-    glow: 'shadow-[0_0_30px_rgba(135,206,235,0.25)]',
-    border: 'border-sky-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   recap: { 
-    bg: 'from-rose-200 via-pink-200 to-lavender-200', 
-    hover: 'hover:from-rose-300 hover:via-pink-300 hover:to-lavender-300', 
+    bg: 'from-stone-400 via-neutral-500 to-zinc-600', 
+    hover: 'hover:from-stone-500 hover:via-neutral-600 hover:to-zinc-700', 
     text: 'text-white', 
-    shadow: 'shadow-rose-500/30',
-    glow: 'shadow-[0_0_30px_rgba(248,200,200,0.25)]',
-    border: 'border-rose-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
   rapport: { 
-    bg: 'from-peach-200 via-amber-200 to-yellow-200', 
-    hover: 'hover:from-peach-300 hover:via-amber-300 hover:to-yellow-300', 
+    bg: 'from-amber-400 via-yellow-500 to-amber-600', 
+    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-amber-700', 
     text: 'text-white', 
-    shadow: 'shadow-amber-500/30',
-    glow: 'shadow-[0_0_30px_rgba(255,218,185,0.25)]',
-    border: 'border-peach-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   rapcomite: { 
-    bg: 'from-mint-300 via-teal-300 to-sage-300', 
-    hover: 'hover:from-mint-400 hover:via-teal-400 hover:to-sage-400', 
+    bg: 'from-stone-500 via-neutral-600 to-zinc-700', 
+    hover: 'hover:from-stone-600 hover:via-neutral-700 hover:to-zinc-800', 
     text: 'text-white', 
-    shadow: 'shadow-mint-500/30',
-    glow: 'shadow-[0_0_30px_rgba(152,215,190,0.25)]',
-    border: 'border-mint-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
   rapportannuel: { 
-    bg: 'from-lavender-200 via-violet-200 to-purple-200', 
-    hover: 'hover:from-lavender-300 hover:via-violet-300 hover:to-purple-300', 
+    bg: 'from-amber-300 via-yellow-400 to-orange-400', 
+    hover: 'hover:from-amber-400 hover:via-yellow-500 hover:to-orange-500', 
     text: 'text-white', 
-    shadow: 'shadow-violet-500/30',
-    glow: 'shadow-[0_0_30px_rgba(200,180,220,0.25)]',
-    border: 'border-violet-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   depenses: { 
-    bg: 'from-peach-200 via-orange-200 to-amber-200', 
-    hover: 'hover:from-peach-300 hover:via-orange-300 hover:to-amber-300', 
+    bg: 'from-stone-400 via-neutral-500 to-zinc-600', 
+    hover: 'hover:from-stone-500 hover:via-neutral-600 hover:to-zinc-700', 
     text: 'text-white', 
-    shadow: 'shadow-orange-500/30',
-    glow: 'shadow-[0_0_30px_rgba(255,218,185,0.25)]',
-    border: 'border-peach-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
   carnet: { 
-    bg: 'from-rose-200 via-pink-200 to-lavender-200', 
-    hover: 'hover:from-rose-300 hover:via-pink-300 hover:to-lavender-300', 
+    bg: 'from-amber-400 via-yellow-500 to-amber-600', 
+    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-amber-700', 
     text: 'text-white', 
-    shadow: 'shadow-pink-500/30',
-    glow: 'shadow-[0_0_30px_rgba(248,200,200,0.25)]',
-    border: 'border-pink-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   recapdistrict: { 
-    bg: 'from-sage-300 via-teal-300 to-cyan-300', 
-    hover: 'hover:from-sage-400 hover:via-teal-400 hover:to-cyan-400', 
+    bg: 'from-stone-500 via-neutral-600 to-zinc-700', 
+    hover: 'hover:from-stone-600 hover:via-neutral-700 hover:to-zinc-800', 
     text: 'text-white', 
-    shadow: 'shadow-teal-500/30',
-    glow: 'shadow-[0_0_30px_rgba(144,205,180,0.25)]',
-    border: 'border-teal-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
   recapfederation: { 
-    bg: 'from-sky-300 via-indigo-300 to-violet-300', 
-    hover: 'hover:from-sky-400 hover:via-indigo-400 hover:to-violet-400', 
+    bg: 'from-amber-300 via-yellow-400 to-amber-500', 
+    hover: 'hover:from-amber-400 hover:via-yellow-500 hover:to-amber-600', 
     text: 'text-white', 
-    shadow: 'shadow-indigo-500/30',
-    glow: 'shadow-[0_0_30px_rgba(135,206,235,0.25)]',
-    border: 'border-indigo-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   users: { 
-    bg: 'from-sage-300 via-mint-300 to-teal-300', 
-    hover: 'hover:from-sage-400 hover:via-mint-400 hover:to-teal-400', 
+    bg: 'from-stone-600 via-neutral-700 to-zinc-800', 
+    hover: 'hover:from-stone-700 hover:via-neutral-800 hover:to-zinc-900', 
     text: 'text-white', 
-    shadow: 'shadow-sage-500/30',
-    glow: 'shadow-[0_0_30px_rgba(144,205,180,0.25)]',
-    border: 'border-sage-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
   receipts: { 
-    bg: 'from-lavender-300 via-rose-300 to-pink-300', 
-    hover: 'hover:from-lavender-400 hover:via-rose-400 hover:to-pink-400', 
+    bg: 'from-amber-400 via-yellow-500 to-orange-500', 
+    hover: 'hover:from-amber-500 hover:via-yellow-600 hover:to-orange-600', 
     text: 'text-white', 
-    shadow: 'shadow-rose-500/30',
-    glow: 'shadow-[0_0_30px_rgba(200,180,220,0.25)]',
-    border: 'border-rose-300/30'
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
   },
   stats: { 
-    bg: 'from-sky-300 via-blue-300 to-indigo-300', 
-    hover: 'hover:from-sky-400 hover:via-blue-400 hover:to-indigo-400', 
+    bg: 'from-stone-400 via-neutral-500 to-zinc-600', 
+    hover: 'hover:from-stone-500 hover:via-neutral-600 hover:to-zinc-700', 
     text: 'text-white', 
-    shadow: 'shadow-sky-500/30',
-    glow: 'shadow-[0_0_30px_rgba(135,206,235,0.25)]',
-    border: 'border-sky-300/30'
+    shadow: 'shadow-stone-500/40',
+    glow: 'shadow-[0_0_30px_rgba(120,120,120,0.3)]',
+    border: 'border-stone-400/30'
   },
 };
 
-// Couleurs inactives paisibles
+// Couleurs inactives élégantes (style Eteezy)
 const inactiveColors = {
-  dashboard: 'bg-white/80 text-sage-700 hover:bg-sage-50/90 hover:text-sage-900 hover:shadow-md hover:-translate-y-1 border border-sage-200/40',
-  formulaire: 'bg-white/80 text-lavender-700 hover:bg-lavender-50/90 hover:text-lavender-900 hover:shadow-md hover:-translate-y-1 border border-lavender-200/40',
-  grandlivre: 'bg-white/80 text-sky-700 hover:bg-sky-50/90 hover:text-sky-900 hover:shadow-md hover:-translate-y-1 border border-sky-200/40',
-  recap: 'bg-white/80 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-md hover:-translate-y-1 border border-rose-200/40',
-  rapport: 'bg-white/80 text-peach-700 hover:bg-peach-50/90 hover:text-peach-900 hover:shadow-md hover:-translate-y-1 border border-peach-200/40',
-  rapcomite: 'bg-white/80 text-mint-700 hover:bg-mint-50/90 hover:text-mint-900 hover:shadow-md hover:-translate-y-1 border border-mint-200/40',
-  rapportannuel: 'bg-white/80 text-lavender-700 hover:bg-lavender-50/90 hover:text-lavender-900 hover:shadow-md hover:-translate-y-1 border border-lavender-200/40',
-  depenses: 'bg-white/80 text-peach-700 hover:bg-peach-50/90 hover:text-peach-900 hover:shadow-md hover:-translate-y-1 border border-peach-200/40',
-  carnet: 'bg-white/80 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-md hover:-translate-y-1 border border-rose-200/40',
-  recapdistrict: 'bg-white/80 text-sage-700 hover:bg-sage-50/90 hover:text-sage-900 hover:shadow-md hover:-translate-y-1 border border-sage-200/40',
-  recapfederation: 'bg-white/80 text-sky-700 hover:bg-sky-50/90 hover:text-sky-900 hover:shadow-md hover:-translate-y-1 border border-sky-200/40',
-  users: 'bg-white/80 text-sage-700 hover:bg-sage-50/90 hover:text-sage-900 hover:shadow-md hover:-translate-y-1 border border-sage-200/40',
-  receipts: 'bg-white/80 text-lavender-700 hover:bg-lavender-50/90 hover:text-lavender-900 hover:shadow-md hover:-translate-y-1 border border-lavender-200/40',
-  stats: 'bg-white/80 text-sky-700 hover:bg-sky-50/90 hover:text-sky-900 hover:shadow-md hover:-translate-y-1 border border-sky-200/40',
+  dashboard: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  formulaire: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  grandlivre: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  recap: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  rapport: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  rapcomite: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  rapportannuel: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  depenses: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  carnet: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  recapdistrict: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  recapfederation: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  users: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  receipts: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
+  stats: 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900 hover:shadow-md hover:-translate-y-1 border border-stone-200/40',
 };
 
 // Icônes avec animations
@@ -489,13 +489,13 @@ function AppContent() {
     return base + 'UTILISATEUR';
   };
 
-  // Fonction pour obtenir les classes d'un onglet selon son état avec effet 3D amélioré
+  // Fonction pour obtenir les classes d'un onglet
   const getTabClasses = (tabId, isActive) => {
     if (isActive) {
       const active = tabColors[tabId] || tabColors.dashboard;
       return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-105 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm`;
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-white/80 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
+      const inactive = inactiveColors[tabId] || 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900';
       return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-102 hover:-translate-y-0.5`;
     }
   };
@@ -650,26 +650,26 @@ function AppContent() {
     if (!isVerificateur || !selectedEglise || !verifEgliseSelected) return null;
 
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-sage-50/90 via-mint-50/90 to-teal-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-sage-200/50 no-print animate-slideDown">
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-cream-50/90 via-stone-50/90 to-neutral-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-stone-200/50 no-print animate-slideDown">
         <button
           onClick={handleBackToDistrictList}
-          className="bg-gradient-to-r from-sage-600 to-teal-700 hover:from-sage-700 hover:to-teal-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-stone-600 to-neutral-700 hover:from-stone-700 hover:to-neutral-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
         >
           <i className="fas fa-arrow-left"></i> Retour
         </button>
-        <div className="font-bold text-sage-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
-          <i className="fas fa-church text-sage-600 animate-pulse-subtle"></i> 
-          ÉGLISE : <span className="text-sage-900">{selectedEglise}</span>
+        <div className="font-bold text-stone-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
+          <i className="fas fa-church text-amber-600 animate-pulse-subtle"></i> 
+          ÉGLISE : <span className="text-stone-900">{selectedEglise}</span>
         </div>
         <div className="flex-1"></div>
         <div className="flex items-center gap-2 bg-white/50 px-3 py-1 rounded-lg">
           <label className="text-sm font-medium text-gray-700">
-            <i className="fas fa-calendar-alt text-sage-500 mr-1"></i> Mois :
+            <i className="fas fa-calendar-alt text-amber-500 mr-1"></i> Mois :
           </label>
           <select
             value={currentMonth || ''}
             onChange={(e) => setCurrentMonth(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-sage-500 focus:border-sage-500 transition-all duration-300"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
           >
             {months.map((m) => (
               <option key={m.id} value={m.id}>{formatMonthYear(m.id)}</option>
@@ -700,16 +700,16 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-sage-50 via-mint-50 to-teal-50">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-cream-50 via-stone-50 to-neutral-50">
         <div className="text-center animate-pulse">
           <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 border-4 border-sage-200 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-sage-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-stone-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-amber-600 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <i className="fas fa-church text-sage-400 text-2xl animate-pulse"></i>
+              <i className="fas fa-church text-amber-400 text-2xl animate-pulse"></i>
             </div>
           </div>
-          <p className="mt-4 text-sage-600 font-medium animate-pulse">Vérification de la session...</p>
+          <p className="mt-4 text-stone-600 font-medium animate-pulse">Vérification de la session...</p>
         </div>
       </div>
     );
@@ -732,19 +732,19 @@ function AppContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sage-50 via-mint-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-stone-50 to-neutral-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE PAISIBLE AVEC LOGO ET TITRE À GAUCHE */}
-        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-sage-600 via-teal-600 to-cyan-700 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
+        {/* EN-TÊTE STYLE ETEEZY - Élégant et moderne */}
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
-          {/* Effets de fond décoratifs paisibles */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-sage-400/20 to-mint-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-teal-400/10 to-cyan-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+          {/* Effets de fond décoratifs élégants */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-stone-400/5 to-neutral-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-amber-400/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
           
-          {/* Lignes lumineuses douces */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sage-300/50 to-transparent animate-shimmer"></div>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-300/50 to-transparent animate-shimmer animation-delay-500"></div>
+          {/* Lignes lumineuses dorées */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
 
           {/* =============================================
               LOGO + TITRE À GAUCHE
@@ -755,15 +755,15 @@ function AppContent() {
               onMouseEnter={() => setLogoHover(true)}
               onMouseLeave={() => setLogoHover(false)}
             >
-              {/* Effet de halo lumineux doux */}
-              <div className={`absolute -inset-1 bg-gradient-to-r from-sage-400 via-teal-400 to-cyan-400 rounded-2xl blur-xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`}></div>
+              {/* Effet de halo doré */}
+              <div className={`absolute -inset-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 rounded-2xl blur-xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`}></div>
               
               {/* Cercle extérieur 3D */}
-              <div className={`absolute -inset-1 rounded-2xl border-2 border-sage-300/30 transition-all duration-700 ${logoHover ? 'opacity-100 rotate-12 scale-110' : 'opacity-0 rotate-0 scale-100'}`}></div>
+              <div className={`absolute -inset-1 rounded-2xl border-2 border-amber-400/30 transition-all duration-700 ${logoHover ? 'opacity-100 rotate-12 scale-110' : 'opacity-0 rotate-0 scale-100'}`}></div>
               
               {/* Logo principal avec effet 3D */}
-              <div className={`relative w-14 h-14 bg-gradient-to-br from-sage-400 via-teal-400 to-cyan-500 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu perspective-600
-                ${logoHover ? 'rotate-y-12 rotate-x-6 scale-110 shadow-[0_20px_60px_rgba(144,205,180,0.5)]' : 'rotate-y-6 rotate-x-3 shadow-[0_10px_30px_rgba(144,205,180,0.3)]'}`}
+              <div className={`relative w-14 h-14 bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu perspective-600
+                ${logoHover ? 'rotate-y-12 rotate-x-6 scale-110 shadow-[0_20px_60px_rgba(245,158,11,0.5)]' : 'rotate-y-6 rotate-x-3 shadow-[0_10px_30px_rgba(245,158,11,0.3)]'}`}
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 {/* Effet de brillance 3D */}
@@ -787,9 +787,9 @@ function AppContent() {
                 <div className={`absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/10 to-transparent transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
               </div>
               
-              {/* Particules lumineuses */}
-              <div className={`absolute -top-2 -right-2 w-3 h-3 bg-sage-300 rounded-full blur-sm animate-ping-slow transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
-              <div className={`absolute -bottom-1 -left-1 w-2 h-2 bg-teal-300 rounded-full blur-sm animate-ping-slow animation-delay-500 transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+              {/* Particules lumineuses dorées */}
+              <div className={`absolute -top-2 -right-2 w-3 h-3 bg-amber-300 rounded-full blur-sm animate-ping-slow transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+              <div className={`absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full blur-sm animate-ping-slow animation-delay-500 transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
             </div>
 
             {/* Titre */}
@@ -799,9 +799,9 @@ function AppContent() {
                 {mainTitle}
               </h1>
               <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5 animate-fadeInLeft animation-delay-200">
-                <i className="fas fa-circle text-sage-300 text-[6px] animate-pulse"></i>
+                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
                 <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
-                <i className="fas fa-circle text-sage-300 text-[6px] animate-pulse"></i>
+                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
               </div>
             </div>
           </div>
@@ -816,7 +816,7 @@ function AppContent() {
                   onClick={handleAccueil}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'accueil'
-                      ? 'bg-white text-sage-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -826,7 +826,7 @@ function AppContent() {
                   onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'ajout'
-                      ? 'bg-white text-sage-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -836,7 +836,7 @@ function AppContent() {
                   onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'voir'
-                      ? 'bg-white text-sage-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -852,22 +852,22 @@ function AppContent() {
                 className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
               >
                 {user?.photo ? (
-                  <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
+                  <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-amber-400 shadow-lg animate-pulse-glow" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sage-400 to-teal-500 flex items-center justify-center text-white shadow-lg">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
                     <i className="fas fa-user text-xs"></i>
                   </div>
                 )}
-                <span className="hidden md:inline font-medium text-sm">
+                <span className="hidden md:inline font-medium text-sm text-white">
                   {user?.nom || user?.email || 'Utilisateur'} 
                   <span className="text-[10px] opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
                 </span>
-                <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
+                <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] text-white/70 transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
               </button>
 
               <button 
                 onClick={handleLogout} 
-                className="text-red-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-red-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
+                className="text-amber-200 hover:text-white transition-all duration-300 text-xs flex items-center gap-1 hover:bg-amber-500/20 px-2 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
               >
                 <i className="fas fa-sign-out-alt"></i> 
                 <span className="hidden sm:inline">Déconnexion</span>
@@ -897,7 +897,7 @@ function AppContent() {
                   className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 transform relative ${
                     isActive
                       ? `${getTabClasses(tab.id, true)}`
-                      : `${inactiveColors[tab.id] || 'bg-white/80 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-102`
+                      : `${inactiveColors[tab.id] || 'bg-cream-50/90 text-stone-700 hover:bg-cream-100/90 hover:text-stone-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-102`
                   } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
                   disabled={disabled}
                   style={{
@@ -936,7 +936,7 @@ function AppContent() {
         </div>
       </div>
 
-      {/* ANIMATIONS CSS PAISIBLES */}
+      {/* ANIMATIONS CSS STYLE ETEEZY */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -1012,26 +1012,26 @@ function AppContent() {
         .rotate-x-3 { transform: rotateX(3deg); }
         .transform-gpu { transform: translateZ(0); backface-visibility: hidden; }
 
-        /* Scrollbar paisible */
+        /* Scrollbar élégante */
         ::-webkit-scrollbar {
           width: 8px;
           height: 8px;
         }
         ::-webkit-scrollbar-track {
-          background: rgba(240, 248, 245, 0.8);
+          background: rgba(245, 235, 220, 0.8);
           border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #90cdb4, #5fa88b, #4a9a7a);
+          background: linear-gradient(180deg, #d4a055, #c4903a, #b0802a);
           border-radius: 10px;
-          box-shadow: 0 0 20px rgba(144, 205, 180, 0.3);
+          box-shadow: 0 0 20px rgba(212, 160, 85, 0.3);
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #7abd9f, #4a9a7a, #3a8a6a);
-          box-shadow: 0 0 30px rgba(144, 205, 180, 0.5);
+          background: linear-gradient(180deg, #c4903a, #b0802a, #9a7020);
+          box-shadow: 0 0 30px rgba(212, 160, 85, 0.5);
         }
 
-        /* Effet de brillance douce */
+        /* Effet de brillance */
         .glow-card {
           position: relative;
           overflow: hidden;
