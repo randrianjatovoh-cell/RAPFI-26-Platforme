@@ -747,8 +747,10 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE CONSERVÉ - GESTION DES DÎMES ET OFFRANDES */}
-        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
+        {/* ============================================================
+            EN-TÊTE AVEC COULEURS PERSONNALISÉES
+            ============================================================ */}
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-blue-800 via-indigo-800 to-purple-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
           {/* Effets de fond décoratifs */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
@@ -759,7 +761,7 @@ function AppContent() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-300/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          {/* TITRE + LOGO */}
+          {/* TITRE + LOGO AVEC COULEURS */}
           <div className="flex items-center gap-4 z-10">
             <div className="relative">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
@@ -775,10 +777,10 @@ function AppContent() {
               </div>
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
+              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg text-white">
                 GESTION DES DÎMES ET OFFRANDES - ÉGLISE ANTSAHALAVA
               </h1>
-              <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5">
+              <div className="text-xs text-blue-200/80 flex items-center gap-2 mt-0.5">
                 <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
                 <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
                 <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
@@ -786,7 +788,7 @@ function AppContent() {
             </div>
           </div>
 
-          {/* AVATAR + DÉCONNEXION */}
+          {/* AVATAR + DÉCONNEXION AVEC COULEURS */}
           <div className="flex items-center gap-3 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -836,7 +838,7 @@ function AppContent() {
               )}
               <span className="hidden md:inline font-medium text-sm text-white">
                 {user?.nom || user?.email || 'Utilisateur'} 
-                <span className="text-[10px] opacity-70 ml-1">({user?.fonction || 'Rôle'})</span>
+                <span className="text-[10px] text-blue-200/70 ml-1">({user?.fonction || 'Rôle'})</span>
               </span>
               <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] text-white/70 transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
             </button>
