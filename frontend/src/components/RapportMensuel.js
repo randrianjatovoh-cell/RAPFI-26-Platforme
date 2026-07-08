@@ -122,9 +122,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         if (controller.signal.aborted) return;
       }
       setReport(r);
-      console.log('📦 [loadData] Rapport complet reçu:', r);
 
       if (r) {
+        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -133,6 +133,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch { setSabbathDates(['', '', '', '', '']); }
         } else setSabbathDates(['', '', '', '', '']);
 
+        // Champs texte
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -145,18 +146,18 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // 🔥 Volam-piangonana apetraka : priorité au backend
-        const volamValue = (r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null)
-          ? r.volamPiangonanaApetraka
-          : 0;
-        setVolamPiangonanaApetraka(volamValue);
-        if (volamValue > 0) {
-          localStorage.setItem(fallbackKey, volamValue.toString());
+        // 🔥 Volam-piangonana apetraka : priorité absolue au backend
+        if (r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null) {
+          const val = Number(r.volamPiangonanaApetraka);
+          setVolamPiangonanaApetraka(val);
+          // Mettre à jour localStorage en cache (mais ne pas l'utiliser pour l'affichage)
+          localStorage.setItem(fallbackKey, val.toString());
         } else {
+          setVolamPiangonanaApetraka(0);
           localStorage.removeItem(fallbackKey);
         }
 
-        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA : priorité au backend
+        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA : priorité absolue au backend
         let loadedFromBackend = false;
         if (r.soraBolaLinesJson) {
           try {
@@ -170,6 +171,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
                 loadedFromBackend = true;
+                // Mettre à jour localStorage en cache
                 localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: chq, soraBola: sora }));
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
@@ -183,6 +185,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             }
           } catch (e) { /* ignore */ }
         }
+        // Si le backend n'a pas de données, on utilise le localStorage en fallback
         if (!loadedFromBackend) {
           const stored = localStorage.getItem(`chequeSora_${currentMonth}_${eglise}`);
           if (stored) {
@@ -196,6 +199,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               }
             } catch(e) {}
           } else {
+            // Initialisation vide
             setChequeLines(['', '', '', '', '']);
             setSoraBolaLines(['', '', '', '', '']);
             setTotalChequeSora(0);
@@ -205,6 +209,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
+      // GL et dépenses (inchangé)
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
