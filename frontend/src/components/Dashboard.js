@@ -456,10 +456,24 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const renderAncienDashboard = () => {
     const { monthlyData } = annualData;
 
+    // Calculer les pourcentages pour le graphique en secteurs
+    const total = annualData.volaSisaTeoAloha + annualData.volaNiditra + annualData.volaNivoaka;
     const pieData = [
-      { name: 'Reste', value: annualData.volaSisaTeoAloha !== 0 ? Math.abs(annualData.volaSisaTeoAloha) : 0.001 },
-      { name: 'Entrées', value: annualData.volaNiditra !== 0 ? Math.abs(annualData.volaNiditra) : 0.001 },
-      { name: 'Sorties', value: annualData.volaNivoaka !== 0 ? Math.abs(annualData.volaNivoaka) : 0.001 }
+      { 
+        name: 'Reste', 
+        value: annualData.volaSisaTeoAloha !== 0 ? Math.abs(annualData.volaSisaTeoAloha) : 0.001,
+        percent: total > 0 ? ((annualData.volaSisaTeoAloha / total) * 100) : 0
+      },
+      { 
+        name: 'Entrées', 
+        value: annualData.volaNiditra !== 0 ? Math.abs(annualData.volaNiditra) : 0.001,
+        percent: total > 0 ? ((annualData.volaNiditra / total) * 100) : 0
+      },
+      { 
+        name: 'Sorties', 
+        value: annualData.volaNivoaka !== 0 ? Math.abs(annualData.volaNivoaka) : 0.001,
+        percent: total > 0 ? ((annualData.volaNivoaka / total) * 100) : 0
+      }
     ];
     const pieColors = ['#f59e0b', '#10b981', '#ef4444'];
 
@@ -583,7 +597,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </div>
           </div>
 
-          {/* Graphique EGLISE LOCALE */}
+          {/* Graphique EGLISE LOCALE - uniquement les % */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
@@ -610,11 +624,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                       length: 20,
                       length2: 30
                     }}
-                    label={({ name, value, percent }) => {
-                      const displayValue = value === 0.001 ? 0 : value;
-                      const total = pieData.reduce((sum, d) => sum + d.value, 0);
-                      const pct = total > 0 ? (displayValue / total) * 100 : 0;
-                      return `${name}\n${pct.toFixed(1)}%\n${formatMontant(displayValue)} Ar`;
+                    label={({ name, percent }) => {
+                      const pct = Math.round(percent);
+                      return `${name}\n${pct}%`;
                     }}
                     outerRadius={90}
                     innerRadius={40}
@@ -638,9 +650,13 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => {
-                      const displayValue = value === 0.001 ? 0 : value;
-                      return `${formatMontant(displayValue)} Ar`;
+                    formatter={(value, name) => {
+                      if (name === 'Reste' || name === 'Entrées' || name === 'Sorties') {
+                        const total = pieData.reduce((sum, d) => sum + d.value, 0);
+                        const pct = total > 0 ? ((value / total) * 100) : 0;
+                        return `${Math.round(pct)}%`;
+                      }
+                      return value;
                     }}
                     contentStyle={{
                       borderRadius: '10px',
@@ -689,9 +705,18 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     const totalA = districtData.reduce((acc, eg) => acc + eg.totalA, 0);
     const totalOff = totalA - totalDime;
 
+    const pieTotal = totalDime + totalOff;
     const pieData = [
-      { name: 'Dîme', value: totalDime || 0.001 },
-      { name: 'Offrandes', value: totalOff || 0.001 }
+      { 
+        name: 'Dîme', 
+        value: totalDime || 0.001,
+        percent: pieTotal > 0 ? ((totalDime / pieTotal) * 100) : 0
+      },
+      { 
+        name: 'Offrandes', 
+        value: totalOff || 0.001,
+        percent: pieTotal > 0 ? ((totalOff / pieTotal) * 100) : 0
+      }
     ];
     const pieColors = ['#f59e0b', '#10b981'];
 
@@ -778,7 +803,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </div>
           </div>
 
-          {/* Graphique 2 */}
+          {/* Graphique 2 - uniquement les % */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
             <div
@@ -803,8 +828,8 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                       length2: 30
                     }}
                     label={({ name, percent }) => {
-                      const pct = (percent * 100);
-                      return `${name}\n${pct.toFixed(1)}%`;
+                      const pct = Math.round(percent);
+                      return `${name}\n${pct}%`;
                     }}
                     outerRadius={90}
                     innerRadius={40}
@@ -828,7 +853,14 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => `${formatMontant(value)} Ar`}
+                    formatter={(value, name) => {
+                      if (name === 'Dîme' || name === 'Offrandes') {
+                        const total = pieData.reduce((sum, d) => sum + d.value, 0);
+                        const pct = total > 0 ? ((value / total) * 100) : 0;
+                        return `${Math.round(pct)}%`;
+                      }
+                      return value;
+                    }}
                     contentStyle={{
                       borderRadius: '10px',
                       border: 'none',
@@ -876,9 +908,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     const totalA = federationData.reduce((acc, e) => acc + e.totalA, 0);
     const totalOff = totalA - totalDime;
 
+    // Calculer les pourcentages pour chaque église
     const pieData = federationData.map(eg => ({
       name: eg.eglise,
-      value: eg.totalDime || 0.001
+      value: eg.totalDime || 0.001,
+      percent: totalDime > 0 ? ((eg.totalDime / totalDime) * 100) : 0
     }));
 
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
@@ -966,7 +1000,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </div>
           </div>
 
-          {/* Graphique 2 */}
+          {/* Graphique 2 - uniquement les % */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
             <div
@@ -991,9 +1025,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                       length2: 25
                     }}
                     label={({ name, percent }) => {
-                      const pct = (percent * 100);
+                      const pct = Math.round(percent);
                       if (pct < 3) return '';
-                      return `${name}\n${pct.toFixed(1)}%`;
+                      return `${name}\n${pct}%`;
                     }}
                     outerRadius={90}
                     innerRadius={30}
@@ -1017,7 +1051,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => `${formatMontant(value)} Ar`}
+                    formatter={(value, name) => {
+                      const total = pieData.reduce((sum, d) => sum + d.value, 0);
+                      const pct = total > 0 ? ((value / total) * 100) : 0;
+                      return `${Math.round(pct)}%`;
+                    }}
                     contentStyle={{
                       borderRadius: '10px',
                       border: 'none',
