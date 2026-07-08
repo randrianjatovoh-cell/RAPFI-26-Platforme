@@ -242,7 +242,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         });
 
       } else if (isPasteur) {
-        // ... (code existant pour Pasteur, inchangé)
         const district = user.district;
         if (!district) {
           setError("Votre compte n'est pas associé à un district.");
@@ -318,7 +317,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         }
 
       } else if (isVerificateur) {
-        // ... (code existant pour Vérificateur, inchangé)
         const federation = user.federation;
         if (!federation) {
           setError("Votre compte n'est pas associé à une fédération.");
@@ -475,11 +473,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Histogramme 3D */}
+          {/* 🔥 Histogramme groupé 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-500">Histogramme 3D</div>
+              <div className="text-sm font-medium text-gray-500">Histogramme groupé 3D</div>
               <div className="text-xs text-gray-400">Évolution de la Dîme, des Offrandes et du Total A</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
@@ -683,9 +681,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Histogramme 3D */}
+          {/* 🔥 Histogramme groupé 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme 3D</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme groupé 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
@@ -857,9 +855,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Histogramme 3D */}
+          {/* 🔥 Histogramme groupé 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme 3D</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme groupé 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
