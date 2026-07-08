@@ -4,7 +4,7 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, escapeHtml } from '../services/helpers';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
@@ -475,15 +475,15 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Graphique "Nuage de points avec courbes lissées et marqueurs" */}
+          {/* 🔥 Histogramme 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-500">Nuage de points avec courbes lissées et marqueurs</div>
+              <div className="text-sm font-medium text-gray-500">Histogramme 3D</div>
               <div className="text-xs text-gray-400">Évolution de la Dîme, des Offrandes et du Total A</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart
+              <BarChart
                 data={monthlyData}
                 margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
               >
@@ -513,77 +513,53 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} 
-                  iconType="circle"
-                  iconSize={10}
+                  iconType="square"
+                  iconSize={12}
                 />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="dime"
-                  stroke="#f59e0b"
                   name="Dîme"
-                  strokeWidth={3}
-                  dot={{
-                    r: 5,
-                    fill: '#f59e0b',
-                    stroke: '#ffffff',
-                    strokeWidth: 2
-                  }}
-                  activeDot={{
-                    r: 8,
-                    fill: '#f59e0b',
-                    stroke: '#ffffff',
-                    strokeWidth: 2
-                  }}
+                  fill="#f59e0b"
+                  stroke="#d97706"
+                  strokeWidth={1}
+                  radius={[4, 4, 0, 0]}
                   animationDuration={1500}
                   animationEasing="ease-in-out"
+                  style={{
+                    filter: 'drop-shadow(0 4px 6px rgba(245, 158, 11, 0.3))'
+                  }}
                 />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="other"
-                  stroke="#10b981"
                   name="Offrandes"
-                  strokeWidth={3}
-                  dot={{
-                    r: 5,
-                    fill: '#10b981',
-                    stroke: '#ffffff',
-                    strokeWidth: 2
-                  }}
-                  activeDot={{
-                    r: 8,
-                    fill: '#10b981',
-                    stroke: '#ffffff',
-                    strokeWidth: 2
-                  }}
+                  fill="#10b981"
+                  stroke="#059669"
+                  strokeWidth={1}
+                  radius={[4, 4, 0, 0]}
                   animationDuration={1500}
                   animationEasing="ease-in-out"
+                  style={{
+                    filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.3))'
+                  }}
                 />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="totalA"
-                  stroke="#3b82f6"
                   name="Total A (Fédération)"
-                  strokeWidth={3}
-                  dot={{
-                    r: 6,
-                    fill: '#3b82f6',
-                    stroke: '#ffffff',
-                    strokeWidth: 2
-                  }}
-                  activeDot={{
-                    r: 9,
-                    fill: '#3b82f6',
-                    stroke: '#ffffff',
-                    strokeWidth: 2
-                  }}
+                  fill="#3b82f6"
+                  stroke="#2563eb"
+                  strokeWidth={1}
+                  radius={[4, 4, 0, 0]}
                   animationDuration={1500}
                   animationEasing="ease-in-out"
+                  style={{
+                    filter: 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.3))'
+                  }}
                 />
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 🔥 Graphique "Secteurs en 3D" */}
+          {/* 🔥 Secteurs en 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
@@ -707,12 +683,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Graphique "Nuage de points avec courbes lissées et marqueurs" */}
+          {/* 🔥 Histogramme 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Nuage de points avec courbes lissées et marqueurs</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart
+              <BarChart
                 data={lineData}
                 margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
               >
@@ -741,38 +717,30 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} 
-                  iconType="circle"
-                  iconSize={8}
+                  iconType="square"
+                  iconSize={10}
                 />
                 {districtData.map((eg, idx) => (
-                  <Line
+                  <Bar
                     key={eg.eglise}
-                    type="monotone"
                     dataKey={eg.eglise}
-                    stroke={COLORS[idx % COLORS.length]}
                     name={eg.eglise}
-                    strokeWidth={2.5}
-                    dot={{
-                      r: 4,
-                      fill: COLORS[idx % COLORS.length],
-                      stroke: '#ffffff',
-                      strokeWidth: 1.5
-                    }}
-                    activeDot={{
-                      r: 7,
-                      fill: COLORS[idx % COLORS.length],
-                      stroke: '#ffffff',
-                      strokeWidth: 1.5
-                    }}
+                    fill={COLORS[idx % COLORS.length]}
+                    stroke={COLORS[idx % COLORS.length]}
+                    strokeWidth={1}
+                    radius={[3, 3, 0, 0]}
                     animationDuration={1500}
                     animationEasing="ease-in-out"
+                    style={{
+                      filter: `drop-shadow(0 4px 6px ${COLORS[idx % COLORS.length]}40)`
+                    }}
                   />
                 ))}
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 🔥 Graphique "Secteurs en 3D" */}
+          {/* 🔥 Secteurs en 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Secteurs en 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Répartition Dîme / Offrandes (Total A)</p>
@@ -889,12 +857,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Graphique "Nuage de points avec courbes lissées et marqueurs" */}
+          {/* 🔥 Histogramme 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Nuage de points avec courbes lissées et marqueurs</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart
+              <BarChart
                 data={lineData}
                 margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
               >
@@ -923,38 +891,30 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                 />
                 <Legend 
                   wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} 
-                  iconType="circle"
-                  iconSize={8}
+                  iconType="square"
+                  iconSize={10}
                 />
                 {federationData.map((eg, idx) => (
-                  <Line
+                  <Bar
                     key={eg.eglise}
-                    type="monotone"
                     dataKey={eg.eglise}
-                    stroke={colors[idx % colors.length]}
                     name={eg.eglise}
-                    strokeWidth={2.5}
-                    dot={{
-                      r: 4,
-                      fill: colors[idx % colors.length],
-                      stroke: '#ffffff',
-                      strokeWidth: 1.5
-                    }}
-                    activeDot={{
-                      r: 7,
-                      fill: colors[idx % colors.length],
-                      stroke: '#ffffff',
-                      strokeWidth: 1.5
-                    }}
+                    fill={colors[idx % colors.length]}
+                    stroke={colors[idx % colors.length]}
+                    strokeWidth={1}
+                    radius={[3, 3, 0, 0]}
                     animationDuration={1500}
                     animationEasing="ease-in-out"
+                    style={{
+                      filter: `drop-shadow(0 4px 6px ${colors[idx % colors.length]}40)`
+                    }}
                   />
                 ))}
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 🔥 Graphique "Secteurs en 3D" */}
+          {/* 🔥 Secteurs en 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Secteurs en 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Répartition des Dîmes par église</p>
