@@ -711,39 +711,87 @@ function AppContent() {
   // RENDU GLOBAL
   // ----------------------------------------------------------------------
 
+  // ============================================================
+  // PAGE DE CHARGEMENT AVEC SPINNER BLEU ET LOGO RAPFI
+  // ============================================================
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
-        <div className="text-center animate-pulse">
-          <div className="relative w-32 h-32 mx-auto mb-6">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-indigo-400/20 rounded-2xl blur-2xl animate-pulse-glow"></div>
-            <div className="relative w-32 h-32 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl border border-blue-300/30">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-center">
+          {/* Spinner avec logo RAPFI */}
+          <div className="relative w-40 h-40 mx-auto mb-8">
+            {/* Anneau extérieur rotatif */}
+            <div className="absolute inset-0 rounded-full border-8 border-blue-200/30 animate-spin-slow"></div>
+            
+            {/* Anneau intérieur rotatif (sens inverse) */}
+            <div className="absolute inset-2 rounded-full border-8 border-blue-300/20 animate-spin-slow-reverse"></div>
+            
+            {/* Spinner SVG avec dégradé */}
+            <div className="absolute inset-0 rounded-full">
+              <svg className="w-full h-full animate-spin" viewBox="0 0 100 100">
+                <circle 
+                  className="text-blue-500/20" 
+                  strokeWidth="8" 
+                  stroke="currentColor" 
+                  fill="transparent" 
+                  r="42" 
+                  cx="50" 
+                  cy="50"
+                />
+                <circle 
+                  className="text-blue-600" 
+                  strokeWidth="8" 
+                  strokeDasharray="264" 
+                  strokeDashoffset="66" 
+                  strokeLinecap="round" 
+                  stroke="currentColor" 
+                  fill="transparent" 
+                  r="42" 
+                  cx="50" 
+                  cy="50"
+                />
+              </svg>
+            </div>
+            
+            {/* Logo RAPFI à l'intérieur */}
+            <div className="absolute inset-4 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg border border-blue-200/30">
               <img
-                src="/FINANCE.png"
-                alt="Finance Logo"
-                className="w-24 h-24 object-contain animate-float-logo"
+                src="/RAPFI.png"
+                alt="RAPFI Logo"
+                className="w-20 h-20 object-contain animate-float-logo"
                 onError={(e) => { 
                   e.target.style.display = 'none'; 
-                  e.target.parentNode.innerHTML = '<i className="fas fa-coins text-blue-300 text-5xl animate-pulse"></i>'; 
+                  e.target.parentNode.innerHTML = '<i className="fas fa-church text-blue-600 text-4xl animate-pulse"></i>'; 
                 }}
               />
             </div>
-            <div className="absolute -inset-2 rounded-2xl border-2 border-blue-400/30 animate-spin-slow"></div>
-            <div className="absolute -inset-4 rounded-2xl border border-blue-400/20 animate-spin-slow-reverse"></div>
-            <div className="absolute -top-2 -right-2 w-3 h-3 bg-blue-300 rounded-full animate-ping-slow"></div>
-            <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-indigo-300 rounded-full animate-ping-slow animation-delay-500"></div>
+            
+            {/* Particules lumineuses */}
+            <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-400 rounded-full animate-ping-slow"></div>
+            <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-indigo-400 rounded-full animate-ping-slow animation-delay-500"></div>
+            <div className="absolute top-1/2 -right-3 w-2 h-2 bg-cyan-400 rounded-full animate-ping-slow animation-delay-1000"></div>
+            <div className="absolute top-1/2 -left-3 w-2 h-2 bg-purple-400 rounded-full animate-ping-slow animation-delay-1500"></div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2 animate-pulse tracking-wider">
-            Gestion Financière – Fiangonan
+
+          {/* Titre */}
+          <h2 className="text-2xl font-bold text-blue-800 mb-2 animate-pulse tracking-wider">
+            GESTION DES DÎMES ET OFFRANDES
           </h2>
-          <p className="text-blue-200/80 text-sm animate-pulse-slow">
-            <i className="fas fa-spinner fa-spin mr-2"></i>
-            Vérification de la session...
+          <p className="text-blue-600/80 text-sm mb-6 tracking-wide">
+            ÉGLISE ANTSAHALAVA
           </p>
-          <div className="mt-4 flex justify-center gap-1">
-            <div className="w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-            <div className="w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          
+          {/* Message de chargement */}
+          <p className="text-gray-500 text-sm animate-pulse-slow flex items-center justify-center gap-2">
+            <i className="fas fa-spinner fa-spin text-blue-500"></i>
+            Chargement du tableau de bord...
+          </p>
+          
+          {/* Points de progression */}
+          <div className="mt-6 flex justify-center gap-2">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
           </div>
         </div>
       </div>
@@ -771,12 +819,17 @@ function AppContent() {
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* EN-TÊTE AVEC COULEURS "ETEEZY" - DÉGRADÉ ÉLÉGANT */}
         <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
+          
+          {/* Effets de fond décoratifs */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-stone-400/5 to-neutral-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
           <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-amber-400/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+          
+          {/* Lignes lumineuses dorées */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
 
+          {/* TITRE + LOGO */}
           <div className="flex items-center gap-4 z-10">
             <div className="relative">
               <div className="w-12 h-12 bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
@@ -803,6 +856,7 @@ function AppContent() {
             </div>
           </div>
 
+          {/* AVATAR + DÉCONNEXION */}
           <div className="flex items-center gap-3 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -867,8 +921,10 @@ function AppContent() {
           </div>
         </header>
 
+        {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
+        {/* Barre d'onglets principale avec animations 3D */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
@@ -914,6 +970,7 @@ function AppContent() {
           </div>
         )}
 
+        {/* Contenu principal */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-4 animate-fadeInUp transform-gpu perspective-600">
           {showProfile ? (
             <div className="animate-fadeInUp">
@@ -925,6 +982,7 @@ function AppContent() {
         </div>
       </div>
 
+      {/* ANIMATIONS CSS */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -952,8 +1010,8 @@ function AppContent() {
           75% { transform: translateY(10px) rotate(5deg) scale(0.98); }
         }
         @keyframes pulse-slow {
-          0%, 100% { opacity: 0.1; transform: scale(1); }
-          50% { opacity: 0.2; transform: scale(1.15); }
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
         }
         @keyframes pulse-glow {
           0%, 100% { opacity: 0.3; transform: scale(1); }
@@ -1037,8 +1095,8 @@ function AppContent() {
         .animate-fadeInLeft { animation: fadeInLeft 0.5s ease-out forwards; }
         .animate-slideDown { animation: slideDown 0.5s ease-out forwards; }
         .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
-        .animate-float-logo { animation: float-logo 3s ease-in-out infinite; }
-        .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+        .animate-float-logo { animation: float-logo 2s ease-in-out infinite; }
+        .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
         .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
         .animate-pulse-glow-blue { animation: pulse-glow-blue 2s ease-in-out infinite; }
         .animate-pulse-glow-emerald { animation: pulse-glow-emerald 2s ease-in-out infinite; }
@@ -1056,13 +1114,15 @@ function AppContent() {
         .animate-pulse-subtle { animation: pulse 2s ease-in-out infinite; }
         .animate-bounce-subtle { animation: bounce-subtle 1s ease-in-out infinite; }
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
-        .animate-spin-slow { animation: spin-slow 4s linear infinite; }
-        .animate-spin-slow-reverse { animation: spin-slow-reverse 6s linear infinite; }
+        .animate-spin-slow { animation: spin-slow 3s linear infinite; }
+        .animate-spin-slow-reverse { animation: spin-slow-reverse 4s linear infinite; }
         .animate-bounce { animation: bounce 1s ease-in-out infinite; }
+        .animate-spin { animation: spin 1s linear infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
         .animation-delay-200 { animation-delay: 0.2s; }
+        .animation-delay-1500 { animation-delay: 1.5s; }
 
         .hover\\:scale-105:hover { transform: scale(1.05); }
         .hover\\:-translate-y-1:hover { transform: translateY(-4px); }
