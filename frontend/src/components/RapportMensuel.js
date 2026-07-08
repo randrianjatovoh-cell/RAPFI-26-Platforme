@@ -79,7 +79,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return !canEditEglise(eglise, user?.district, user?.federation);
   };
 
-  // Notification temporaire
   const showMessage = (msg, type = 'success') => {
     setMessage(msg);
     setMessageType(type);
@@ -126,7 +125,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       console.log('📦 [loadData] Rapport complet reçu:', r);
 
       if (r) {
-        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -135,7 +133,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch { setSabbathDates(['', '', '', '', '']); }
         } else setSabbathDates(['', '', '', '', '']);
 
-        // Champs texte
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -153,11 +150,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           ? r.volamPiangonanaApetraka
           : 0;
         setVolamPiangonanaApetraka(volamValue);
-        // Mettre à jour localStorage (cache) si la valeur est > 0
         if (volamValue > 0) {
           localStorage.setItem(fallbackKey, volamValue.toString());
         } else {
-          // Si le backend renvoie 0, on peut supprimer la clé locale pour éviter un ancien cache
           localStorage.removeItem(fallbackKey);
         }
 
@@ -175,7 +170,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
                 loadedFromBackend = true;
-                // Mettre à jour localStorage en cache
                 localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: chq, soraBola: sora }));
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
@@ -189,7 +183,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             }
           } catch (e) { /* ignore */ }
         }
-        // Si le backend n'a pas de données, on tente de charger depuis localStorage (fallback)
         if (!loadedFromBackend) {
           const stored = localStorage.getItem(`chequeSora_${currentMonth}_${eglise}`);
           if (stored) {
@@ -203,7 +196,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               }
             } catch(e) {}
           } else {
-            // Initialisation vide
             setChequeLines(['', '', '', '', '']);
             setSoraBolaLines(['', '', '', '', '']);
             setTotalChequeSora(0);
@@ -213,7 +205,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
-      // Traitement GL et dépenses (inchangé)
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -289,7 +280,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
-      // Mise à jour locale réussie, on peut mettre à jour localStorage pour certains champs si besoin
       if (field === 'volamPiangonanaApetraka') {
         localStorage.setItem(fallbackKey, value.toString());
       }
@@ -305,7 +295,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     const data = { cheque, soraBola: sora };
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      // Sauvegarde locale après réussite
       localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify(data));
       showMessage('Tableau des chèques sauvegardé', 'success');
     } catch (err) {
@@ -319,7 +308,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    await updateChequeSoraData(newLines, soraBolaLines);
+    try {
+      await updateChequeSoraData(newLines, soraBolaLines);
+      await loadData(); // recharger après sauvegarde
+    } catch (err) {
+      // déjà géré
+    }
   };
 
   const handleSoraBolaChange = async (idx, rawValue) => {
@@ -332,7 +326,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setSoraBolaLines(newLines);
     const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
     setTotalChequeSora(sum);
-    await updateChequeSoraData(chequeLines, newLines);
+    try {
+      await updateChequeSoraData(chequeLines, newLines);
+      await loadData();
+    } catch (err) {}
   };
 
   const handleMontantChange = async (val) => {
@@ -349,7 +346,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
-    await updateField('volamPiangonanaApetraka', num);
+    try {
+      await updateField('volamPiangonanaApetraka', num);
+      await loadData(); // recharger après sauvegarde
+    } catch (err) {
+      // déjà géré
+    }
   };
 
   const renderDateField = (value) => {
