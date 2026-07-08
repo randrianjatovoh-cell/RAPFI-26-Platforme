@@ -748,23 +748,23 @@ function AppContent() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* ============================================================
-            EN-TÊTE AVEC COULEURS PERSONNALISÉES
+            EN-TÊTE AVEC COULEURS "ETEEZY" - DÉGRADÉ ÉLÉGANT
             ============================================================ */}
-        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-blue-800 via-indigo-800 to-purple-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
-          {/* Effets de fond décoratifs */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+          {/* Effets de fond décoratifs avec couleurs Eteezy */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-stone-400/5 to-neutral-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-amber-400/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
           
-          {/* Lignes lumineuses */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent animate-shimmer"></div>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-300/50 to-transparent animate-shimmer animation-delay-500"></div>
+          {/* Lignes lumineuses dorées */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          {/* TITRE + LOGO AVEC COULEURS */}
+          {/* TITRE + LOGO */}
           <div className="flex items-center gap-4 z-10">
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
                 <img
                   src="/FINANCE.png"
                   alt="Finance"
@@ -780,15 +780,15 @@ function AppContent() {
               <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg text-white">
                 GESTION DES DÎMES ET OFFRANDES - ÉGLISE ANTSAHALAVA
               </h1>
-              <div className="text-xs text-blue-200/80 flex items-center gap-2 mt-0.5">
-                <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
+              <div className="text-xs text-amber-200/80 flex items-center gap-2 mt-0.5">
+                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
                 <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
-                <i className="fas fa-circle text-blue-300 text-[6px] animate-pulse"></i>
+                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
               </div>
             </div>
           </div>
 
-          {/* AVATAR + DÉCONNEXION AVEC COULEURS */}
+          {/* AVATAR + DÉCONNEXION */}
           <div className="flex items-center gap-3 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -796,7 +796,7 @@ function AppContent() {
                   onClick={handleAccueil}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'accueil'
-                      ? 'bg-white text-blue-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -806,7 +806,7 @@ function AppContent() {
                   onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'ajout'
-                      ? 'bg-white text-blue-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -816,7 +816,7 @@ function AppContent() {
                   onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'voir'
-                      ? 'bg-white text-blue-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      ? 'bg-white text-stone-800 shadow-lg transform scale-105 -translate-y-0.5'
                       : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
@@ -830,15 +830,15 @@ function AppContent() {
               className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
             >
               {user?.photo ? (
-                <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-blue-400 shadow-lg animate-pulse-glow" />
+                <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-amber-400 shadow-lg animate-pulse-glow" />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white shadow-lg">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
                   <i className="fas fa-user text-xs"></i>
                 </div>
               )}
               <span className="hidden md:inline font-medium text-sm text-white">
                 {user?.nom || user?.email || 'Utilisateur'} 
-                <span className="text-[10px] text-blue-200/70 ml-1">({user?.fonction || 'Rôle'})</span>
+                <span className="text-[10px] text-amber-200/70 ml-1">({user?.fonction || 'Rôle'})</span>
               </span>
               <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-[10px] text-white/70 transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
             </button>
