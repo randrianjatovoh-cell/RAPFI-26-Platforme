@@ -4,8 +4,8 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, escapeHtml } from '../services/helpers';
 import {
-  ScatterChart, Scatter, XAxis, YAxis, ZAxis,
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
 
@@ -144,9 +144,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           other: 0,
           totalB: 0,
           totalExpenses: 0,
-          income: 0,
-          // Pour le nuage de points 3D, on ajoute un index pour la profondeur
-          z: idx
+          income: 0
         }));
 
         let totalA = 0;
@@ -169,7 +167,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           totalExpenses += res.monthExpenses;
         });
 
-        // Récupération du solde initial depuis le Rapport Annuel
         let volaSisaTeoAloha = 0;
         try {
           const janMonthId = `${yearStr}-01`;
@@ -269,12 +266,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             }
             const fraisVal = await api.getFrais(monthId, eglise);
             totalA = Math.max(0, totalA - fraisVal);
-            return { month, dime, totalA, z: idx };
+            return { month, dime, totalA };
           });
           const results = await Promise.all(monthPromises);
           const egliseData = { eglise, monthly: {}, totalDime: 0, totalA: 0 };
-          results.forEach(({ month, dime, totalA, z }) => {
-            egliseData.monthly[month] = { dime, totalA, z };
+          results.forEach(({ month, dime, totalA }) => {
+            egliseData.monthly[month] = { dime, totalA };
             egliseData.totalDime += dime;
             egliseData.totalA += totalA;
           });
@@ -304,11 +301,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
               }
               const fraisVal = await api.getFrais(monthId, egliseNom);
               totalA = Math.max(0, totalA - fraisVal);
-              return { month, dime, totalA, z: idx };
+              return { month, dime, totalA };
             });
             const results = await Promise.all(monthPromises);
-            results.forEach(({ month, dime, totalA, z }) => {
-              egliseData.monthly[month] = { dime, totalA, z };
+            results.forEach(({ month, dime, totalA }) => {
+              egliseData.monthly[month] = { dime, totalA };
               egliseData.totalDime += dime;
               egliseData.totalA += totalA;
             });
@@ -350,11 +347,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             }
             const fraisVal = await api.getFrais(monthId, egliseNom);
             totalA = Math.max(0, totalA - fraisVal);
-            return { month, dime, totalA, z: idx };
+            return { month, dime, totalA };
           });
           const results = await Promise.all(monthPromises);
-          results.forEach(({ month, dime, totalA, z }) => {
-            egliseData.monthly[month] = { dime, totalA, z };
+          results.forEach(({ month, dime, totalA }) => {
+            egliseData.monthly[month] = { dime, totalA };
             egliseData.totalDime += dime;
             egliseData.totalA += totalA;
           });
@@ -459,15 +456,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const renderAncienDashboard = () => {
     const { monthlyData } = annualData;
 
-    // Transformer les données pour le nuage de points 3D
-    const scatterData = monthlyData.map(item => ({
-      month: item.month,
-      x: item.dime || 0,
-      y: item.other || 0,
-      z: item.totalA || 0,
-      name: item.month
-    }));
-
     const pieData = [
       { name: 'Reste', value: annualData.volaSisaTeoAloha !== 0 ? Math.abs(annualData.volaSisaTeoAloha) : 0.001 },
       { name: 'Entrées', value: annualData.volaNiditra !== 0 ? Math.abs(annualData.volaNiditra) : 0.001 },
@@ -484,58 +472,42 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Nuage de points 3D */}
+          {/* 🔥 Lignes 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-500">Nuage de points 3D (3D Scatter Plot)</div>
-              <div className="text-xs text-gray-400">Dîme vs Offrandes – taille = Total A</div>
+              <div className="text-sm font-medium text-gray-500">Lignes 3D</div>
+              <div className="text-xs text-gray-400">Évolution de la Dîme, des Offrandes et du Total A</div>
             </div>
             <div
               style={{
-                transform: 'rotateX(5deg) rotateY(5deg)',
+                transform: 'rotateX(4deg) rotateY(2deg)',
                 transition: 'transform 0.4s ease-in-out',
                 transformStyle: 'preserve-3d',
-                perspective: '800px'
+                perspective: '900px'
               }}
               className="hover:rotateX-0 hover:rotateY-0"
             >
               <ResponsiveContainer width="100%" height={280}>
-                <ScatterChart
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                <LineChart
+                  data={monthlyData}
+                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
                   <XAxis 
-                    type="number" 
-                    dataKey="x" 
-                    name="Dîme"
-                    tick={{ fontSize: 11, fill: '#4b5563' }}
+                    dataKey="month" 
+                    tick={{ fontSize: 11, fill: '#4b5563' }} 
                     axisLine={{ stroke: '#9ca3af' }}
                     tickLine={{ stroke: '#9ca3af' }}
-                    tickFormatter={(value) => formatMontant(value)}
                   />
                   <YAxis 
-                    type="number" 
-                    dataKey="y" 
-                    name="Offrandes"
-                    tick={{ fontSize: 11, fill: '#4b5563' }}
+                    tick={{ fontSize: 11, fill: '#4b5563' }} 
                     axisLine={{ stroke: '#9ca3af' }}
                     tickLine={{ stroke: '#9ca3af' }}
                     tickFormatter={(value) => formatMontant(value)}
                   />
-                  <ZAxis 
-                    type="number" 
-                    dataKey="z" 
-                    range={[50, 400]} 
-                    name="Total A" 
-                  />
                   <Tooltip
-                    formatter={(value, name) => {
-                      if (name === 'Dîme') return `${formatMontant(value)} Ar`;
-                      if (name === 'Offrandes') return `${formatMontant(value)} Ar`;
-                      if (name === 'Total A') return `${formatMontant(value)} Ar`;
-                      return value;
-                    }}
+                    formatter={(value) => `${formatMontant(value)} Ar`}
                     contentStyle={{
                       borderRadius: '10px',
                       border: 'none',
@@ -550,18 +522,64 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     iconType="circle"
                     iconSize={10}
                   />
-                  <Scatter
-                    name="Points"
-                    data={scatterData}
-                    fill="#3b82f6"
-                    stroke="#ffffff"
-                    strokeWidth={2}
-                    shape="circle"
+                  <Line
+                    type="monotone"
+                    dataKey="dime"
+                    name="Dîme"
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{
+                      r: 5,
+                      fill: '#f59e0b',
+                      stroke: '#ffffff',
+                      strokeWidth: 2
+                    }}
+                    activeDot={{ r: 8 }}
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
+                    style={{
+                      filter: 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.3))'
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="other"
+                    name="Offrandes"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{
+                      r: 5,
+                      fill: '#10b981',
+                      stroke: '#ffffff',
+                      strokeWidth: 2
+                    }}
+                    activeDot={{ r: 8 }}
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
+                    style={{
+                      filter: 'drop-shadow(0 4px 8px rgba(16, 185, 129, 0.3))'
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalA"
+                    name="Total A (Fédération)"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{
+                      r: 6,
+                      fill: '#3b82f6',
+                      stroke: '#ffffff',
+                      strokeWidth: 2
+                    }}
+                    activeDot={{ r: 9 }}
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
                     style={{
                       filter: 'drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3))'
                     }}
                   />
-                </ScatterChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -661,23 +679,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     }
 
     const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-    
-    // Transformer les données pour le nuage de points 3D
-    const scatterData = [];
-    districtData.forEach(eg => {
-      months.forEach((month, idx) => {
-        const data = eg.monthly[month];
-        if (data && data.totalA > 0) {
-          scatterData.push({
-            eglise: eg.eglise,
-            month: month,
-            x: idx,
-            y: data.totalA,
-            z: data.totalA,
-            name: `${eg.eglise} - ${month}`
-          });
-        }
+    const lineData = months.map(month => {
+      const point = { month };
+      districtData.forEach(eg => {
+        point[eg.eglise] = eg.monthly[month]?.totalA || 0;
       });
+      return point;
     });
 
     const totalDime = districtData.reduce((acc, eg) => acc + eg.totalDime, 0);
@@ -701,54 +708,39 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Nuage de points 3D */}
+          {/* 🔥 Lignes 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Nuage de points 3D (3D Scatter Plot)</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Lignes 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <div
               style={{
-                transform: 'rotateX(5deg) rotateY(5deg)',
+                transform: 'rotateX(4deg) rotateY(2deg)',
                 transition: 'transform 0.4s ease-in-out',
                 transformStyle: 'preserve-3d',
-                perspective: '800px'
+                perspective: '900px'
               }}
               className="hover:rotateX-0 hover:rotateY-0"
             >
               <ResponsiveContainer width="100%" height={320}>
-                <ScatterChart
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                <LineChart
+                  data={lineData}
+                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
                   <XAxis 
-                    type="number" 
-                    dataKey="x" 
-                    name="Mois"
-                    tick={{ fontSize: 10, fill: '#4b5563' }}
+                    dataKey="month" 
+                    tick={{ fontSize: 10, fill: '#4b5563' }} 
                     axisLine={{ stroke: '#9ca3af' }}
                     tickLine={{ stroke: '#9ca3af' }}
-                    tickFormatter={(value) => months[Math.round(value)] || ''}
                   />
                   <YAxis 
-                    type="number" 
-                    dataKey="y" 
-                    name="Total A"
-                    tick={{ fontSize: 10, fill: '#4b5563' }}
+                    tick={{ fontSize: 10, fill: '#4b5563' }} 
                     axisLine={{ stroke: '#9ca3af' }}
                     tickLine={{ stroke: '#9ca3af' }}
                     tickFormatter={(value) => formatMontant(value)}
                   />
-                  <ZAxis 
-                    type="number" 
-                    dataKey="z" 
-                    range={[50, 400]} 
-                    name="Total A" 
-                  />
                   <Tooltip
-                    formatter={(value, name) => {
-                      if (name === 'Mois') return months[Math.round(value)] || value;
-                      if (name === 'Total A') return `${formatMontant(value)} Ar`;
-                      return value;
-                    }}
+                    formatter={(value) => `${formatMontant(value)} Ar`}
                     contentStyle={{
                       borderRadius: '10px',
                       border: 'none',
@@ -762,31 +754,29 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     iconType="circle"
                     iconSize={8}
                   />
-                  {districtData.map((eg, idx) => {
-                    const points = months.map((month, i) => ({
-                      eglise: eg.eglise,
-                      month: month,
-                      x: i,
-                      y: eg.monthly[month]?.totalA || 0,
-                      z: eg.monthly[month]?.totalA || 0
-                    })).filter(p => p.y > 0);
-                    
-                    return (
-                      <Scatter
-                        key={eg.eglise}
-                        name={eg.eglise}
-                        data={points}
-                        fill={COLORS[idx % COLORS.length]}
-                        stroke="#ffffff"
-                        strokeWidth={2}
-                        shape="circle"
-                        style={{
-                          filter: `drop-shadow(0 4px 8px ${COLORS[idx % COLORS.length]}40)`
-                        }}
-                      />
-                    );
-                  })}
-                </ScatterChart>
+                  {districtData.map((eg, idx) => (
+                    <Line
+                      key={eg.eglise}
+                      type="monotone"
+                      dataKey={eg.eglise}
+                      stroke={COLORS[idx % COLORS.length]}
+                      name={eg.eglise}
+                      strokeWidth={2.5}
+                      dot={{
+                        r: 4,
+                        fill: COLORS[idx % COLORS.length],
+                        stroke: '#ffffff',
+                        strokeWidth: 1.5
+                      }}
+                      activeDot={{ r: 7 }}
+                      animationDuration={1500}
+                      animationEasing="ease-in-out"
+                      style={{
+                        filter: `drop-shadow(0 4px 8px ${COLORS[idx % COLORS.length]}40)`
+                      }}
+                    />
+                  ))}
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -878,23 +868,12 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     }
 
     const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-    
-    // Transformer les données pour le nuage de points 3D
-    const scatterData = [];
-    federationData.forEach(eg => {
-      months.forEach((month, idx) => {
-        const data = eg.monthly[month];
-        if (data && data.totalA > 0) {
-          scatterData.push({
-            eglise: eg.eglise,
-            month: month,
-            x: idx,
-            y: data.totalA,
-            z: data.totalA,
-            name: `${eg.eglise} - ${month}`
-          });
-        }
+    const lineData = months.map(month => {
+      const point = { month };
+      federationData.forEach(eg => {
+        point[eg.eglise] = eg.monthly[month]?.totalA || 0;
       });
+      return point;
     });
 
     const totalDime = federationData.reduce((acc, e) => acc + e.totalDime, 0);
@@ -919,54 +898,39 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Nuage de points 3D */}
+          {/* 🔥 Lignes 3D */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Nuage de points 3D (3D Scatter Plot)</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Lignes 3D</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <div
               style={{
-                transform: 'rotateX(5deg) rotateY(5deg)',
+                transform: 'rotateX(4deg) rotateY(2deg)',
                 transition: 'transform 0.4s ease-in-out',
                 transformStyle: 'preserve-3d',
-                perspective: '800px'
+                perspective: '900px'
               }}
               className="hover:rotateX-0 hover:rotateY-0"
             >
               <ResponsiveContainer width="100%" height={320}>
-                <ScatterChart
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                <LineChart
+                  data={lineData}
+                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
                   <XAxis 
-                    type="number" 
-                    dataKey="x" 
-                    name="Mois"
-                    tick={{ fontSize: 10, fill: '#4b5563' }}
+                    dataKey="month" 
+                    tick={{ fontSize: 10, fill: '#4b5563' }} 
                     axisLine={{ stroke: '#9ca3af' }}
                     tickLine={{ stroke: '#9ca3af' }}
-                    tickFormatter={(value) => months[Math.round(value)] || ''}
                   />
                   <YAxis 
-                    type="number" 
-                    dataKey="y" 
-                    name="Total A"
-                    tick={{ fontSize: 10, fill: '#4b5563' }}
+                    tick={{ fontSize: 10, fill: '#4b5563' }} 
                     axisLine={{ stroke: '#9ca3af' }}
                     tickLine={{ stroke: '#9ca3af' }}
                     tickFormatter={(value) => formatMontant(value)}
                   />
-                  <ZAxis 
-                    type="number" 
-                    dataKey="z" 
-                    range={[50, 400]} 
-                    name="Total A" 
-                  />
                   <Tooltip
-                    formatter={(value, name) => {
-                      if (name === 'Mois') return months[Math.round(value)] || value;
-                      if (name === 'Total A') return `${formatMontant(value)} Ar`;
-                      return value;
-                    }}
+                    formatter={(value) => `${formatMontant(value)} Ar`}
                     contentStyle={{
                       borderRadius: '10px',
                       border: 'none',
@@ -980,31 +944,29 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
                     iconType="circle"
                     iconSize={8}
                   />
-                  {federationData.map((eg, idx) => {
-                    const points = months.map((month, i) => ({
-                      eglise: eg.eglise,
-                      month: month,
-                      x: i,
-                      y: eg.monthly[month]?.totalA || 0,
-                      z: eg.monthly[month]?.totalA || 0
-                    })).filter(p => p.y > 0);
-                    
-                    return (
-                      <Scatter
-                        key={eg.eglise}
-                        name={eg.eglise}
-                        data={points}
-                        fill={colors[idx % colors.length]}
-                        stroke="#ffffff"
-                        strokeWidth={2}
-                        shape="circle"
-                        style={{
-                          filter: `drop-shadow(0 4px 8px ${colors[idx % colors.length]}40)`
-                        }}
-                      />
-                    );
-                  })}
-                </ScatterChart>
+                  {federationData.map((eg, idx) => (
+                    <Line
+                      key={eg.eglise}
+                      type="monotone"
+                      dataKey={eg.eglise}
+                      stroke={colors[idx % colors.length]}
+                      name={eg.eglise}
+                      strokeWidth={2.5}
+                      dot={{
+                        r: 4,
+                        fill: colors[idx % colors.length],
+                        stroke: '#ffffff',
+                        strokeWidth: 1.5
+                      }}
+                      activeDot={{ r: 7 }}
+                      animationDuration={1500}
+                      animationEasing="ease-in-out"
+                      style={{
+                        filter: `drop-shadow(0 4px 8px ${colors[idx % colors.length]}40)`
+                      }}
+                    />
+                  ))}
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
