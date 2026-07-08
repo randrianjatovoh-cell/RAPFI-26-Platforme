@@ -21,43 +21,143 @@ import RecapFederation from './components/RecapFederation';
 import Receipts from './components/Receipts';
 import { formatMonthYear } from './services/helpers';
 
-// Couleurs dynamiques pour les onglets actifs avec dégradés modernes
+// ============================================================
+// COULEURS AMÉLIORÉES AVEC DÉGRADÉS 3D ET EFFETS LUMINEUX
+// ============================================================
 const tabColors = {
-  dashboard: { bg: 'from-blue-500 to-indigo-600', hover: 'hover:from-blue-600 hover:to-indigo-700', text: 'text-white', shadow: 'shadow-blue-500/30' },
-  formulaire: { bg: 'from-emerald-500 to-teal-600', hover: 'hover:from-emerald-600 hover:to-teal-700', text: 'text-white', shadow: 'shadow-emerald-500/30' },
-  grandlivre: { bg: 'from-cyan-500 to-blue-600', hover: 'hover:from-cyan-600 hover:to-blue-700', text: 'text-white', shadow: 'shadow-cyan-500/30' },
-  recap: { bg: 'from-purple-500 to-pink-600', hover: 'hover:from-purple-600 hover:to-pink-700', text: 'text-white', shadow: 'shadow-purple-500/30' },
-  rapport: { bg: 'from-amber-500 to-orange-600', hover: 'hover:from-amber-600 hover:to-orange-700', text: 'text-white', shadow: 'shadow-amber-500/30' },
-  rapcomite: { bg: 'from-rose-500 to-red-600', hover: 'hover:from-rose-600 hover:to-red-700', text: 'text-white', shadow: 'shadow-rose-500/30' },
-  rapportannuel: { bg: 'from-violet-500 to-purple-600', hover: 'hover:from-violet-600 hover:to-purple-700', text: 'text-white', shadow: 'shadow-violet-500/30' },
-  depenses: { bg: 'from-yellow-500 to-amber-600', hover: 'hover:from-yellow-600 hover:to-amber-700', text: 'text-white', shadow: 'shadow-yellow-500/30' },
-  carnet: { bg: 'from-pink-500 to-rose-600', hover: 'hover:from-pink-600 hover:to-rose-700', text: 'text-white', shadow: 'shadow-pink-500/30' },
-  recapdistrict: { bg: 'from-teal-500 to-cyan-600', hover: 'hover:from-teal-600 hover:to-cyan-700', text: 'text-white', shadow: 'shadow-teal-500/30' },
-  recapfederation: { bg: 'from-indigo-500 to-blue-600', hover: 'hover:from-indigo-600 hover:to-blue-700', text: 'text-white', shadow: 'shadow-indigo-500/30' },
-  users: { bg: 'from-gray-600 to-gray-700', hover: 'hover:from-gray-700 hover:to-gray-800', text: 'text-white', shadow: 'shadow-gray-500/30' },
-  receipts: { bg: 'from-rose-500 to-pink-600', hover: 'hover:from-rose-600 hover:to-pink-700', text: 'text-white', shadow: 'shadow-rose-500/30' },
-  stats: { bg: 'from-indigo-500 to-purple-600', hover: 'hover:from-indigo-600 hover:to-purple-700', text: 'text-white', shadow: 'shadow-indigo-500/30' },
+  dashboard: { 
+    bg: 'from-blue-500 via-blue-600 to-indigo-700', 
+    hover: 'hover:from-blue-600 hover:via-blue-700 hover:to-indigo-800', 
+    text: 'text-white', 
+    shadow: 'shadow-blue-500/40',
+    glow: 'shadow-[0_0_30px_rgba(59,130,246,0.3)]',
+    border: 'border-blue-400/30'
+  },
+  formulaire: { 
+    bg: 'from-emerald-400 via-emerald-500 to-teal-600', 
+    hover: 'hover:from-emerald-500 hover:via-emerald-600 hover:to-teal-700', 
+    text: 'text-white', 
+    shadow: 'shadow-emerald-500/40',
+    glow: 'shadow-[0_0_30px_rgba(16,185,129,0.3)]',
+    border: 'border-emerald-400/30'
+  },
+  grandlivre: { 
+    bg: 'from-cyan-400 via-cyan-500 to-blue-600', 
+    hover: 'hover:from-cyan-500 hover:via-cyan-600 hover:to-blue-700', 
+    text: 'text-white', 
+    shadow: 'shadow-cyan-500/40',
+    glow: 'shadow-[0_0_30px_rgba(34,211,238,0.3)]',
+    border: 'border-cyan-400/30'
+  },
+  recap: { 
+    bg: 'from-purple-400 via-purple-500 to-pink-600', 
+    hover: 'hover:from-purple-500 hover:via-purple-600 hover:to-pink-700', 
+    text: 'text-white', 
+    shadow: 'shadow-purple-500/40',
+    glow: 'shadow-[0_0_30px_rgba(168,85,247,0.3)]',
+    border: 'border-purple-400/30'
+  },
+  rapport: { 
+    bg: 'from-amber-400 via-amber-500 to-orange-600', 
+    hover: 'hover:from-amber-500 hover:via-amber-600 hover:to-orange-700', 
+    text: 'text-white', 
+    shadow: 'shadow-amber-500/40',
+    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+    border: 'border-amber-400/30'
+  },
+  rapcomite: { 
+    bg: 'from-rose-400 via-rose-500 to-red-600', 
+    hover: 'hover:from-rose-500 hover:via-rose-600 hover:to-red-700', 
+    text: 'text-white', 
+    shadow: 'shadow-rose-500/40',
+    glow: 'shadow-[0_0_30px_rgba(244,63,94,0.3)]',
+    border: 'border-rose-400/30'
+  },
+  rapportannuel: { 
+    bg: 'from-violet-400 via-violet-500 to-purple-600', 
+    hover: 'hover:from-violet-500 hover:via-violet-600 hover:to-purple-700', 
+    text: 'text-white', 
+    shadow: 'shadow-violet-500/40',
+    glow: 'shadow-[0_0_30px_rgba(139,92,246,0.3)]',
+    border: 'border-violet-400/30'
+  },
+  depenses: { 
+    bg: 'from-yellow-400 via-yellow-500 to-amber-600', 
+    hover: 'hover:from-yellow-500 hover:via-yellow-600 hover:to-amber-700', 
+    text: 'text-white', 
+    shadow: 'shadow-yellow-500/40',
+    glow: 'shadow-[0_0_30px_rgba(234,179,8,0.3)]',
+    border: 'border-yellow-400/30'
+  },
+  carnet: { 
+    bg: 'from-pink-400 via-pink-500 to-rose-600', 
+    hover: 'hover:from-pink-500 hover:via-pink-600 hover:to-rose-700', 
+    text: 'text-white', 
+    shadow: 'shadow-pink-500/40',
+    glow: 'shadow-[0_0_30px_rgba(236,72,153,0.3)]',
+    border: 'border-pink-400/30'
+  },
+  recapdistrict: { 
+    bg: 'from-teal-400 via-teal-500 to-cyan-600', 
+    hover: 'hover:from-teal-500 hover:via-teal-600 hover:to-cyan-700', 
+    text: 'text-white', 
+    shadow: 'shadow-teal-500/40',
+    glow: 'shadow-[0_0_30px_rgba(20,184,166,0.3)]',
+    border: 'border-teal-400/30'
+  },
+  recapfederation: { 
+    bg: 'from-indigo-400 via-indigo-500 to-blue-600', 
+    hover: 'hover:from-indigo-500 hover:via-indigo-600 hover:to-blue-700', 
+    text: 'text-white', 
+    shadow: 'shadow-indigo-500/40',
+    glow: 'shadow-[0_0_30px_rgba(99,102,241,0.3)]',
+    border: 'border-indigo-400/30'
+  },
+  users: { 
+    bg: 'from-gray-600 via-gray-700 to-gray-800', 
+    hover: 'hover:from-gray-700 hover:via-gray-800 hover:to-gray-900', 
+    text: 'text-white', 
+    shadow: 'shadow-gray-500/40',
+    glow: 'shadow-[0_0_30px_rgba(107,114,128,0.3)]',
+    border: 'border-gray-400/30'
+  },
+  receipts: { 
+    bg: 'from-rose-400 via-rose-500 to-pink-600', 
+    hover: 'hover:from-rose-500 hover:via-rose-600 hover:to-pink-700', 
+    text: 'text-white', 
+    shadow: 'shadow-rose-500/40',
+    glow: 'shadow-[0_0_30px_rgba(244,63,94,0.3)]',
+    border: 'border-rose-400/30'
+  },
+  stats: { 
+    bg: 'from-indigo-400 via-indigo-500 to-purple-600', 
+    hover: 'hover:from-indigo-500 hover:via-indigo-600 hover:to-purple-700', 
+    text: 'text-white', 
+    shadow: 'shadow-indigo-500/40',
+    glow: 'shadow-[0_0_30px_rgba(99,102,241,0.3)]',
+    border: 'border-indigo-400/30'
+  },
 };
 
-// Couleurs inactives avec transitions
+// Couleurs inactives avec effet 3D subtil
 const inactiveColors = {
-  dashboard: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  formulaire: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  grandlivre: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  recap: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  rapport: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  rapcomite: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  rapportannuel: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  depenses: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  carnet: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  recapdistrict: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  recapfederation: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  users: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  receipts: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
-  stats: 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900',
+  dashboard: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  formulaire: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  grandlivre: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  recap: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  rapport: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  rapcomite: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  rapportannuel: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  depenses: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  carnet: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  recapdistrict: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  recapfederation: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  users: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  receipts: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
+  stats: 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5',
 };
 
-// Icônes pour chaque onglet (pour animation)
+// Icônes avec animations
 const tabIcons = {
   dashboard: 'fa-chart-pie',
   formulaire: 'fa-pen-to-square',
@@ -105,6 +205,7 @@ function AppContent() {
   const [showReceiptsTab, setShowReceiptsTab] = useState(false);
   const [pasteurReadOnly, setPasteurReadOnly] = useState(false);
   const [isHoveringTab, setIsHoveringTab] = useState(null);
+  const [logoHover, setLogoHover] = useState(false);
 
   // États pour le vérificateur
   const [selectedDistrictForVerif, setSelectedDistrictForVerif] = useState(null);
@@ -386,14 +487,14 @@ function AppContent() {
     return base + 'UTILISATEUR';
   };
 
-  // Fonction pour obtenir les classes d'un onglet selon son état
+  // Fonction pour obtenir les classes d'un onglet selon son état avec effet 3D amélioré
   const getTabClasses = (tabId, isActive) => {
     if (isActive) {
       const active = tabColors[tabId] || tabColors.dashboard;
-      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-lg ${active.shadow} transform hover:scale-105 transition-all duration-300 relative overflow-hidden`;
+      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-110 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm`;
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900';
-      return `${inactive} transition-all duration-300 hover:shadow-md transform hover:scale-102`;
+      const inactive = inactiveColors[tabId] || 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900';
+      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1 border border-gray-200/30`;
     }
   };
 
@@ -547,19 +648,22 @@ function AppContent() {
     if (!isVerificateur || !selectedEglise || !verifEgliseSelected) return null;
 
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-indigo-200/50 no-print animate-slideDown">
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-blue-50/90 backdrop-blur-sm rounded-xl shadow-lg border border-indigo-200/50 no-print animate-slideDown">
         <button
           onClick={handleBackToDistrictList}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-1 hover:shadow-lg transform hover:scale-105"
+          className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-xl transform hover:scale-105 hover:-translate-y-0.5"
         >
           <i className="fas fa-arrow-left"></i> Retour
         </button>
-        <div className="font-bold text-indigo-800 flex items-center gap-2">
-          <i className="fas fa-church text-indigo-600"></i> ÉGLISE : {selectedEglise}
+        <div className="font-bold text-indigo-800 flex items-center gap-2 bg-white/50 px-4 py-2 rounded-lg shadow-inner">
+          <i className="fas fa-church text-indigo-600 animate-pulse-subtle"></i> 
+          ÉGLISE : <span className="text-indigo-900">{selectedEglise}</span>
         </div>
         <div className="flex-1"></div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Mois :</label>
+        <div className="flex items-center gap-2 bg-white/50 px-3 py-1 rounded-lg">
+          <label className="text-sm font-medium text-gray-700">
+            <i className="fas fa-calendar-alt text-indigo-500 mr-1"></i> Mois :
+          </label>
           <select
             value={currentMonth || ''}
             onChange={(e) => setCurrentMonth(e.target.value)}
@@ -596,9 +700,12 @@ function AppContent() {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
         <div className="text-center animate-pulse">
-          <div className="relative w-16 h-16 mx-auto">
+          <div className="relative w-20 h-20 mx-auto">
             <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-t-indigo-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <i className="fas fa-church text-indigo-400 text-2xl animate-pulse"></i>
+            </div>
           </div>
           <p className="mt-4 text-gray-600 font-medium animate-pulse">Vérification de la session...</p>
         </div>
@@ -625,79 +732,130 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* En-tête avec dégradé moderne et animations */}
-        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
-          {/* Effets de fond décoratifs animés */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+        {/* EN-TÊTE AMÉLIORÉ AVEC LOGO 3D ET ANIMATIONS */}
+        <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-indigo-700 via-purple-700 to-blue-800 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
+          {/* Effets de fond décoratifs animés avec dégradés 3D */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-yellow-400/20 to-orange-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-pink-400/10 to-purple-400/10 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-blue-400/5 to-indigo-400/5 rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+          
+          {/* Lignes lumineuses 3D */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-300/50 to-transparent animate-shimmer"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-300/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          <div className="flex items-center gap-3 z-10">
-            <div className="h-12 w-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-inner animate-float">
-              <img
-                src="/FINANCE.png"
-                alt="Finance"
-                className="h-8 w-8 object-contain"
-                onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<i class="fas fa-coins text-white text-2xl"></i>'; }}
-              />
+          {/* LOGO 3D AMÉLIORÉ AVEC ANIMATION */}
+          <div className="flex items-center gap-4 z-10">
+            <div 
+              className="relative group"
+              onMouseEnter={() => setLogoHover(true)}
+              onMouseLeave={() => setLogoHover(false)}
+            >
+              {/* Effet de halo lumineux 3D */}
+              <div className={`absolute -inset-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-amber-400 rounded-2xl blur-xl transition-all duration-700 ${logoHover ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`}></div>
+              
+              {/* Cercle extérieur 3D avec animation de rotation */}
+              <div className={`absolute -inset-1 rounded-2xl border-2 border-yellow-300/30 transition-all duration-700 ${logoHover ? 'opacity-100 rotate-12 scale-110' : 'opacity-0 rotate-0 scale-100'}`}></div>
+              
+              {/* Logo principal avec effet 3D */}
+              <div className={`relative w-16 h-16 bg-gradient-to-br from-yellow-400 via-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-700 transform-gpu perspective-600
+                ${logoHover ? 'rotate-y-12 rotate-x-6 scale-110 shadow-[0_20px_60px_rgba(251,191,36,0.5)]' : 'rotate-y-6 rotate-x-3 shadow-[0_10px_30px_rgba(251,191,36,0.3)]'}`}
+                style={{ transformStyle: 'preserve-3d' }}
+              >
+                {/* Effet de brillance 3D */}
+                <div className={`absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-white/40 rounded-2xl transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-50'}`}></div>
+                
+                {/* Effet de reflet 3D */}
+                <div className={`absolute -top-1 -right-1 w-6 h-6 bg-white/30 rounded-full blur-sm transition-all duration-700 ${logoHover ? 'scale-150 opacity-50' : 'scale-100 opacity-20'}`}></div>
+                
+                {/* Icône du logo avec animation 3D */}
+                <img
+                  src="/FINANCE.png"
+                  alt="Finance"
+                  className={`h-10 w-10 object-contain transition-all duration-700 filter drop-shadow-lg ${logoHover ? 'scale-110 rotate-3' : 'scale-100 rotate-0'}`}
+                  onError={(e) => { 
+                    e.target.style.display = 'none'; 
+                    e.target.parentNode.innerHTML = '<i class="fas fa-coins text-white text-3xl"></i>'; 
+                  }}
+                />
+                
+                {/* Effet de lumière 3D */}
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/10 to-transparent transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+              </div>
+              
+              {/* Particules lumineuses 3D */}
+              <div className={`absolute -top-2 -right-2 w-3 h-3 bg-yellow-300 rounded-full blur-sm animate-ping-slow transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
+              <div className={`absolute -bottom-1 -left-1 w-2 h-2 bg-amber-300 rounded-full blur-sm animate-ping-slow animation-delay-500 transition-all duration-700 ${logoHover ? 'opacity-100' : 'opacity-0'}`}></div>
             </div>
-            <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-md animate-fadeInLeft">
-              {mainTitle}
-            </h1>
+
+            {/* Titre avec effet 3D */}
+            <div className="transform-gpu perspective-600">
+              <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg animate-fadeInLeft transition-all duration-300 hover:scale-105 hover:rotate-1" 
+                  style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)' }}>
+                {mainTitle}
+              </h1>
+              <div className="text-xs text-white/60 flex items-center gap-2 mt-0.5 animate-fadeInLeft animation-delay-200">
+                <i className="fas fa-circle text-yellow-300 text-[6px] animate-pulse"></i>
+                <span>SYSTÈME DE GESTION FINANCIÈRE</span>
+                <i className="fas fa-circle text-yellow-300 text-[6px] animate-pulse"></i>
+              </div>
+            </div>
           </div>
 
+          {/* Boutons utilisateur avec effets 3D */}
           <div className="flex items-center gap-3 z-10 flex-wrap">
             {isPasteur && (
-              <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10">
+              <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
                 <button
                   onClick={handleAccueil}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'accueil'
-                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105'
-                      : 'text-white hover:bg-white/20 hover:scale-105'
+                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
-                  ACCUEIL
+                  <i className="fas fa-home mr-1"></i> ACCUEIL
                 </button>
                 <button
                   onClick={() => { setPasteurMode('ajout'); setConsultationMode(false); setActiveTab('formulaire'); }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'ajout'
-                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105'
-                      : 'text-white hover:bg-white/20 hover:scale-105'
+                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
-                  AJOUT
+                  <i className="fas fa-plus-circle mr-1"></i> AJOUT
                 </button>
                 <button
                   onClick={() => { setPasteurMode('voir'); setConsultationMode(false); setActiveTab('recapdistrict'); }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
                     pasteurMode === 'voir'
-                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105'
-                      : 'text-white hover:bg-white/20 hover:scale-105'
+                      ? 'bg-white text-indigo-700 shadow-lg transform scale-105 -translate-y-0.5'
+                      : 'text-white hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5'
                   }`}
                 >
-                  VOIR
+                  <i className="fas fa-eye mr-1"></i> VOIR
                 </button>
               </div>
             )}
 
             <button 
               onClick={() => setShowProfile(!showProfile)} 
-              className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 border border-white/10"
+              className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full hover:bg-white/30 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 border border-white/10 shadow-lg"
             >
               {user?.photo ? (
-                <img src={user.photo} alt="avatar" className="w-7 h-7 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
+                <img src={user.photo} alt="avatar" className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-lg animate-pulse-glow" />
               ) : (
-                <i className="fas fa-user-circle text-xl"></i>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                  <i className="fas fa-user text-sm"></i>
+                </div>
               )}
               <span className="hidden sm:inline font-medium">{user.nom || user.email} <span className="text-xs opacity-70">({user.fonction})</span></span>
-              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs transition-transform duration-300`}></i>
+              <i className={`fas fa-chevron-${showProfile ? 'up' : 'down'} text-xs transition-all duration-300 transform ${showProfile ? 'rotate-180' : ''}`}></i>
             </button>
 
             <button 
               onClick={handleLogout} 
-              className="text-red-200 hover:text-white transition-all duration-300 text-sm flex items-center gap-1 hover:bg-red-500/20 px-2 py-1 rounded-lg"
+              className="text-red-200 hover:text-white transition-all duration-300 text-sm flex items-center gap-1 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transform hover:scale-105 hover:-translate-y-0.5"
             >
               <i className="fas fa-sign-out-alt"></i> <span className="hidden sm:inline">Déconnexion</span>
             </button>
@@ -707,13 +865,14 @@ function AppContent() {
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* Barre d'onglets principale avec animations */}
+        {/* Barre d'onglets principale avec animations 3D */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
               const disabled = isTabDisabled(tab);
               const isActive = activeTab === tab.id;
               const icon = tabIcons[tab.id] || tab.icon;
+              const isHovered = isHoveringTab === tab.id;
               
               return (
                 <button
@@ -723,26 +882,37 @@ function AppContent() {
                   onMouseLeave={() => setIsHoveringTab(null)}
                   className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 transform relative ${
                     isActive
-                      ? `bg-gradient-to-r ${tabColors[tab.id]?.bg || 'from-gray-600 to-gray-700'} text-white shadow-lg ${tabColors[tab.id]?.shadow || 'shadow-gray-500/30'} hover:scale-105`
-                      : `${inactiveColors[tab.id] || 'bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900'} hover:shadow-md hover:scale-102`
-                  } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100' : ''}`}
+                      ? `${getTabClasses(tab.id, true)}`
+                      : `${inactiveColors[tab.id] || 'bg-white/80 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-105`
+                  } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
                   disabled={disabled}
+                  style={{
+                    transform: isActive ? 'perspective(600px) rotateX(2deg)' : 'perspective(600px) rotateX(0deg)',
+                    transformStyle: 'preserve-3d'
+                  }}
                 >
                   <span className="flex items-center gap-2">
-                    <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''}`}></i>
+                    <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''} ${isHovered && !isActive ? 'animate-bounce-subtle' : ''}`}></i>
                     <span>{tab.label}</span>
                     {isActive && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping-slow"></span>
+                      <>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping-slow"></span>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></span>
+                      </>
                     )}
                   </span>
+                  {/* Effet de brillance 3D sur les onglets actifs */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
+                  )}
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* Contenu principal avec animations */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-4 animate-fadeInUp">
+        {/* Contenu principal avec effet 3D */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-4 animate-fadeInUp transform-gpu perspective-600">
           {showProfile ? (
             <div className="animate-fadeInUp">
               <Profile onClose={() => setShowProfile(false)} />
@@ -753,43 +923,51 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Animations CSS améliorées */}
+      {/* ANIMATIONS CSS AMÉLIORÉES AVEC EFFETS 3D */}
       <style>{`
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(10px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+          from { opacity: 0; transform: translateY(30px) scale(0.96) rotateX(-5deg); }
+          to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
         }
         @keyframes fadeInLeft {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
+          from { opacity: 0; transform: translateX(-30px) scale(0.95) rotateY(5deg); }
+          to { opacity: 1; transform: translateX(0) scale(1) rotateY(0deg); }
         }
         @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px) scale(0.95); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+          from { opacity: 0; transform: translateY(-30px) scale(0.95) rotateX(-10deg); }
+          to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
         }
         @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(2deg); }
         }
         @keyframes float-slow {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(10px, -10px); }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(15px, -15px) scale(1.1); }
         }
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.1; transform: scale(1); }
-          50% { opacity: 0.2; transform: scale(1.1); }
+          50% { opacity: 0.2; transform: scale(1.15); }
         }
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
-          50% { box-shadow: 0 0 20px 5px rgba(255,255,255,0.1); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+          50% { box-shadow: 0 0 30px 8px rgba(255,255,255,0.15); }
         }
         @keyframes ping-slow {
           0% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(2); opacity: 0; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes bounce-subtle {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
         }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
@@ -802,19 +980,31 @@ function AppContent() {
         .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
         .animate-ping-slow { animation: ping-slow 2s ease-in-out infinite; }
         .animate-pulse-subtle { animation: pulse 2s ease-in-out infinite; }
+        .animate-bounce-subtle { animation: bounce-subtle 1s ease-in-out infinite; }
+        .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
+        .animation-delay-200 { animation-delay: 0.2s; }
 
         .hover\\:scale-102:hover { transform: scale(1.02); }
         .hover\\:rotate-1:hover { transform: rotate(1deg); }
+        .hover\\:-translate-y-0\\.5:hover { transform: translateY(-2px); }
+
+        /* Effets 3D pour le logo */
+        .perspective-600 { perspective: 600px; }
+        .rotate-y-12 { transform: rotateY(12deg); }
+        .rotate-x-6 { transform: rotateX(6deg); }
+        .rotate-y-6 { transform: rotateY(6deg); }
+        .rotate-x-3 { transform: rotateX(3deg); }
+        .transform-gpu { transform: translateZ(0); backface-visibility: hidden; }
 
         /* Transitions douces pour tous les éléments interactifs */
         * {
           transition: all 0.2s ease-in-out;
         }
 
-        /* Scrollbar personnalisée */
+        /* Scrollbar personnalisée avec dégradé 3D */
         ::-webkit-scrollbar {
           width: 8px;
           height: 8px;
@@ -824,11 +1014,33 @@ function AppContent() {
           border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #6366f1, #8b5cf6);
+          background: linear-gradient(180deg, #6366f1, #8b5cf6, #a855f7);
           border-radius: 10px;
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #4f46e5, #7c3aed);
+          background: linear-gradient(180deg, #4f46e5, #7c3aed, #9333ea);
+          box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+        }
+
+        /* Effet de brillance sur les cartes */
+        .glow-card {
+          position: relative;
+          overflow: hidden;
+        }
+        .glow-card::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+          animation: rotate-glow 10s linear infinite;
+        }
+        @keyframes rotate-glow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>
