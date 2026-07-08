@@ -712,88 +712,38 @@ function AppContent() {
   // ----------------------------------------------------------------------
 
   // ============================================================
-  // PAGE DE CHARGEMENT AVEC SPINNER BLEU ET LOGO RAPFI
+  // PAGE DE CHARGEMENT SIMPLIFIÉE AVEC LOGO RAPFI
   // ============================================================
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center">
-          {/* Spinner avec logo RAPFI */}
-          <div className="relative w-40 h-40 mx-auto mb-8">
-            {/* Anneau extérieur rotatif */}
-            <div className="absolute inset-0 rounded-full border-8 border-blue-200/30 animate-spin-slow"></div>
-            
-            {/* Anneau intérieur rotatif (sens inverse) */}
-            <div className="absolute inset-2 rounded-full border-8 border-blue-300/20 animate-spin-slow-reverse"></div>
-            
-            {/* Spinner SVG avec dégradé */}
-            <div className="absolute inset-0 rounded-full">
-              <svg className="w-full h-full animate-spin" viewBox="0 0 100 100">
-                <circle 
-                  className="text-blue-500/20" 
-                  strokeWidth="8" 
-                  stroke="currentColor" 
-                  fill="transparent" 
-                  r="42" 
-                  cx="50" 
-                  cy="50"
-                />
-                <circle 
-                  className="text-blue-600" 
-                  strokeWidth="8" 
-                  strokeDasharray="264" 
-                  strokeDashoffset="66" 
-                  strokeLinecap="round" 
-                  stroke="currentColor" 
-                  fill="transparent" 
-                  r="42" 
-                  cx="50" 
-                  cy="50"
-                />
-              </svg>
-            </div>
-            
-            {/* Logo RAPFI à l'intérieur */}
-            <div className="absolute inset-4 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg border border-blue-200/30">
-              <img
-                src="/RAPFI.png"
-                alt="RAPFI Logo"
-                className="w-20 h-20 object-contain animate-float-logo"
-                onError={(e) => { 
-                  e.target.style.display = 'none'; 
-                  e.target.parentNode.innerHTML = '<i className="fas fa-church text-blue-600 text-4xl animate-pulse"></i>'; 
-                }}
-              />
-            </div>
-            
-            {/* Particules lumineuses */}
-            <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-400 rounded-full animate-ping-slow"></div>
-            <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-indigo-400 rounded-full animate-ping-slow animation-delay-500"></div>
-            <div className="absolute top-1/2 -right-3 w-2 h-2 bg-cyan-400 rounded-full animate-ping-slow animation-delay-1000"></div>
-            <div className="absolute top-1/2 -left-3 w-2 h-2 bg-purple-400 rounded-full animate-ping-slow animation-delay-1500"></div>
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        {/* Logo RAPFI avec effet de pulsation */}
+        <div className="relative">
+          <div className="w-28 h-28 bg-white rounded-2xl shadow-xl flex items-center justify-center p-4">
+            <img
+              src="/RAPFI.png"
+              alt="RAPFI"
+              className="w-20 h-20 object-contain animate-pulse"
+              onError={(e) => { 
+                e.target.style.display = 'none'; 
+                e.target.parentNode.innerHTML = '<i className="fas fa-church text-blue-600 text-5xl animate-pulse"></i>'; 
+              }}
+            />
           </div>
-
-          {/* Titre */}
-          <h2 className="text-2xl font-bold text-blue-800 mb-2 animate-pulse tracking-wider">
-            GESTION DES DÎMES ET OFFRANDES
-          </h2>
-          <p className="text-blue-600/80 text-sm mb-6 tracking-wide">
-            ÉGLISE ANTSAHALAVA
-          </p>
-          
-          {/* Message de chargement */}
-          <p className="text-gray-500 text-sm animate-pulse-slow flex items-center justify-center gap-2">
-            <i className="fas fa-spinner fa-spin text-blue-500"></i>
-            Chargement du tableau de bord...
-          </p>
-          
-          {/* Points de progression */}
-          <div className="mt-6 flex justify-center gap-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          {/* Petit indicateur de chargement */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
           </div>
         </div>
+        
+        <h2 className="text-xl font-semibold text-blue-800 mt-6">
+          Gestion Financière – Fiangonan
+        </h2>
+        <p className="text-gray-500 text-sm mt-2">
+          Chargement du tableau de bord...
+        </p>
       </div>
     );
   }
@@ -1004,11 +954,6 @@ function AppContent() {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(15px, -15px) scale(1.1); }
         }
-        @keyframes float-logo {
-          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-          25% { transform: translateY(-10px) rotate(-5deg) scale(1.02); }
-          75% { transform: translateY(10px) rotate(5deg) scale(0.98); }
-        }
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.7; }
           50% { opacity: 1; }
@@ -1095,7 +1040,6 @@ function AppContent() {
         .animate-fadeInLeft { animation: fadeInLeft 0.5s ease-out forwards; }
         .animate-slideDown { animation: slideDown 0.5s ease-out forwards; }
         .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
-        .animate-float-logo { animation: float-logo 2s ease-in-out infinite; }
         .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
         .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
         .animate-pulse-glow-blue { animation: pulse-glow-blue 2s ease-in-out infinite; }
@@ -1117,7 +1061,7 @@ function AppContent() {
         .animate-spin-slow { animation: spin-slow 3s linear infinite; }
         .animate-spin-slow-reverse { animation: spin-slow-reverse 4s linear infinite; }
         .animate-bounce { animation: bounce 1s ease-in-out infinite; }
-        .animate-spin { animation: spin 1s linear infinite; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
