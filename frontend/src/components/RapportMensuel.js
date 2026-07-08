@@ -70,7 +70,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [messageType, setMessageType] = useState('');
 
   const abortControllerRef = useRef(null);
-  const fallbackKey = `volamPiangonanaApetraka_${currentMonth}_${eglise}`;
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
@@ -146,18 +145,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // 🔥 Volam-piangonana apetraka : priorité absolue au backend
+        // 🔥 Volam-piangonana apetraka : UNIQUEMENT depuis le backend
         if (r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null) {
-          const val = Number(r.volamPiangonanaApetraka);
-          setVolamPiangonanaApetraka(val);
-          localStorage.setItem(fallbackKey, val.toString());
+          setVolamPiangonanaApetraka(Number(r.volamPiangonanaApetraka));
         } else {
           setVolamPiangonanaApetraka(0);
-          localStorage.removeItem(fallbackKey);
         }
 
-        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA : priorité absolue au backend
-        let loadedFromBackend = false;
+        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA : UNIQUEMENT depuis le backend
         if (r.soraBolaLinesJson) {
           try {
             const parsed = JSON.parse(r.soraBolaLinesJson);
@@ -169,38 +164,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 setSoraBolaLines(sora);
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
-                loadedFromBackend = true;
-                localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: chq, soraBola: sora }));
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
                 setSoraBolaLines(sora);
                 setChequeLines(['', '', '', '', '']);
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
-                loadedFromBackend = true;
-                localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: ['', '', '', '', ''], soraBola: sora }));
               }
             }
           } catch (e) { /* ignore */ }
-        }
-        // Si le backend n'a pas de données, on utilise le localStorage en fallback
-        if (!loadedFromBackend) {
-          const stored = localStorage.getItem(`chequeSora_${currentMonth}_${eglise}`);
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (parsed && Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
-                setChequeLines(parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', '']);
-                setSoraBolaLines(parsed.soraBola.length === 5 ? parsed.soraBola : ['', '', '', '', '']);
-                const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-                setTotalChequeSora(sum);
-              }
-            } catch(e) {}
-          } else {
-            setChequeLines(['', '', '', '', '']);
-            setSoraBolaLines(['', '', '', '', '']);
-            setTotalChequeSora(0);
-          }
+        } else {
+          // Si le backend n'a rien, on initialise à vide
+          setChequeLines(['', '', '', '', '']);
+          setSoraBolaLines(['', '', '', '', '']);
+          setTotalChequeSora(0);
         }
       }
 
@@ -258,6 +235,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       } else expensesByWeek[0] = totalExp;
       setExpensesBySabbath(expensesByWeek);
 
+      // volaSisaTeoAloha est géré séparément (peut rester en localStorage si vous voulez, mais on peut aussi le stocker en base)
+      // Pour l'instant, on le laisse en localStorage car ce n'est pas un champ du rapport mensuel principal (c'est utilisé pour les dépenses)
+      // Mais on peut aussi le stocker dans le rapport si besoin. Ici on le garde comme avant.
       const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       const sisa = saved ? parseFloat(saved) : 0;
       setVolaSisaTeoAloha(sisa);
@@ -281,9 +261,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
-      if (field === 'volamPiangonanaApetraka') {
-        localStorage.setItem(fallbackKey, value.toString());
-      }
       showMessage(`Champ "${field}" mis à jour avec succès`, 'success');
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
@@ -296,7 +273,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     const data = { cheque, soraBola: sora };
     try {
       await api.updateReportField(currentMonth, eglise, 'soraBolaLinesJson', JSON.stringify(data));
-      localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify(data));
       showMessage('Tableau des chèques sauvegardé', 'success');
     } catch (err) {
       console.error('❌ Erreur sauvegarde tableau:', err);
@@ -309,12 +285,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    try {
-      await updateChequeSoraData(newLines, soraBolaLines);
-      await loadData(); // recharger après sauvegarde
-    } catch (err) {
-      // déjà géré
-    }
+    await updateChequeSoraData(newLines, soraBolaLines);
+    // Après sauvegarde, on peut recharger pour être sûr, mais on va le faire en fin de saisie.
   };
 
   const handleSoraBolaChange = async (idx, rawValue) => {
@@ -327,10 +299,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setSoraBolaLines(newLines);
     const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
     setTotalChequeSora(sum);
-    try {
-      await updateChequeSoraData(chequeLines, newLines);
-      await loadData();
-    } catch (err) {}
+    await updateChequeSoraData(chequeLines, newLines);
   };
 
   const handleMontantChange = async (val) => {
@@ -347,12 +316,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
-    try {
-      await updateField('volamPiangonanaApetraka', num);
-      await loadData(); // recharger après sauvegarde
-    } catch (err) {
-      // déjà géré
-    }
+    await updateField('volamPiangonanaApetraka', num);
+    // On ne recharge pas ici pour éviter de perdre le focus, mais on peut si besoin.
   };
 
   const renderDateField = (value) => {
@@ -617,9 +582,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         </table>
       </div>
 
-      {/* 🔥 NOUVELLE SECTION : ligne avec date à gauche et SARAM-PANDEFASANA à droite */}
       <div className="mt-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-        {/* Première ligne : date à gauche, SARAM-PANDEFASANA à droite */}
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
@@ -648,7 +611,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </div>
         </div>
 
-        {/* Deuxième ligne : TONTALIN'NY VOLA MIAKATRA any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">TONTALIN'NY VOLA MIAKATRA any @ FME :</span>
           <span className="font-bold" style={{ minWidth: '80px', textAlign: 'right' }}>
@@ -656,7 +618,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           </span>
         </div>
 
-        {/* Troisième ligne : Volam-piangonana apetraka any @ FME */}
         <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
           <span className="font-bold">Volam-piangonana apetraka any @ FME :</span>
           <span className="print-amount no-screen" style={{ minWidth: '80px', textAlign: 'right' }}>

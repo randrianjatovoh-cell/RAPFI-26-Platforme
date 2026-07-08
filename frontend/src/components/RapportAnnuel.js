@@ -101,7 +101,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
   });
 
   const federationName = user?.federation || 'FEDERASIONA MADAGASIKARA';
-  const getStorageKey = () => `endOfYear_${selectedYear}_${eglise}`;
 
   const showMessage = (msg, type = 'success') => {
     setMessage(msg);
@@ -132,9 +131,8 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
     setLoading(true);
     try {
       let loadedPreviousBalance = 0;
-      const storageKey = getStorageKey();
 
-      // 🔥 Priorité au backend pour endOfYear
+      // 🔥 Lire endOfYear depuis le backend (pas de localStorage)
       let firstMonthReport = null;
       try {
         firstMonthReport = await api.getMonthlyReport(`${selectedYear}-01`, eglise);
@@ -151,9 +149,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
       } catch(err) {
         console.error("Erreur lors du chargement des données sauvegardées", err);
       }
-
-      // Mettre à jour localStorage en cache
-      localStorage.setItem(storageKey, String(loadedPreviousBalance));
 
       const updatedMonthlyData = MONTHS_LIST.map((month) => ({
         monthId: `${selectedYear}-${month.id}`,
@@ -214,18 +209,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
               chequeRefs = formatReferences(chequeArray);
             } catch(e) { /* ignore */ }
           }
-          if (!chequeRefs) {
-            const fallbackKey = `chequeSora_${monthKey}_${eglise}`;
-            const stored = localStorage.getItem(fallbackKey);
-            if (stored) {
-              try {
-                const parsed = JSON.parse(stored);
-                if (parsed && Array.isArray(parsed.cheque)) {
-                  chequeRefs = formatReferences(parsed.cheque);
-                }
-              } catch(e) { /* ignore */ }
-            }
-          }
           const receiptInfo = formatReceiptInfo(rosiaNum, dateFanamarihana, chequeRefs);
           updatedMonthlyData[i].receiptNumber = receiptInfo || '';
           updatedMonthlyData[i].note = existingReport.note || '';
@@ -267,8 +250,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
       carriedForward: newBalance + prev.totalIncomeYear - prev.totalExpensesYear
     }));
     setBalanceInput(formatBalance(newBalance));
-    const storageKey = getStorageKey();
-    localStorage.setItem(storageKey, String(newBalance));
     try {
       await api.updateReportField(`${selectedYear}-01`, eglise, 'endOfYear', JSON.stringify({ previousBalance: newBalance }));
       showMessage("Solde initial mis à jour", "success");
@@ -341,7 +322,6 @@ export default function RapportAnnuel({ user: propUser, selectedEglise, readOnly
         </div>
       )}
 
-      {/* EN-TÊTE AVEC LOGOS */}
       <div className="flex items-center justify-between mb-2" style={{ borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ width: '50px', height: '50px' }}>
