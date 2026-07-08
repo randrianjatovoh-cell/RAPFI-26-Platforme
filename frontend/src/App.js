@@ -713,16 +713,39 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-stone-900 via-neutral-900 to-zinc-950">
         <div className="text-center animate-pulse">
-          <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-blue-600 rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <i className="fas fa-church text-blue-400 text-2xl animate-pulse"></i>
+          <div className="relative w-32 h-32 mx-auto mb-6">
+            {/* Logo RAPFI avec animation */}
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-yellow-400/10 rounded-2xl blur-2xl animate-pulse-glow"></div>
+            <div className="relative w-32 h-32 bg-gradient-to-br from-stone-800 to-neutral-800 rounded-2xl flex items-center justify-center shadow-2xl border border-amber-400/20">
+              <img
+                src="/RAPFI.png"
+                alt="RAPFI Logo"
+                className="w-24 h-24 object-contain animate-float-logo"
+                onError={(e) => { 
+                  e.target.style.display = 'none'; 
+                  e.target.parentNode.innerHTML = '<i className="fas fa-church text-amber-400 text-5xl animate-pulse"></i>'; 
+                }}
+              />
             </div>
+            {/* Anneau rotatif autour du logo */}
+            <div className="absolute -inset-2 rounded-2xl border-2 border-amber-400/30 animate-spin-slow"></div>
+            <div className="absolute -inset-4 rounded-2xl border border-amber-400/10 animate-spin-slow-reverse"></div>
           </div>
-          <p className="mt-4 text-blue-600 font-medium animate-pulse">Vérification de la session...</p>
+          
+          <h2 className="text-2xl font-bold text-amber-400 mb-2 animate-pulse tracking-wider">
+            Gestion Financière – Fiangonan
+          </h2>
+          <p className="text-amber-200/80 text-sm animate-pulse-slow">
+            <i className="fas fa-spinner fa-spin mr-2"></i>
+            Vérification de la session...
+          </p>
+          <div className="mt-4 flex justify-center gap-1">
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          </div>
         </div>
       </div>
     );
@@ -938,13 +961,18 @@ function AppContent() {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(15px, -15px) scale(1.1); }
         }
+        @keyframes float-logo {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          25% { transform: translateY(-8px) rotate(-5deg); }
+          75% { transform: translateY(8px) rotate(5deg); }
+        }
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.1; transform: scale(1); }
           50% { opacity: 0.2; transform: scale(1.15); }
         }
         @keyframes pulse-glow {
           0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.05); }
+          50% { opacity: 0.8; transform: scale(1.05); }
         }
         @keyframes pulse-glow-blue {
           0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.2); }
@@ -1006,12 +1034,25 @@ function AppContent() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-4px); }
         }
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-slow-reverse {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
         .animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
         .animate-fadeInLeft { animation: fadeInLeft 0.5s ease-out forwards; }
         .animate-slideDown { animation: slideDown 0.5s ease-out forwards; }
         .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-logo { animation: float-logo 3s ease-in-out infinite; }
         .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
         .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
         .animate-pulse-glow-blue { animation: pulse-glow-blue 2s ease-in-out infinite; }
@@ -1030,6 +1071,9 @@ function AppContent() {
         .animate-pulse-subtle { animation: pulse 2s ease-in-out infinite; }
         .animate-bounce-subtle { animation: bounce-subtle 1s ease-in-out infinite; }
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 4s linear infinite; }
+        .animate-spin-slow-reverse { animation: spin-slow-reverse 6s linear infinite; }
+        .animate-bounce { animation: bounce 1s ease-in-out infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
