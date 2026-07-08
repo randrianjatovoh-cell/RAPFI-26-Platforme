@@ -6,15 +6,15 @@ import { api } from '../services/api';
 import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers';
 
 function formatDateInput(dateStr) {
-  if (!dateStr) return '';
+  if (!dateStr) return '__/__/____';
   try {
     const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr;
+    if (isNaN(date)) return '__/__/____';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
-  } catch { return dateStr; }
+  } catch { return '__/__/____'; }
 }
 
 function formatMontant(value) {
@@ -67,7 +67,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState(''); // 'success' | 'error'
+  const [messageType, setMessageType] = useState('');
 
   const abortControllerRef = useRef(null);
   const fallbackKey = `volamPiangonanaApetraka_${currentMonth}_${eglise}`;
@@ -126,6 +126,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       console.log('📦 [loadData] Rapport complet reçu:', r);
 
       if (r) {
+        // Sabbat dates
         if (r.sabbath_dates) {
           try {
             const parsed = JSON.parse(r.sabbath_dates);
@@ -134,6 +135,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           } catch { setSabbathDates(['', '', '', '', '']); }
         } else setSabbathDates(['', '', '', '', '']);
 
+        // Champs texte
         setDateVersementFME(r.dateVersementFME || '');
         setRosiaNum(r.rosiaNum || '');
         setBokyBe(r.bokyBe || '');
@@ -146,17 +148,20 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(r.soraBolaLettres || '');
         setSoraBolaSignataire(r.soraBolaSignataire || '');
 
-        // Lecture du volamPiangonanaApetraka depuis le backend uniquement
-        const volamValue = r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null
+        // 🔥 Volam-piangonana apetraka : priorité au backend
+        const volamValue = (r.volamPiangonanaApetraka !== undefined && r.volamPiangonanaApetraka !== null)
           ? r.volamPiangonanaApetraka
           : 0;
         setVolamPiangonanaApetraka(volamValue);
-        // Mettre à jour localStorage en fallback (mais ne pas écraser si le backend a une valeur)
+        // Mettre à jour localStorage (cache) si la valeur est > 0
         if (volamValue > 0) {
           localStorage.setItem(fallbackKey, volamValue.toString());
+        } else {
+          // Si le backend renvoie 0, on peut supprimer la clé locale pour éviter un ancien cache
+          localStorage.removeItem(fallbackKey);
         }
 
-        // Lignes de chèques - priorité au backend
+        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA : priorité au backend
         let loadedFromBackend = false;
         if (r.soraBolaLinesJson) {
           try {
@@ -170,6 +175,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
                 loadedFromBackend = true;
+                // Mettre à jour localStorage en cache
+                localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: chq, soraBola: sora }));
               } else if (Array.isArray(parsed)) {
                 const sora = parsed.length === 5 ? parsed : ['', '', '', '', ''];
                 setSoraBolaLines(sora);
@@ -177,22 +184,36 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
                 const sum = sora.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                 setTotalChequeSora(sum);
                 loadedFromBackend = true;
+                localStorage.setItem(`chequeSora_${currentMonth}_${eglise}`, JSON.stringify({ cheque: ['', '', '', '', ''], soraBola: sora }));
               }
             }
           } catch (e) { /* ignore */ }
         }
-        // Si le backend n'a pas de données, on peut essayer localStorage en fallback (mais on ne le fait pas pour privilégier le backend)
-        // On ne charge pas depuis localStorage ici pour éviter d'écraser une valeur backend.
+        // Si le backend n'a pas de données, on tente de charger depuis localStorage (fallback)
         if (!loadedFromBackend) {
-          // On initialise à vide
-          setChequeLines(['', '', '', '', '']);
-          setSoraBolaLines(['', '', '', '', '']);
-          setTotalChequeSora(0);
+          const stored = localStorage.getItem(`chequeSora_${currentMonth}_${eglise}`);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (parsed && Array.isArray(parsed.cheque) && Array.isArray(parsed.soraBola)) {
+                setChequeLines(parsed.cheque.length === 5 ? parsed.cheque : ['', '', '', '', '']);
+                setSoraBolaLines(parsed.soraBola.length === 5 ? parsed.soraBola : ['', '', '', '', '']);
+                const sum = parsed.soraBola.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                setTotalChequeSora(sum);
+              }
+            } catch(e) {}
+          } else {
+            // Initialisation vide
+            setChequeLines(['', '', '', '', '']);
+            setSoraBolaLines(['', '', '', '', '']);
+            setTotalChequeSora(0);
+          }
         }
       }
 
       setSaramPandefasana(fraisData);
 
+      // Traitement GL et dépenses (inchangé)
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -332,8 +353,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   };
 
   const renderDateField = (value) => {
-    const display = value ? formatDateInput(value) : '__/__/____';
-    return display;
+    return value ? formatDateInput(value) : '__/__/____';
   };
 
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
@@ -600,6 +620,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span className="font-bold">Daty nandrotsahana ny vola any amin'ny foibe FME :</span>
+            <span className="date-display" style={{ minWidth: '100px' }}>
+              {renderDateField(dateVersementFME)}
+            </span>
             <input
               type="date"
               value={dateVersementFME}
@@ -613,7 +636,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '2px 4px', fontSize: 'inherit' }}
               className="no-print"
             />
-            <span className="print-only" style={{ display: 'none' }}>{dateVersementFME ? formatDateInput(dateVersementFME) : '__/__/____'}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="font-bold">SARAM-PANDEFASANA (Ar) :</span>
