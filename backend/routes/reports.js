@@ -8,6 +8,7 @@ const {
   computeAndSaveMonthlyReports
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
+const { ensureColumn, openDb } = require('../db');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -43,6 +44,7 @@ router.post('/rebuild', checkAccess, async (req, res) => {
 router.put('/field', checkAccess, async (req, res) => {
   try {
     const { month, eglise, field, value } = req.body;
+    console.log(`📝 PUT /reports/field: month=${month}, eglise=${eglise}, field=${field}, value=${value}`);
 
     // ════════════════════════════════════════════════════════════════
     // 🔧 MODIFICATION : ajout de volamPiangonanaApetraka
@@ -59,6 +61,19 @@ router.put('/field', checkAccess, async (req, res) => {
       console.warn(`⛔ Champ non autorisé: ${field}`);
       return res.status(400).json({ error: 'Champ non autorisé' });
     }
+
+    // Vérifier que la colonne existe, et l'ajouter si nécessaire
+    // On utilise ensureColumn de db.js
+    const dbInstance = await openDb();
+    // Déterminer le type de colonne (TEXT pour volamPiangonanaApetraka, mais on peut faire simple)
+    let columnType = 'TEXT';
+    if (field === 'volamPiangonanaApetraka' || field === 'soraBolaMontant') {
+      columnType = 'INTEGER';
+    } else if (field === 'soraBolaLinesJson' || field === 'signatures' || field === 'endOfYear' || field === 'sabbath_dates') {
+      columnType = 'TEXT';
+    }
+    // ensureColumn vérifie l'existence et l'ajoute si besoin
+    await ensureColumn(dbInstance, 'monthly_reports', field, columnType);
 
     // 1. Vérifier si le rapport existe
     let report = await getMonthlyReport(month, eglise);
