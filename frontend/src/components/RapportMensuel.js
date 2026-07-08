@@ -1,5 +1,5 @@
 // frontend/src/components/RapportMensuel.js
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
@@ -8,9 +8,7 @@ import { formatMonthYear, nombreEnLettresCapitalized } from '../services/helpers
 // 🔧 Helper pour récupérer une valeur quel que soit la casse
 function getField(obj, name) {
   if (!obj || typeof obj !== 'object') return undefined;
-  // Recherche exacte
   if (obj[name] !== undefined) return obj[name];
-  // Recherche en minuscules
   const lowerName = name.toLowerCase();
   for (const key of Object.keys(obj)) {
     if (key.toLowerCase() === lowerName) return obj[key];
@@ -43,6 +41,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const user = contextUser;
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
+
+  // Stabiliser les fonctions de permission
+  const stableCanViewEglise = useMemo(() => canViewEglise, [canViewEglise]);
+  const stableCanEditEglise = useMemo(() => canEditEglise, [canEditEglise]);
 
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
@@ -77,45 +79,55 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // initial à false
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
   const abortControllerRef = useRef(null);
+  const isLoadingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const isReadOnlyMode = () => {
     if (isGlobalReadOnly()) return true;
     if (readOnly) return true;
     if (!eglise) return true;
-    return !canEditEglise(eglise, user?.district, user?.federation);
+    return !stableCanEditEglise(eglise, user?.district, user?.federation);
   };
 
   const showMessage = (msg, type = 'success') => {
     setMessage(msg);
     setMessageType(type);
     setTimeout(() => {
-      setMessage('');
-      setMessageType('');
+      if (isMountedRef.current) {
+        setMessage('');
+        setMessageType('');
+      }
     }, 5000);
   };
 
   const loadData = useCallback(async () => {
     if (!currentMonth || !eglise) {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
       return;
     }
-    if (!canViewEglise(eglise, user?.district, user?.federation)) {
-      setError("Vous n'avez pas accès à cette église.");
-      setLoading(false);
+    if (!stableCanViewEglise(eglise, user?.district, user?.federation)) {
+      if (isMountedRef.current) {
+        setError("Vous n'avez pas accès à cette église.");
+        setLoading(false);
+      }
       return;
     }
+
+    // Éviter les appels simultanés
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
 
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    setLoading(true);
+    if (isMountedRef.current) setLoading(true);
     setError(null);
 
     try {
@@ -126,12 +138,12 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         api.getDepenses(currentMonth, null, null, eglise)
       ]);
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || !isMountedRef.current) return;
 
       let r = reportData;
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || !isMountedRef.current) return;
       }
       setReport(r);
 
@@ -159,15 +171,15 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setSoraBolaLettres(getField(r, 'soraBolaLettres') || '');
         setSoraBolaSignataire(getField(r, 'soraBolaSignataire') || '');
 
-        // 🔥 Volam-piangonana apetraka
+        // Volam-piangonana apetraka
         const volamValue = getField(r, 'volamPiangonanaApetraka');
         setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-        // 🔥 Vola sisa teo aloha
+        // Vola sisa teo aloha
         const sisaValue = getField(r, 'volaSisaTeoAloha');
         setVolaSisaTeoAloha(sisaValue !== undefined ? Number(sisaValue) : 0);
 
-        // 🔥 Tableau CHEQUE/BANQUE et SORA-BOLA
+        // Tableau chèques
         const soraJson = getField(r, 'soraBolaLinesJson');
         if (soraJson) {
           try {
@@ -198,6 +210,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
+      // GL
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -250,36 +263,51 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       } else expensesByWeek[0] = totalExp;
       setExpensesBySabbath(expensesByWeek);
 
-      // Calcul du balanceChurch avec volaSisaTeoAloha
-      setBalanceChurch(volaSisaTeoAloha + totalB - totalExp);
+      // Calcul balanceChurch avec volaSisaTeoAloha
+      const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
+      setBalanceChurch(Number(currentSisa) + totalB - totalExp);
 
     } catch (err) {
       if (err.name === 'AbortError') return;
       console.error('Erreur chargement:', err);
-      setError(err.message);
+      if (isMountedRef.current) setError(err.message);
     } finally {
-      if (!controller.signal.aborted) setLoading(false);
+      if (isMountedRef.current) setLoading(false);
+      isLoadingRef.current = false;
     }
-  }, [currentMonth, eglise, user, canViewEglise, canEditEglise]);
+  }, [currentMonth, eglise, user, stableCanViewEglise, stableCanEditEglise]);
 
+  // Chargement initial et au changement de mois/église
   useEffect(() => {
     loadData();
-    return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-  }, [currentMonth, eglise]);
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [loadData]);
 
-  // Sauvegarde générique
+  // Écouter les événements de mise à jour externe
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      if (!isLoadingRef.current) loadData();
+    };
+    window.addEventListener('data-updated', handleDataUpdate);
+    return () => window.removeEventListener('data-updated', handleDataUpdate);
+  }, [loadData]);
+
+  // Sauvegarde générique (ne recharge pas automatiquement)
   const updateField = async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
       showMessage(`Champ "${field}" mis à jour avec succès`, 'success');
+      // Ne pas recharger ici pour éviter de perturber la saisie
     } catch (err) {
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
       showMessage(`Erreur lors de la sauvegarde du champ "${field}" : ${err.message}`, 'error');
     }
   };
 
-  // Sauvegarde tableau chèques
   const updateChequeSoraData = async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
@@ -292,15 +320,13 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     }
   };
 
+  // Gestionnaires avec mise à jour locale immédiate et sauvegarde en arrière-plan
   const handleChequeChange = async (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
     newLines[idx] = value;
     setChequeLines(newLines);
-    try {
-      await updateChequeSoraData(newLines, soraBolaLines);
-      await loadData();
-    } catch (err) {}
+    await updateChequeSoraData(newLines, soraBolaLines);
   };
 
   const handleSoraBolaChange = async (idx, rawValue) => {
@@ -313,10 +339,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setSoraBolaLines(newLines);
     const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
     setTotalChequeSora(sum);
-    try {
-      await updateChequeSoraData(chequeLines, newLines);
-      await loadData();
-    } catch (err) {}
+    await updateChequeSoraData(chequeLines, newLines);
   };
 
   const handleMontantChange = async (val) => {
@@ -333,27 +356,23 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolamPiangonanaApetraka(num);
-    try {
-      await updateField('volamPiangonanaApetraka', num);
-      await loadData();
-    } catch (err) {}
+    await updateField('volamPiangonanaApetraka', num);
   };
 
   const handleVolaSisaChange = async (val) => {
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolaSisaTeoAloha(num);
-    try {
-      await updateField('volaSisaTeoAloha', num);
-      setBalanceChurch(num + totalB - totalExpenses);
-      await loadData();
-    } catch (err) {}
+    await updateField('volaSisaTeoAloha', num);
+    // Mettre à jour le solde final localement
+    setBalanceChurch(num + totalB - totalExpenses);
   };
 
   const renderDateField = (value) => {
     return value ? formatDateInput(value) : '__/__/____';
   };
 
+  // Rendu...
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
