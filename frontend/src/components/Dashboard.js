@@ -473,11 +473,11 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Histogramme groupé 3D */}
+          {/* 🔥 Colonne groupée */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
-              <div className="text-sm font-medium text-gray-500">Histogramme groupé 3D</div>
+              <div className="text-sm font-medium text-gray-500">Colonne groupée</div>
               <div className="text-xs text-gray-400">Évolution de la Dîme, des Offrandes et du Total A</div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
@@ -681,9 +681,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Histogramme groupé 3D */}
+          {/* 🔥 Colonne groupée */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme groupé 3D</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Colonne groupée</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
@@ -855,9 +855,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* 🔥 Histogramme groupé 3D */}
+          {/* 🔥 Colonne groupée */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <p className="text-center font-semibold text-gray-700 mb-2">Histogramme groupé 3D</p>
+            <p className="text-center font-semibold text-gray-700 mb-2">Colonne groupée</p>
             <p className="text-center text-xs text-gray-400 mb-3">Évolution du Total A par église</p>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
