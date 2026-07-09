@@ -497,16 +497,25 @@ function AppContent() {
   };
 
   // ============================================================
-  // FONCTION POUR LE TITRE - NOUVELLE VERSION
+  // FONCTION GET_TAB_CLASSES - AJOUTÉE
+  // ============================================================
+  const getTabClasses = (tabId, isActive) => {
+    if (isActive) {
+      const active = tabColors[tabId] || tabColors.dashboard;
+      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-105 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm ${active.pulse}`;
+    } else {
+      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
+      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1`;
+    }
+  };
+
+  // ============================================================
+  // FONCTION POUR LE TITRE
   // ============================================================
   const getTitleDisplay = () => {
-    // Première ligne : toujours "GESTION DES DÎMES ET OFFRANDES"
     const firstLine = "GESTION DES DÎMES ET OFFRANDES";
-    
-    // Deuxième ligne : "SYSTÈME DE GESTION FINANCIÈRE"
     const secondLine = "SYSTÈME DE GESTION FINANCIÈRE";
     
-    // Troisième ligne : selon le rôle
     let thirdLine = "";
     if (isAdmin) {
       thirdLine = "ADMINISTRATEUR DE LA PLATEFORME";
@@ -724,22 +733,14 @@ function AppContent() {
   // RENDU GLOBAL
   // ----------------------------------------------------------------------
 
-  // ============================================================
-  // PAGE DE CHARGEMENT AVEC CERCLE ET LOGO RAPFI À L'INTÉRIEUR
-  // ============================================================
+  // PAGE DE CHARGEMENT
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
-          {/* Cercle avec logo à l'intérieur */}
           <div className="relative w-24 h-24 mx-auto mb-6">
-            {/* Anneau extérieur qui tourne */}
             <div className="absolute inset-0 rounded-full border-4 border-blue-200/30 animate-spin-slow"></div>
-            
-            {/* Deuxième anneau qui tourne en sens inverse */}
             <div className="absolute inset-1 rounded-full border-4 border-blue-300/20 animate-spin-slow-reverse"></div>
-            
-            {/* Cercle intérieur avec le logo */}
             <div className="absolute inset-2 rounded-full bg-white shadow-lg flex items-center justify-center border border-blue-200/30">
               <img
                 src="/RAPFI.png"
@@ -751,13 +752,9 @@ function AppContent() {
                 }}
               />
             </div>
-            
-            {/* Points lumineux autour du cercle */}
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-ping-slow"></div>
             <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-indigo-400 rounded-full animate-ping-slow animation-delay-500"></div>
           </div>
-
-          {/* Titre */}
           <h2 className="text-xl font-semibold text-blue-800 mb-1">
             Gestion Financière – Fiangonan
           </h2>
@@ -784,7 +781,6 @@ function AppContent() {
     pasteurMode === null
   );
 
-  // Récupérer les lignes du titre
   const { firstLine, secondLine, thirdLine } = getTitleDisplay();
 
   return (
@@ -799,7 +795,7 @@ function AppContent() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          {/* TITRE + LOGO - NOUVELLE STRUCTURE */}
+          {/* TITRE + LOGO */}
           <div className="flex items-center gap-4 z-10">
             <div className="relative">
               <div className="w-12 h-12 bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
@@ -815,22 +811,19 @@ function AppContent() {
               </div>
             </div>
             <div>
-              {/* Première ligne - GESTION DES DÎMES ET OFFRANDES */}
               <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg text-white">
                 {firstLine}
               </h1>
-              {/* Deuxième ligne - SYSTÈME DE GESTION FINANCIÈRE (très petit) */}
               <div className="text-[8px] md:text-[9px] text-amber-300/70 uppercase tracking-[0.15em] font-medium mt-0.5">
                 {secondLine}
               </div>
-              {/* Troisième ligne - selon le rôle */}
               <div className="text-[10px] md:text-[11px] text-amber-200/80 font-semibold uppercase tracking-wider mt-0.5">
                 {thirdLine}
               </div>
             </div>
           </div>
 
-          {/* AVATAR + DÉCONNEXION EN ICÔNES */}
+          {/* AVATAR + DÉCONNEXION */}
           <div className="flex items-center gap-2 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -867,7 +860,6 @@ function AppContent() {
               </div>
             )}
 
-            {/* AVATAR */}
             <button 
               onClick={() => setShowProfile(!showProfile)} 
               className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border-2 border-white/20 shadow-lg flex items-center justify-center overflow-hidden"
@@ -882,7 +874,6 @@ function AppContent() {
               )}
             </button>
 
-            {/* DÉCONNEXION */}
             <button 
               onClick={handleLogout} 
               className="w-10 h-10 rounded-full bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border border-red-400/20 flex items-center justify-center text-red-200 hover:text-white"
@@ -896,7 +887,7 @@ function AppContent() {
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* BARRE D'ONGLETS AVEC ICÔNES ET LIBELLÉS */}
+        {/* BARRE D'ONGLETS */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
