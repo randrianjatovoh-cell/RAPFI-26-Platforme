@@ -1,5 +1,5 @@
 // src/components/Login.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 
 export default function Login({ onLogin }) {
@@ -8,6 +8,13 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 🔥 Nettoyer le mot de passe à chaque montage du composant
+  useEffect(() => {
+    setPassword('');
+    setEmail('');
+    setError('');
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +33,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-end py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
       style={{
         backgroundImage: `url('/Login.png')`,
         backgroundSize: '100% 100%',
@@ -57,6 +64,11 @@ export default function Login({ onLogin }) {
           10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
           20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
+        @keyframes float-logo {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          25% { transform: translateY(-8px) rotate(-3deg); }
+          75% { transform: translateY(8px) rotate(3deg); }
+        }
         .animate-float {
           animation: float 3s ease-in-out infinite;
         }
@@ -68,6 +80,9 @@ export default function Login({ onLogin }) {
         }
         .animate-shake {
           animation: shake 0.4s ease-in-out;
+        }
+        .animate-float-logo {
+          animation: float-logo 3s ease-in-out infinite;
         }
         .input-focus {
           transition: all 0.25s ease;
@@ -98,6 +113,8 @@ export default function Login({ onLogin }) {
           backdrop-filter: blur(12px);
           background: linear-gradient(135deg, rgba(245, 214, 205, 0.65), rgba(250, 212, 192, 0.55), rgba(242, 227, 219, 0.45));
           border: 1px solid rgba(255, 255, 255, 0.3);
+          max-width: 520px;
+          width: 100%;
         }
         /* Logo 3D avec perspective */
         .logo-3d {
@@ -122,46 +139,109 @@ export default function Login({ onLogin }) {
         .border-blush { border-color: #f5d6cd; }
         .from-blush { --tw-gradient-from: #f5d6cd; --tw-gradient-to: rgba(245,214,205,0); }
         .to-peach { --tw-gradient-to: #fad4c0; }
+        
+        /* Nouveaux styles pour la mise en page */
+        .login-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1.5rem;
+          padding: 2rem 1.5rem;
+        }
+        .login-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .login-form {
+          width: 100%;
+          max-width: 320px;
+        }
+        .login-footer {
+          text-align: center;
+          width: 100%;
+          border-top: 1px solid rgba(200, 200, 200, 0.3);
+          padding-top: 0.75rem;
+          margin-top: 0.5rem;
+        }
+        .login-row {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          gap: 1.5rem;
+          width: 100%;
+          flex-wrap: wrap;
+        }
+        .login-row .login-text {
+          flex: 1;
+          min-width: 120px;
+          text-align: center;
+        }
+        .login-row .login-qr {
+          flex: 1;
+          min-width: 120px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        @media (max-width: 480px) {
+          .login-row {
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+        }
       `}</style>
 
-      <div className="max-w-3xl w-full glass-card rounded-2xl shadow-xl p-5 md:p-6 flex flex-col md:flex-row gap-5 items-center justify-center relative z-10 animate-fadeInUp md:mr-4 lg:mr-8">
-        {/* Colonne gauche : formulaire */}
-        <div className="flex-1 w-full max-w-xs mx-auto">
-          <div className="text-center">
-            <div className="flex justify-center">
-              <div className="logo-3d h-16 w-16 rounded-full bg-white/90 shadow-lg flex items-center justify-center animate-float ring-2 ring-blush/40">
-                <div className="logo-3d-inner h-14 w-14 rounded-full flex items-center justify-center bg-gradient-to-br from-white to-gray-100">
-                  <img
-                    src="/FINANCE.png"
-                    alt="Finance"
-                    className="h-11 w-11 object-contain drop-shadow-sm"
-                  />
-                </div>
-              </div>
+      <div className="glass-card rounded-2xl shadow-xl login-container animate-fadeInUp">
+        {/* ============================================================
+            SECTION HAUT : LOGO + TITRE (Image 1)
+            ============================================================ */}
+        <div className="login-header">
+          <div className="logo-3d h-20 w-20 rounded-full bg-white/90 shadow-lg flex items-center justify-center animate-float-logo ring-2 ring-blush/40">
+            <div className="logo-3d-inner h-16 w-16 rounded-full flex items-center justify-center bg-gradient-to-br from-white to-gray-100">
+              <img
+                src="/FINANCE.png"
+                alt="Finance"
+                className="h-12 w-12 object-contain drop-shadow-sm"
+              />
             </div>
-            <h2 className="mt-3 text-xl font-bold text-plum tracking-tight">
-              Gestion des Dîmes et Offrandes
-            </h2>
-            <p className="mt-0.5 text-xs text-charcoal/70">
+          </div>
+          <h2 className="mt-3 text-2xl font-bold text-plum tracking-tight">
+            Gestion des Dîmes et Offrandes
+          </h2>
+          <p className="text-xs text-charcoal/60 mt-0.5">
+            Système sécurisé - Tous droits réservés
+          </p>
+        </div>
+
+        {/* ============================================================
+            SECTION MILIEU : FORMULAIRE (Image 2 + 3 sur la même ligne)
+            ============================================================ */}
+        <div className="login-row w-full">
+          {/* Colonne gauche : Formulaire (Image 2) */}
+          <div className="login-text">
+            <p className="text-xs text-charcoal/70 font-medium mb-2">
+              <i className="fas fa-user-circle mr-1 text-blush"></i>
               Connectez-vous à votre espace de travail
             </p>
-          </div>
 
-          <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-2.5 rounded-md animate-shake">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <i className="fas fa-exclamation-circle text-red-500 text-sm"></i>
-                  </div>
-                  <div className="ml-2">
-                    <p className="text-xs text-red-700">{error}</p>
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-2 rounded-md animate-shake">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <i className="fas fa-exclamation-circle text-red-500 text-xs"></i>
+                    </div>
+                    <div className="ml-2">
+                      <p className="text-xs text-red-700">{error}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="space-y-2.5">
               <div>
                 <label htmlFor="email" className="block text-xs font-medium text-charcoal mb-0.5">
                   Adresse email
@@ -198,12 +278,11 @@ export default function Login({ onLogin }) {
                     required
                     className="input-focus appearance-none block w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg placeholder-gray-400 text-charcoal bg-white/90 focus:ring-2 focus:ring-blush focus:border-transparent transition duration-150 text-xs"
                     placeholder="••••••••"
+                    autoComplete="new-password"
                   />
                 </div>
               </div>
-            </div>
 
-            <div>
               <button
                 type="submit"
                 disabled={loading}
@@ -224,32 +303,42 @@ export default function Login({ onLogin }) {
                   </>
                 )}
               </button>
-            </div>
+            </form>
+          </div>
 
-            <div className="text-center text-[10px] text-charcoal/50 pt-2 border-t border-gray-200/50">
-              <p>© 2026 Gestion des Dîmes et Offrandes</p>
-              <p className="mt-0.5">Système sécurisé - Tous droits réservés</p>
+          {/* Colonne droite : QR Code (Image 3) */}
+          <div className="login-qr">
+            <p className="text-[10px] text-charcoal/60 font-medium mb-1 text-center">
+              <i className="fas fa-qrcode mr-1 text-blush"></i>
+              Scannez ce QR Code
+            </p>
+            <div className="qr-hover rounded-lg overflow-hidden shadow-sm bg-white/90 p-1.5">
+              <img
+                src="/QR_Code.png"
+                alt="QR Code Login"
+                className="w-28 h-28 object-contain"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112"%3E%3Crect width="112" height="112" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="10" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
+                }}
+              />
             </div>
-          </form>
+            <p className="text-[9px] text-charcoal/40 mt-1 text-center">
+              pour demander Login
+            </p>
+          </div>
         </div>
 
-        {/* Colonne droite : QR Code */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs mx-auto md:border-l md:border-gray-200/50 md:pl-5 pt-5 md:pt-0">
-          <p className="text-[10px] text-charcoal/60 font-medium mb-2 text-center">
-            <i className="fas fa-qrcode mr-1 text-blush"></i>
-            Scannez ce QR Code pour demander Login
+        {/* ============================================================
+            SECTION BAS : COPYRIGHT (Image 4)
+            ============================================================ */}
+        <div className="login-footer">
+          <p className="text-[10px] text-charcoal/50">
+            © 2026 Gestion des Dîmes et Offrandes
           </p>
-          <div className="qr-hover rounded-lg overflow-hidden shadow-sm bg-white/90 p-1.5">
-            <img
-              src="/QR_Code.png"
-              alt="QR Code Login"
-              className="w-32 h-32 object-contain"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"%3E%3Crect width="128" height="128" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="12" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
-              }}
-            />
-          </div>
+          <p className="text-[9px] text-charcoal/40 mt-0.5">
+            Système sécurisé - Tous droits réservés
+          </p>
         </div>
       </div>
     </div>
