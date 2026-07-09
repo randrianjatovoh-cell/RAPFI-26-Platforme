@@ -31,23 +31,6 @@ export default function Login({ onLogin }) {
     }
   };
 
-  // Fonction pour générer le QR Code avec une URL réelle
-  const getQRCodeUrl = () => {
-    // URL de la page de login (à remplacer par votre URL réelle)
-    const loginUrl = window.location.origin + '/login';
-    // Utiliser une API de génération de QR Code
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(loginUrl)}`;
-  };
-
-  // Fonction pour télécharger le QR Code
-  const downloadQRCode = () => {
-    const link = document.createElement('a');
-    link.download = 'QR_Code_Login.png';
-    link.href = getQRCodeUrl();
-    link.target = '_blank';
-    link.click();
-  };
-
   return (
     <div
       className="min-h-screen flex items-center justify-end py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
@@ -261,33 +244,6 @@ export default function Login({ onLogin }) {
         }
         .qr-container {
           position: relative;
-          cursor: pointer;
-        }
-        .qr-container:hover .qr-download-btn {
-          opacity: 1;
-        }
-        .qr-download-btn {
-          position: absolute;
-          bottom: -8px;
-          right: -8px;
-          background: rgba(205, 127, 110, 0.9);
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 28px;
-          height: 28px;
-          font-size: 12px;
-          cursor: pointer;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-        .qr-download-btn:hover {
-          background: rgba(205, 127, 110, 1);
-          transform: scale(1.1);
         }
         @media (max-width: 480px) {
           .glass-card { margin-right: 0; max-width: 95%; }
@@ -427,7 +383,7 @@ export default function Login({ onLogin }) {
 
           <div className="vertical-divider"></div>
 
-          {/* QR CODE AVEC TÉLÉCHARGEMENT */}
+          {/* QR CODE AVEC L'IMAGE LOCALE */}
           <div className="login-qr">
             <p className="qr-label">
               <i className="fas fa-qrcode mr-1 text-blush"></i>
@@ -435,34 +391,19 @@ export default function Login({ onLogin }) {
             </p>
             <div className="qr-container">
               <div className="qr-hover rounded-lg overflow-hidden shadow-md bg-white/95 p-2 border border-gray-100">
-                {/* QR Code généré dynamiquement */}
                 <img
-                  src={getQRCodeUrl()}
+                  src="/QR_Code.png"
                   alt="QR Code Login"
                   className="w-28 h-28 object-contain"
                   onError={(e) => {
-                    // Fallback si l'API de QR Code ne fonctionne pas
                     e.target.onerror = null;
-                    e.target.src = '/QR_Code.png';
-                    e.target.alt = 'QR Code (utilisez l\'image locale)';
+                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112"%3E%3Crect width="112" height="112" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="10" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
                   }}
                 />
               </div>
-              {/* Bouton de téléchargement du QR Code */}
-              <button
-                onClick={downloadQRCode}
-                className="qr-download-btn"
-                title="Télécharger le QR Code"
-              >
-                <i className="fas fa-download"></i>
-              </button>
             </div>
             <p className="text-[9px] text-charcoal/40 mt-1 text-center">
               pour demander Login
-            </p>
-            <p className="text-[8px] text-charcoal/30 mt-0.5 text-center">
-              <i className="fas fa-info-circle mr-0.5"></i>
-              Téléchargez pour imprimer
             </p>
           </div>
         </div>
