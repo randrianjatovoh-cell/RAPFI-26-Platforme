@@ -567,6 +567,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
           print-color-adjust: exact;
         }
 
+        /* 🔥 Masquer la colonne Sabata en impression */
         @media print {
           @page {
             size: A4 landscape;
@@ -617,6 +618,14 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
 
           .depenses-container .table-wrapper {
             overflow-x: visible !important;
+          }
+
+          /* 🔥 Masquer la colonne Sabata */
+          .sabata-col {
+            display: none !important;
+          }
+          .sabata-col-header {
+            display: none !important;
           }
         }
       `}</style>
@@ -681,7 +690,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
               <tr>
                 <th rowSpan="2">N°</th>
                 <th rowSpan="2">Daty</th>
-                <th rowSpan="2">Sabata</th>
+                <th rowSpan="2" className="sabata-col-header">Sabata</th>
                 <th colSpan="4">KOMITY</th>
                 <th colSpan="3">Vola</th>
                 <th colSpan="2">Mpiandraikitra &amp; sonia</th>
@@ -719,7 +728,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
                         <span>{formatDateShort(exp.date)}</span>
                       )}
                     </td>
-                    <td>
+                    <td className="sabata-col">
                       {isEditing ? (
                         <select
                           value={exp.sabata || 1}
