@@ -715,35 +715,47 @@ function AppContent() {
   // RENDU GLOBAL
   // ----------------------------------------------------------------------
 
-  // PAGE DE CHARGEMENT SIMPLIFIÉE AVEC LOGO RAPFI
+  // ============================================================
+  // PAGE DE CHARGEMENT AVEC CERCLE ET LOGO RAPFI À L'INTÉRIEUR
+  // ============================================================
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="relative">
-          <div className="w-28 h-28 bg-white rounded-2xl shadow-xl flex items-center justify-center p-4">
-            <img
-              src="/RAPFI.png"
-              alt="RAPFI"
-              className="w-20 h-20 object-contain animate-pulse"
-              onError={(e) => { 
-                e.target.style.display = 'none'; 
-                e.target.parentNode.innerHTML = '<i className="fas fa-church text-blue-600 text-5xl animate-pulse"></i>'; 
-              }}
-            />
+        <div className="text-center">
+          {/* Cercle avec logo à l'intérieur */}
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Anneau extérieur qui tourne */}
+            <div className="absolute inset-0 rounded-full border-4 border-blue-200/30 animate-spin-slow"></div>
+            
+            {/* Deuxième anneau qui tourne en sens inverse */}
+            <div className="absolute inset-1 rounded-full border-4 border-blue-300/20 animate-spin-slow-reverse"></div>
+            
+            {/* Cercle intérieur avec le logo */}
+            <div className="absolute inset-2 rounded-full bg-white shadow-lg flex items-center justify-center border border-blue-200/30">
+              <img
+                src="/RAPFI.png"
+                alt="RAPFI"
+                className="w-14 h-14 object-contain animate-pulse"
+                onError={(e) => { 
+                  e.target.style.display = 'none'; 
+                  e.target.parentNode.innerHTML = '<i className="fas fa-church text-blue-600 text-3xl animate-pulse"></i>'; 
+                }}
+              />
+            </div>
+            
+            {/* Points lumineux autour du cercle */}
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-ping-slow"></div>
+            <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-indigo-400 rounded-full animate-ping-slow animation-delay-500"></div>
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-          </div>
+
+          {/* Titre */}
+          <h2 className="text-xl font-semibold text-blue-800 mb-1">
+            Gestion Financière – Fiangonan
+          </h2>
+          <p className="text-gray-500 text-sm">
+            Chargement du tableau de bord...
+          </p>
         </div>
-        
-        <h2 className="text-xl font-semibold text-blue-800 mt-6">
-          Gestion Financière – Fiangonan
-        </h2>
-        <p className="text-gray-500 text-sm mt-2">
-          Chargement du tableau de bord...
-        </p>
       </div>
     );
   }
@@ -869,9 +881,7 @@ function AppContent() {
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* ============================================================
-            BARRE D'ONGLETS AVEC ICÔNES ET LIBELLÉS
-            ============================================================ */}
+        {/* BARRE D'ONGLETS AVEC ICÔNES ET LIBELLÉS */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
@@ -1023,9 +1033,13 @@ function AppContent() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
         }
-        @keyframes spin {
+        @keyframes spin-slow {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-slow-reverse {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
         }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
@@ -1053,6 +1067,8 @@ function AppContent() {
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
         .animate-bounce { animation: bounce 1s ease-in-out infinite; }
         .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 2s linear infinite; }
+        .animate-spin-slow-reverse { animation: spin-slow-reverse 3s linear infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
