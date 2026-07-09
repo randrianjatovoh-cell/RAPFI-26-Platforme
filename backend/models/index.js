@@ -148,7 +148,7 @@ async function getEglisesByFederation(federation) {
 }
 
 // ============================================================
-// ✅ GRAND LIVRE - CORRIGÉ AVEC UPSERT ET BONNE CLÉ
+// ✅ GRAND LIVRE - AVEC UPSERT
 // ============================================================
 
 /**
@@ -158,7 +158,6 @@ async function getEglisesByFederation(federation) {
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
   
-  // 🔥 Nettoyer le nom de l'église
   const cleanEglise = eglise ? eglise.trim() : '';
   if (!cleanEglise) {
     throw new Error('Le nom de l\'église est requis');
@@ -172,7 +171,6 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
     const entries = data[sabbathIndex];
     if (!entries || entries.length === 0) continue;
     
-    // 🔥 Enrichir chaque entrée avec les informations de contexte
     const enrichedEntries = entries.map(entry => ({
       ...entry,
       monthId: month,
@@ -180,7 +178,6 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
       sabbathIndex: parseInt(sabbathIndex)
     }));
 
-    // 🔥 UPSERT - Insertion ou mise à jour basée sur (month, eglise, sabbath_index)
     if (db.isPostgres) {
       await db.run(
         `INSERT INTO gl_data (user_id, month, eglise, district, federation, sabbath_index, data)
@@ -195,7 +192,6 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
         userId, month, cleanEglise, district, federation, parseInt(sabbathIndex), JSON.stringify(enrichedEntries)
       );
     } else {
-      // SQLite - Vérifier l'existence
       const existing = await db.get(
         'SELECT id FROM gl_data WHERE month = ? AND eglise = ? AND sabbath_index = ?',
         month, cleanEglise, parseInt(sabbathIndex)
@@ -222,13 +218,7 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
   console.log(`✅ GL sauvegardé pour ${cleanEglise} - ${month} (${sabbathIndices.length} sabbats)`);
 }
 
-// ============================================================
-// ✅ LECTURE GL - AVEC FILTRAGE PAR ÉGLISE
-// ============================================================
-
-/**
- * Récupère les données GL pour une église spécifique
- */
+// ---------- LECTURE GL ----------
 async function getGLDataByEglise(month, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -243,11 +233,9 @@ async function getGLDataByEglise(month, eglise) {
   for (const row of rows) {
     try {
       const data = JSON.parse(row.data);
-      // Si data est un tableau, le stocker directement
       if (Array.isArray(data)) {
         result[row.sabbath_index] = data;
       } else {
-        // Sinon, essayer de l'utiliser comme objet
         result[row.sabbath_index] = data;
       }
     } catch (e) {
@@ -258,9 +246,6 @@ async function getGLDataByEglise(month, eglise) {
   return result;
 }
 
-/**
- * Récupère les données GL pour un district
- */
 async function getGLDataByDistrict(month, district) {
   const db = await openDb();
   const cleanDistrict = district ? district.trim() : '';
@@ -288,9 +273,6 @@ async function getGLDataByDistrict(month, district) {
   return result;
 }
 
-/**
- * Récupère les données GL pour une fédération
- */
 async function getGLDataByFederation(month, federation) {
   const db = await openDb();
   const cleanFederation = federation ? federation.trim() : '';
@@ -318,9 +300,6 @@ async function getGLDataByFederation(month, federation) {
   return result;
 }
 
-/**
- * Récupère les données GL pour l'admin avec filtres
- */
 async function getGLDataForAdmin(month, federation, district, eglise) {
   const db = await openDb();
   let sql = 'SELECT eglise, sabbath_index, data FROM gl_data WHERE month = ?';
@@ -349,7 +328,10 @@ async function getGLDataForAdmin(month, federation, district, eglise) {
   return result;
 }
 
-// ---------- Dépenses ----------
+// ============================================================
+// ✅ DÉPENSES - AVEC SUPPORT DU CHAMP SABATA
+// ============================================================
+
 async function saveDepenses({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -358,11 +340,18 @@ async function saveDepenses({ userId, month, data, eglise, district, federation 
   await db.run('DELETE FROM depenses WHERE month = ? AND eglise = ?', month, cleanEglise);
   
   for (const dep of data) {
+    // 🔥 S'assurer que le sabata est sauvegardé
+    const depWithSabata = {
+      ...dep,
+      sabata: dep.sabata || 1 // Valeur par défaut si non spécifié
+    };
     await db.run(
       'INSERT INTO depenses (user_id, month, data, eglise, district, federation) VALUES (?, ?, ?, ?, ?, ?)',
-      userId, month, JSON.stringify(dep), cleanEglise, district, federation
+      userId, month, JSON.stringify(depWithSabata), cleanEglise, district, federation
     );
   }
+  
+  console.log(`✅ Dépenses sauvegardées pour ${cleanEglise} - ${month} (${data.length} dépenses)`);
 }
 
 async function getDepensesByEglise(month, eglise) {
@@ -372,7 +361,12 @@ async function getDepensesByEglise(month, eglise) {
   const result = [];
   for (const row of rows) {
     try {
-      result.push(JSON.parse(row.data));
+      const data = JSON.parse(row.data);
+      // S'assurer que le champ sabata existe
+      if (data && typeof data === 'object' && !data.sabata) {
+        data.sabata = 1;
+      }
+      result.push(data);
     } catch (e) {
       console.warn(`⚠️ Erreur parsing dépense ${month} - ${cleanEglise}`);
     }
@@ -387,7 +381,11 @@ async function getDepensesByDistrict(month, district) {
   const result = [];
   for (const row of rows) {
     try {
-      result.push(JSON.parse(row.data));
+      const data = JSON.parse(row.data);
+      if (data && typeof data === 'object' && !data.sabata) {
+        data.sabata = 1;
+      }
+      result.push(data);
     } catch (e) {
       console.warn(`⚠️ Erreur parsing dépense ${month} - ${cleanDistrict}`);
     }
@@ -402,7 +400,11 @@ async function getDepensesByFederation(month, federation) {
   const result = [];
   for (const row of rows) {
     try {
-      result.push(JSON.parse(row.data));
+      const data = JSON.parse(row.data);
+      if (data && typeof data === 'object' && !data.sabata) {
+        data.sabata = 1;
+      }
+      result.push(data);
     } catch (e) {
       console.warn(`⚠️ Erreur parsing dépense ${month} - ${cleanFederation}`);
     }
@@ -421,7 +423,11 @@ async function getDepensesForAdmin(month, federation, district, eglise) {
   const result = [];
   for (const row of rows) {
     try {
-      result.push(JSON.parse(row.data));
+      const data = JSON.parse(row.data);
+      if (data && typeof data === 'object' && !data.sabata) {
+        data.sabata = 1;
+      }
+      result.push(data);
     } catch (e) {
       console.warn(`⚠️ Erreur parsing dépense`);
     }
@@ -567,7 +573,7 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
 
   console.log(`📊 Recalcul du rapport pour ${monthId} - ${cleanEglise}`);
 
-  // 🔥 Récupérer les données GL avec la bonne église
+  // Récupérer les données GL
   const glRows = await db.all(
     'SELECT data FROM gl_data WHERE month = ? AND eglise = ?',
     monthId, cleanEglise
@@ -598,16 +604,28 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     totalB += (entry.b9 || 0) + (entry.b10 || 0);
   }
 
+  // 🔥 Récupérer les dépenses avec leur Sabata
   const depRows = await db.all(
     'SELECT data FROM depenses WHERE month = ? AND eglise = ?',
     monthId, cleanEglise
   );
   
   let totalExpenses = 0;
+  const expensesBySabbath = [0, 0, 0, 0, 0];
+  
   for (const row of depRows) {
     try {
       const dep = JSON.parse(row.data);
-      totalExpenses += dep.amount || 0;
+      const amount = dep.amount || 0;
+      totalExpenses += amount;
+      
+      // 🔥 Répartir par Sabata
+      const sabata = dep.sabata || 1;
+      if (sabata >= 1 && sabata <= 5) {
+        expensesBySabbath[sabata - 1] += amount;
+      } else {
+        expensesBySabbath[0] += amount; // Fallback sur Sabata 1
+      }
     } catch (e) {
       console.warn(`⚠️ Erreur parsing dépense pour ${monthId} - ${cleanEglise}`);
     }
@@ -665,7 +683,9 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     receiptNumber,
     note,
     volamPiangonanaApetraka,
-    volaSisaTeoAloha
+    volaSisaTeoAloha,
+    // 🔥 Ajout des dépenses par Sabata pour le rapport
+    expensesBySabbath: JSON.stringify(expensesBySabbath)
   };
 
   await upsertMonthlyReport(monthId, cleanEglise, report);
