@@ -44,6 +44,9 @@ export default function Login({ onLogin }) {
       <div className="absolute inset-0 bg-gradient-to-l from-plum/5 via-blush/5 to-transparent"></div>
 
       <style>{`
+        /* ============================================================
+           ANIMATIONS PRINCIPALES
+           ============================================================ */
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
           50% { transform: translateY(-6px) rotateX(2deg) rotateY(2deg); }
@@ -62,11 +65,6 @@ export default function Login({ onLogin }) {
           10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
           20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
-        @keyframes float-logo {
-          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-          25% { transform: translateY(-8px) rotate(-3deg) scale(1.03); }
-          75% { transform: translateY(8px) rotate(3deg) scale(0.97); }
-        }
         @keyframes pulse-logo {
           0%, 100% { box-shadow: 0 0 20px rgba(205, 127, 110, 0.2), 0 0 40px rgba(205, 127, 110, 0.05); }
           50% { box-shadow: 0 0 30px rgba(205, 127, 110, 0.3), 0 0 60px rgba(205, 127, 110, 0.1); }
@@ -75,15 +73,214 @@ export default function Login({ onLogin }) {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        @keyframes spin-slow-reverse {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
+        }
+        
+        /* ============================================================
+           ANIMATIONS 3D DU LOGO
+           ============================================================ */
+        @keyframes float-3d {
+          0%, 100% { 
+            transform: translateY(0px) rotateX(0deg) rotateY(0deg) scale(1); 
+          }
+          25% { 
+            transform: translateY(-12px) rotateX(8deg) rotateY(12deg) scale(1.02); 
+          }
+          50% { 
+            transform: translateY(0px) rotateX(0deg) rotateY(-8deg) scale(0.98); 
+          }
+          75% { 
+            transform: translateY(8px) rotateX(-6deg) rotateY(15deg) scale(1.01); 
+          }
+        }
+        @keyframes rotate-3d {
+          0% { transform: rotateY(0deg) rotateX(0deg); }
+          25% { transform: rotateY(90deg) rotateX(5deg); }
+          50% { transform: rotateY(180deg) rotateX(0deg); }
+          75% { transform: rotateY(270deg) rotateX(-5deg); }
+          100% { transform: rotateY(360deg) rotateX(0deg); }
+        }
+        @keyframes glow-pulse-3d {
+          0%, 100% { 
+            box-shadow: 0 0 20px rgba(205, 127, 110, 0.15), 
+                        0 0 40px rgba(205, 127, 110, 0.05),
+                        inset 0 0 20px rgba(255,255,255,0.1);
+          }
+          50% { 
+            box-shadow: 0 0 40px rgba(205, 127, 110, 0.3), 
+                        0 0 80px rgba(205, 127, 110, 0.1),
+                        inset 0 0 30px rgba(255,255,255,0.2);
+          }
+        }
+        @keyframes ring-rotate-3d {
+          0% { transform: rotateX(60deg) rotateZ(0deg); }
+          100% { transform: rotateX(60deg) rotateZ(360deg); }
+        }
+        @keyframes ring-rotate-3d-reverse {
+          0% { transform: rotateX(30deg) rotateZ(360deg); }
+          100% { transform: rotateX(30deg) rotateZ(0deg); }
+        }
+        @keyframes sparkle {
+          0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+          50% { opacity: 1; transform: scale(1) rotate(180deg); }
+        }
+        @keyframes shimmer-3d {
+          0% { transform: translateX(-100%) rotate(25deg); }
+          100% { transform: translateX(200%) rotate(25deg); }
+        }
+        
+        /* ============================================================
+           CLASSES D'ANIMATION
+           ============================================================ */
         .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
         .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
         .animate-shake { animation: shake 0.4s ease-in-out; }
-        .animate-float-logo { animation: float-logo 3s ease-in-out infinite; }
         .animate-pulse-logo { animation: pulse-logo 3s ease-in-out infinite; }
         .animate-spin-slow { animation: spin-slow 10s linear infinite; }
-        .animate-spin-slow-reverse { animation: spin-slow 15s linear infinite reverse; }
+        .animate-spin-slow-reverse { animation: spin-slow-reverse 15s linear infinite; }
         
+        /* Animations 3D du logo */
+        .animate-float-3d { animation: float-3d 4s ease-in-out infinite; }
+        .animate-rotate-3d { animation: rotate-3d 8s ease-in-out infinite; }
+        .animate-glow-3d { animation: glow-pulse-3d 3s ease-in-out infinite; }
+        .animate-ring-3d { animation: ring-rotate-3d 12s linear infinite; }
+        .animate-ring-3d-reverse { animation: ring-rotate-3d-reverse 15s linear infinite; }
+        .animate-sparkle { animation: sparkle 2s ease-in-out infinite; }
+        .animate-shimmer-3d { animation: shimmer-3d 3s ease-in-out infinite; }
+        
+        /* ============================================================
+           STYLES DU LOGO 3D
+           ============================================================ */
+        .logo-3d-container {
+          position: relative;
+          width: 130px;
+          height: 130px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          perspective: 800px;
+          transform-style: preserve-3d;
+        }
+        .logo-3d-wrapper {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          transform-style: preserve-3d;
+          animation: float-3d 4s ease-in-out infinite;
+        }
+        .logo-3d-inner {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: linear-gradient(145deg, #ffffff, #f5f0ed);
+          box-shadow: 0 10px 40px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transform-style: preserve-3d;
+          animation: glow-pulse-3d 3s ease-in-out infinite;
+          border: 3px solid rgba(205, 127, 110, 0.15);
+        }
+        .logo-3d-inner:hover {
+          transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.05);
+        }
+        .logo-3d-image {
+          width: 85px;
+          height: 85px;
+          object-fit: contain;
+          display: block;
+          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.12));
+          position: relative;
+          z-index: 10;
+          animation: rotate-3d 8s ease-in-out infinite;
+          transform-style: preserve-3d;
+        }
+        .logo-3d-image:hover {
+          animation-play-state: paused;
+        }
+        /* Anneaux 3D */
+        .ring-3d {
+          position: absolute;
+          border-radius: 50%;
+          border: 2px solid rgba(205, 127, 110, 0.15);
+          animation: ring-rotate-3d 12s linear infinite;
+          transform-style: preserve-3d;
+          pointer-events: none;
+        }
+        .ring-3d-1 {
+          inset: -6px;
+          border-color: rgba(205, 127, 110, 0.2);
+          animation-duration: 10s;
+        }
+        .ring-3d-2 {
+          inset: -14px;
+          border-color: rgba(205, 127, 110, 0.15);
+          border-style: dashed;
+          animation: ring-rotate-3d-reverse 15s linear infinite;
+        }
+        .ring-3d-3 {
+          inset: -22px;
+          border-color: rgba(205, 127, 110, 0.1);
+          border-width: 1px;
+          animation-duration: 20s;
+        }
+        .ring-3d-4 {
+          inset: -30px;
+          border-color: rgba(205, 127, 110, 0.06);
+          border-width: 1px;
+          border-style: dotted;
+          animation: ring-rotate-3d-reverse 25s linear infinite;
+        }
+        /* Particules lumineuses 3D */
+        .sparkle-3d {
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(205, 127, 110, 0.6), rgba(205, 127, 110, 0.1));
+          pointer-events: none;
+          animation: sparkle 2s ease-in-out infinite;
+        }
+        .sparkle-3d:nth-child(1) { top: -5px; right: 15px; animation-delay: 0s; }
+        .sparkle-3d:nth-child(2) { bottom: -5px; left: 15px; animation-delay: 0.7s; }
+        .sparkle-3d:nth-child(3) { top: 20px; right: -10px; animation-delay: 1.4s; }
+        .sparkle-3d:nth-child(4) { bottom: 20px; left: -10px; animation-delay: 0.3s; }
+        .sparkle-3d:nth-child(5) { top: 50%; right: -15px; animation-delay: 0.9s; }
+        .sparkle-3d:nth-child(6) { top: 50%; left: -15px; animation-delay: 1.7s; }
+        /* Effet de brillance 3D */
+        .shimmer-3d {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          overflow: hidden;
+          pointer-events: none;
+          opacity: 0.5;
+        }
+        .shimmer-3d::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(
+            105deg,
+            transparent 40%,
+            rgba(255,255,255,0.3) 45%,
+            rgba(255,255,255,0.5) 50%,
+            rgba(255,255,255,0.3) 55%,
+            transparent 60%
+          );
+          animation: shimmer-3d 3s ease-in-out infinite;
+        }
+        
+        /* ============================================================
+           AUTRES STYLES
+           ============================================================ */
         .input-focus {
           transition: all 0.25s ease;
         }
@@ -116,59 +313,6 @@ export default function Login({ onLogin }) {
           width: 100%;
           margin-right: 3rem;
           box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-        }
-        .logo-container {
-          position: relative;
-          width: 120px;
-          height: 120px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .logo-circle-bg {
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          background: white;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.8);
-          border: 3px solid rgba(205, 127, 110, 0.15);
-        }
-        .logo-ring {
-          position: absolute;
-          inset: -8px;
-          border-radius: 50%;
-          border: 3px solid rgba(205, 127, 110, 0.2);
-          animation: spin-slow 10s linear infinite;
-        }
-        .logo-ring-2 {
-          position: absolute;
-          inset: -16px;
-          border-radius: 50%;
-          border: 2px dashed rgba(205, 127, 110, 0.15);
-          animation: spin-slow 15s linear infinite reverse;
-        }
-        .logo-ring-3 {
-          position: absolute;
-          inset: -24px;
-          border-radius: 50%;
-          border: 1px solid rgba(205, 127, 110, 0.08);
-          animation: spin-slow 20s linear infinite;
-        }
-        .logo-glow {
-          position: absolute;
-          inset: -30px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(205, 127, 110, 0.08) 0%, transparent 70%);
-          animation: pulse-logo 3s ease-in-out infinite;
-        }
-        .logo-image {
-          width: 80px;
-          height: 80px;
-          object-fit: contain;
-          display: block;
-          filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
-          position: relative;
-          z-index: 10;
         }
         .text-plum { color: #5e2e4a; }
         .text-charcoal { color: #36454f; }
@@ -242,18 +386,6 @@ export default function Login({ onLogin }) {
           margin-bottom: 8px;
           text-align: center;
         }
-        .qr-container {
-          position: relative;
-          padding: 4px;
-        }
-        /* QR Code agrandi */
-        .qr-image {
-          width: 160px;
-          height: 160px;
-          object-fit: contain;
-          display: block;
-        }
-        /* Conteneur du QR Code avec bordure agrandie */
         .qr-wrapper {
           border-radius: 12px;
           overflow: hidden;
@@ -266,6 +398,12 @@ export default function Login({ onLogin }) {
           box-shadow: 0 8px 24px rgba(0,0,0,0.15);
           border-color: rgba(205, 127, 110, 0.3);
         }
+        .qr-image {
+          width: 160px;
+          height: 160px;
+          object-fit: contain;
+          display: block;
+        }
         @media (max-width: 480px) {
           .glass-card { margin-right: 0; max-width: 95%; }
           .login-row { flex-direction: column; gap: 0.75rem; align-items: center; }
@@ -277,10 +415,14 @@ export default function Login({ onLogin }) {
             background: linear-gradient(to right, transparent, rgba(200, 180, 170, 0.4), rgba(200, 180, 170, 0.6), rgba(200, 180, 170, 0.4), transparent);
             margin: 0.25rem 0;
           }
-          .logo-container { width: 90px; height: 90px; }
-          .logo-image { width: 60px; height: 60px; }
+          .logo-3d-container { width: 100px; height: 100px; }
+          .logo-3d-image { width: 65px; height: 65px; }
           .login-container { padding: 1.5rem 1rem; }
           .qr-image { width: 140px; height: 140px; }
+          .ring-3d-1 { inset: -4px; }
+          .ring-3d-2 { inset: -10px; }
+          .ring-3d-3 { inset: -16px; }
+          .ring-3d-4 { inset: -22px; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
           .glass-card { margin-right: 1.5rem; }
@@ -289,36 +431,54 @@ export default function Login({ onLogin }) {
       `}</style>
 
       <div className="glass-card rounded-2xl shadow-xl login-container animate-fadeInUp">
-        {/* SECTION HAUT : LOGO + TITRE */}
+        {/* ============================================================
+            LOGO 3D AVEC ANIMATIONS
+            ============================================================ */}
         <div className="login-header">
-          <div className="logo-container animate-pulse-logo">
-            <div className="logo-glow"></div>
-            <div className="logo-ring"></div>
-            <div className="logo-ring-2"></div>
-            <div className="logo-ring-3"></div>
-            <div className="logo-circle-bg"></div>
-            <img
-              src="/FINANCE.png"
-              alt="Finance"
-              className="logo-image animate-float-logo"
-              style={{ position: 'relative', zIndex: 10 }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                const parent = e.target.parentElement;
-                const fallback = document.createElement('div');
-                fallback.className = 'logo-image flex items-center justify-center text-4xl';
-                fallback.style.cssText = 'position:relative;z-index:10;width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:3rem;color:#5e2e4a;';
-                fallback.innerHTML = '<i class="fas fa-church"></i>';
-                parent.appendChild(fallback);
-              }}
-            />
+          <div className="logo-3d-container">
+            <div className="logo-3d-wrapper">
+              {/* Anneaux 3D */}
+              <div className="ring-3d ring-3d-1"></div>
+              <div className="ring-3d ring-3d-2"></div>
+              <div className="ring-3d ring-3d-3"></div>
+              <div className="ring-3d ring-3d-4"></div>
+              
+              {/* Particules lumineuses */}
+              <div className="sparkle-3d"></div>
+              <div className="sparkle-3d"></div>
+              <div className="sparkle-3d"></div>
+              <div className="sparkle-3d"></div>
+              <div className="sparkle-3d"></div>
+              <div className="sparkle-3d"></div>
+              
+              {/* Logo principal 3D */}
+              <div className="logo-3d-inner animate-glow-3d">
+                <div className="shimmer-3d"></div>
+                <img
+                  src="/FINANCE.png"
+                  alt="Finance"
+                  className="logo-3d-image"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    const parent = e.target.parentElement;
+                    const fallback = document.createElement('div');
+                    fallback.className = 'logo-3d-image flex items-center justify-center text-5xl';
+                    fallback.style.cssText = 'position:relative;z-index:10;width:85px;height:85px;display:flex;align-items:center;justify-content:center;font-size:4rem;color:#5e2e4a;';
+                    fallback.innerHTML = '<i class="fas fa-church"></i>';
+                    parent.appendChild(fallback);
+                  }}
+                />
+              </div>
+            </div>
           </div>
           <h2 className="mt-3 text-2xl font-bold text-plum tracking-tight">
             Gestion des Dîmes et Offrandes
           </h2>
         </div>
 
-        {/* SECTION MILIEU : FORMULAIRE + LIGNE VERTICALE + QR CODE */}
+        {/* ============================================================
+            FORMULAIRE + LIGNE VERTICALE + QR CODE
+            ============================================================ */}
         <div className="login-row w-full">
           <div className="login-text">
             <p className="form-label">
@@ -406,24 +566,21 @@ export default function Login({ onLogin }) {
 
           <div className="vertical-divider"></div>
 
-          {/* QR CODE AGRANDI */}
           <div className="login-qr">
             <p className="qr-label">
               <i className="fas fa-qrcode mr-1 text-blush"></i>
               Scannez ce QR Code
             </p>
-            <div className="qr-container">
-              <div className="qr-wrapper qr-hover">
-                <img
-                  src="/QR_Code.png"
-                  alt="QR Code Login"
-                  className="qr-image"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"%3E%3Crect width="160" height="160" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
-                  }}
-                />
-              </div>
+            <div className="qr-wrapper qr-hover">
+              <img
+                src="/QR_Code.png"
+                alt="QR Code Login"
+                className="qr-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"%3E%3Crect width="160" height="160" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
+                }}
+              />
             </div>
             <p className="text-[9px] text-charcoal/40 mt-2 text-center">
               pour demander Login
