@@ -112,7 +112,7 @@ export default function Login({ onLogin }) {
           backdrop-filter: blur(16px);
           background: linear-gradient(145deg, rgba(255, 248, 245, 0.85), rgba(250, 235, 225, 0.75), rgba(245, 220, 210, 0.65));
           border: 1px solid rgba(255, 255, 255, 0.4);
-          max-width: 560px;
+          max-width: 600px;
           width: 100%;
           margin-right: 3rem;
           box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
@@ -206,7 +206,7 @@ export default function Login({ onLogin }) {
         }
         .login-row .login-text {
           flex: 1;
-          min-width: 150px;
+          min-width: 160px;
           display: flex;
           flex-direction: column;
           padding-right: 1.5rem;
@@ -217,7 +217,7 @@ export default function Login({ onLogin }) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          min-width: 130px;
+          min-width: 180px;
           padding-left: 1.5rem;
         }
         .login-row .vertical-divider {
@@ -227,15 +227,15 @@ export default function Login({ onLogin }) {
           margin: 0 0.5rem;
         }
         .login-row .login-qr .qr-label {
-          font-size: 10px;
+          font-size: 11px;
           color: #36454f;
           opacity: 0.6;
           font-weight: 500;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
           text-align: center;
         }
         .login-row .login-text .form-label {
-          font-size: 10px;
+          font-size: 11px;
           color: #36454f;
           opacity: 0.7;
           font-weight: 500;
@@ -244,12 +244,33 @@ export default function Login({ onLogin }) {
         }
         .qr-container {
           position: relative;
+          padding: 4px;
+        }
+        /* QR Code agrandi */
+        .qr-image {
+          width: 160px;
+          height: 160px;
+          object-fit: contain;
+          display: block;
+        }
+        /* Conteneur du QR Code avec bordure agrandie */
+        .qr-wrapper {
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+          background: white;
+          padding: 8px;
+          border: 1px solid rgba(200, 180, 170, 0.2);
+        }
+        .qr-wrapper:hover {
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          border-color: rgba(205, 127, 110, 0.3);
         }
         @media (max-width: 480px) {
           .glass-card { margin-right: 0; max-width: 95%; }
           .login-row { flex-direction: column; gap: 0.75rem; align-items: center; }
-          .login-row .login-text { padding-right: 0; }
-          .login-row .login-qr { padding-left: 0; }
+          .login-row .login-text { padding-right: 0; min-width: 100%; }
+          .login-row .login-qr { padding-left: 0; min-width: 100%; }
           .login-row .vertical-divider {
             width: 80%;
             height: 1px;
@@ -259,9 +280,11 @@ export default function Login({ onLogin }) {
           .logo-container { width: 90px; height: 90px; }
           .logo-image { width: 60px; height: 60px; }
           .login-container { padding: 1.5rem 1rem; }
+          .qr-image { width: 140px; height: 140px; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
           .glass-card { margin-right: 1.5rem; }
+          .qr-image { width: 140px; height: 140px; }
         }
       `}</style>
 
@@ -383,26 +406,26 @@ export default function Login({ onLogin }) {
 
           <div className="vertical-divider"></div>
 
-          {/* QR CODE AVEC L'IMAGE LOCALE */}
+          {/* QR CODE AGRANDI */}
           <div className="login-qr">
             <p className="qr-label">
               <i className="fas fa-qrcode mr-1 text-blush"></i>
               Scannez ce QR Code
             </p>
             <div className="qr-container">
-              <div className="qr-hover rounded-lg overflow-hidden shadow-md bg-white/95 p-2 border border-gray-100">
+              <div className="qr-wrapper qr-hover">
                 <img
                   src="/QR_Code.png"
                   alt="QR Code Login"
-                  className="w-28 h-28 object-contain"
+                  className="qr-image"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112"%3E%3Crect width="112" height="112" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="10" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
+                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"%3E%3Crect width="160" height="160" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
                   }}
                 />
               </div>
             </div>
-            <p className="text-[9px] text-charcoal/40 mt-1 text-center">
+            <p className="text-[9px] text-charcoal/40 mt-2 text-center">
               pour demander Login
             </p>
           </div>
