@@ -31,6 +31,23 @@ export default function Login({ onLogin }) {
     }
   };
 
+  // Fonction pour générer le QR Code avec une URL réelle
+  const getQRCodeUrl = () => {
+    // URL de la page de login (à remplacer par votre URL réelle)
+    const loginUrl = window.location.origin + '/login';
+    // Utiliser une API de génération de QR Code
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(loginUrl)}`;
+  };
+
+  // Fonction pour télécharger le QR Code
+  const downloadQRCode = () => {
+    const link = document.createElement('a');
+    link.download = 'QR_Code_Login.png';
+    link.href = getQRCodeUrl();
+    link.target = '_blank';
+    link.click();
+  };
+
   return (
     <div
       className="min-h-screen flex items-center justify-end py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
@@ -41,14 +58,12 @@ export default function Login({ onLogin }) {
         backgroundRepeat: 'no-repeat',
       }}
     >
-      {/* Overlay très léger */}
       <div className="absolute inset-0 bg-gradient-to-l from-plum/5 via-blush/5 to-transparent"></div>
 
       <style>{`
         @keyframes float {
-          0% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+          0%, 100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
           50% { transform: translateY(-6px) rotateX(2deg) rotateY(2deg); }
-          100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
         }
         @keyframes pulseGlow {
           0% { box-shadow: 0 0 0 0 rgba(205, 127, 110, 0.4); }
@@ -77,30 +92,15 @@ export default function Login({ onLogin }) {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-        .animate-pulse-glow {
-          animation: pulseGlow 2s ease-in-out infinite;
-        }
-        .animate-fadeInUp {
-          animation: fadeInUp 0.5s ease-out forwards;
-        }
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-        .animate-float-logo {
-          animation: float-logo 3s ease-in-out infinite;
-        }
-        .animate-pulse-logo {
-          animation: pulse-logo 3s ease-in-out infinite;
-        }
-        .animate-spin-slow {
-          animation: spin-slow 10s linear infinite;
-        }
-        .animate-spin-slow-reverse {
-          animation: spin-slow 15s linear infinite reverse;
-        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+        .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+        .animate-float-logo { animation: float-logo 3s ease-in-out infinite; }
+        .animate-pulse-logo { animation: pulse-logo 3s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 10s linear infinite; }
+        .animate-spin-slow-reverse { animation: spin-slow 15s linear infinite reverse; }
+        
         .input-focus {
           transition: all 0.25s ease;
         }
@@ -125,7 +125,6 @@ export default function Login({ onLogin }) {
           transform: scale(1.04) rotate(1deg);
           box-shadow: 0 12px 28px rgba(0,0,0,0.12);
         }
-        /* Conteneur avec dégradé et transparence - décalé à droite */
         .glass-card {
           backdrop-filter: blur(16px);
           background: linear-gradient(145deg, rgba(255, 248, 245, 0.85), rgba(250, 235, 225, 0.75), rgba(245, 220, 210, 0.65));
@@ -135,7 +134,6 @@ export default function Login({ onLogin }) {
           margin-right: 3rem;
           box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        /* Logo 3D avec perspective - AMÉLIORÉ POUR LA VISIBILITÉ */
         .logo-container {
           position: relative;
           width: 120px;
@@ -144,7 +142,6 @@ export default function Login({ onLogin }) {
           align-items: center;
           justify-content: center;
         }
-        /* Cercle extérieur avec fond blanc pour faire ressortir le logo */
         .logo-circle-bg {
           position: absolute;
           inset: 0;
@@ -181,7 +178,6 @@ export default function Login({ onLogin }) {
           background: radial-gradient(circle, rgba(205, 127, 110, 0.08) 0%, transparent 70%);
           animation: pulse-logo 3s ease-in-out infinite;
         }
-        /* Le logo lui-même - bien visible */
         .logo-image {
           width: 80px;
           height: 80px;
@@ -194,15 +190,7 @@ export default function Login({ onLogin }) {
         .text-plum { color: #5e2e4a; }
         .text-charcoal { color: #36454f; }
         .text-blush { color: #e8b4a0; }
-        .text-maroon { color: #6e2c2c; }
-        .bg-blush { background: #f5d6cd; }
-        .bg-peach { background: #fad4c0; }
-        .bg-nude { background: #f2e3db; }
-        .border-blush { border-color: #f5d6cd; }
-        .from-blush { --tw-gradient-from: #e8b4a0; --tw-gradient-to: rgba(232,180,160,0); }
-        .to-peach { --tw-gradient-to: #fad4c0; }
         
-        /* Nouveaux styles pour la mise en page */
         .login-container {
           display: flex;
           flex-direction: column;
@@ -217,10 +205,6 @@ export default function Login({ onLogin }) {
           align-items: center;
           text-align: center;
         }
-        .login-form {
-          width: 100%;
-          max-width: 280px;
-        }
         .login-footer {
           text-align: center;
           width: 100%;
@@ -228,7 +212,6 @@ export default function Login({ onLogin }) {
           padding-top: 0.75rem;
           margin-top: 0.25rem;
         }
-        /* Ligne avec Connectez-vous + QR Code sur la même ligne */
         .login-row {
           display: flex;
           flex-direction: row;
@@ -254,7 +237,6 @@ export default function Login({ onLogin }) {
           min-width: 130px;
           padding-left: 1.5rem;
         }
-        /* Ligne verticale de séparation */
         .login-row .vertical-divider {
           width: 1px;
           background: linear-gradient(to bottom, transparent, rgba(200, 180, 170, 0.4), rgba(200, 180, 170, 0.6), rgba(200, 180, 170, 0.4), transparent);
@@ -277,73 +259,71 @@ export default function Login({ onLogin }) {
           margin-bottom: 8px;
           text-align: center;
         }
+        .qr-container {
+          position: relative;
+          cursor: pointer;
+        }
+        .qr-container:hover .qr-download-btn {
+          opacity: 1;
+        }
+        .qr-download-btn {
+          position: absolute;
+          bottom: -8px;
+          right: -8px;
+          background: rgba(205, 127, 110, 0.9);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          font-size: 12px;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .qr-download-btn:hover {
+          background: rgba(205, 127, 110, 1);
+          transform: scale(1.1);
+        }
         @media (max-width: 480px) {
-          .glass-card {
-            margin-right: 0;
-            max-width: 95%;
-          }
-          .login-row {
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: center;
-          }
-          .login-row .login-text {
-            padding-right: 0;
-          }
-          .login-row .login-qr {
-            padding-left: 0;
-          }
+          .glass-card { margin-right: 0; max-width: 95%; }
+          .login-row { flex-direction: column; gap: 0.75rem; align-items: center; }
+          .login-row .login-text { padding-right: 0; }
+          .login-row .login-qr { padding-left: 0; }
           .login-row .vertical-divider {
             width: 80%;
             height: 1px;
             background: linear-gradient(to right, transparent, rgba(200, 180, 170, 0.4), rgba(200, 180, 170, 0.6), rgba(200, 180, 170, 0.4), transparent);
             margin: 0.25rem 0;
           }
-          .logo-container {
-            width: 90px;
-            height: 90px;
-          }
-          .logo-image {
-            width: 60px;
-            height: 60px;
-          }
-          .login-container {
-            padding: 1.5rem 1rem;
-          }
+          .logo-container { width: 90px; height: 90px; }
+          .logo-image { width: 60px; height: 60px; }
+          .login-container { padding: 1.5rem 1rem; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
-          .glass-card {
-            margin-right: 1.5rem;
-          }
+          .glass-card { margin-right: 1.5rem; }
         }
       `}</style>
 
       <div className="glass-card rounded-2xl shadow-xl login-container animate-fadeInUp">
-        {/* ============================================================
-            SECTION HAUT : LOGO + TITRE
-            ============================================================ */}
+        {/* SECTION HAUT : LOGO + TITRE */}
         <div className="login-header">
           <div className="logo-container animate-pulse-logo">
-            {/* Effets décoratifs */}
             <div className="logo-glow"></div>
             <div className="logo-ring"></div>
             <div className="logo-ring-2"></div>
             <div className="logo-ring-3"></div>
-            
-            {/* Fond blanc pour le logo */}
             <div className="logo-circle-bg"></div>
-            
-            {/* Le logo FINANCE.png */}
             <img
               src="/FINANCE.png"
               alt="Finance"
               className="logo-image animate-float-logo"
-              style={{
-                position: 'relative',
-                zIndex: 10,
-              }}
+              style={{ position: 'relative', zIndex: 10 }}
               onError={(e) => {
-                // Fallback si l'image ne charge pas
                 e.target.style.display = 'none';
                 const parent = e.target.parentElement;
                 const fallback = document.createElement('div');
@@ -359,11 +339,8 @@ export default function Login({ onLogin }) {
           </h2>
         </div>
 
-        {/* ============================================================
-            SECTION MILIEU : FORMULAIRE + LIGNE VERTICALE + QR CODE
-            ============================================================ */}
+        {/* SECTION MILIEU : FORMULAIRE + LIGNE VERTICALE + QR CODE */}
         <div className="login-row w-full">
-          {/* Colonne gauche : Formulaire */}
           <div className="login-text">
             <p className="form-label">
               <i className="fas fa-user-circle mr-1 text-blush"></i>
@@ -448,35 +425,49 @@ export default function Login({ onLogin }) {
             </form>
           </div>
 
-          {/* Ligne verticale de séparation */}
           <div className="vertical-divider"></div>
 
-          {/* Colonne droite : QR Code */}
+          {/* QR CODE AVEC TÉLÉCHARGEMENT */}
           <div className="login-qr">
             <p className="qr-label">
               <i className="fas fa-qrcode mr-1 text-blush"></i>
               Scannez ce QR Code
             </p>
-            <div className="qr-hover rounded-lg overflow-hidden shadow-md bg-white/95 p-2 border border-gray-100">
-              <img
-                src="/QR_Code.png"
-                alt="QR Code Login"
-                className="w-28 h-28 object-contain"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112"%3E%3Crect width="112" height="112" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="10" fill="%239ca3af" text-anchor="middle" dy=".3em"%3EQR Code%3C/text%3E%3C/svg%3E';
-                }}
-              />
+            <div className="qr-container">
+              <div className="qr-hover rounded-lg overflow-hidden shadow-md bg-white/95 p-2 border border-gray-100">
+                {/* QR Code généré dynamiquement */}
+                <img
+                  src={getQRCodeUrl()}
+                  alt="QR Code Login"
+                  className="w-28 h-28 object-contain"
+                  onError={(e) => {
+                    // Fallback si l'API de QR Code ne fonctionne pas
+                    e.target.onerror = null;
+                    e.target.src = '/QR_Code.png';
+                    e.target.alt = 'QR Code (utilisez l\'image locale)';
+                  }}
+                />
+              </div>
+              {/* Bouton de téléchargement du QR Code */}
+              <button
+                onClick={downloadQRCode}
+                className="qr-download-btn"
+                title="Télécharger le QR Code"
+              >
+                <i className="fas fa-download"></i>
+              </button>
             </div>
             <p className="text-[9px] text-charcoal/40 mt-1 text-center">
               pour demander Login
             </p>
+            <p className="text-[8px] text-charcoal/30 mt-0.5 text-center">
+              <i className="fas fa-info-circle mr-0.5"></i>
+              Téléchargez pour imprimer
+            </p>
           </div>
         </div>
 
-        {/* ============================================================
-            SECTION BAS : COPYRIGHT - RH André
-            ============================================================ */}
+        {/* SECTION BAS : COPYRIGHT - RH André */}
         <div className="login-footer">
           <p className="text-[10px] text-charcoal/50">
             © 2026 Gestion des Dîmes et Offrandes
