@@ -1,4 +1,4 @@
-// src/components/Login.js
+// frontend/src/components/Login.js
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 
@@ -33,7 +33,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+      className="min-h-screen flex items-center justify-end py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
       style={{
         backgroundImage: `url('/Login.png')`,
         backgroundSize: '100% 100%',
@@ -65,9 +65,13 @@ export default function Login({ onLogin }) {
           20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
         @keyframes float-logo {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          25% { transform: translateY(-8px) rotate(-3deg); }
-          75% { transform: translateY(8px) rotate(3deg); }
+          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+          25% { transform: translateY(-10px) rotate(-4deg) scale(1.02); }
+          75% { transform: translateY(10px) rotate(4deg) scale(0.98); }
+        }
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
         .animate-float {
           animation: float 3s ease-in-out infinite;
@@ -83,6 +87,9 @@ export default function Login({ onLogin }) {
         }
         .animate-float-logo {
           animation: float-logo 3s ease-in-out infinite;
+        }
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
         }
         .input-focus {
           transition: all 0.25s ease;
@@ -108,15 +115,16 @@ export default function Login({ onLogin }) {
           transform: scale(1.04) rotate(1deg);
           box-shadow: 0 12px 28px rgba(0,0,0,0.12);
         }
-        /* Conteneur avec dégradé et transparence */
+        /* Conteneur avec dégradé et transparence - décalé à droite */
         .glass-card {
           backdrop-filter: blur(12px);
           background: linear-gradient(135deg, rgba(245, 214, 205, 0.65), rgba(250, 212, 192, 0.55), rgba(242, 227, 219, 0.45));
           border: 1px solid rgba(255, 255, 255, 0.3);
           max-width: 520px;
           width: 100%;
+          margin-right: 2rem;
         }
-        /* Logo 3D avec perspective */
+        /* Logo 3D avec perspective - TAILLE AUGMENTÉE */
         .logo-3d {
           perspective: 600px;
           transform-style: preserve-3d;
@@ -125,9 +133,32 @@ export default function Login({ onLogin }) {
           transform: rotateX(4deg) rotateY(-4deg) rotateZ(1deg);
           transition: transform 0.3s ease;
           box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+          background: linear-gradient(145deg, #ffffff, #f0f0f0);
         }
         .logo-3d-inner:hover {
           transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.02);
+        }
+        .logo-container {
+          position: relative;
+          width: 100px;
+          height: 100px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .logo-ring {
+          position: absolute;
+          inset: -6px;
+          border-radius: 50%;
+          border: 3px solid rgba(205, 127, 110, 0.15);
+          animation: spin-slow 10s linear infinite;
+        }
+        .logo-ring-2 {
+          position: absolute;
+          inset: -12px;
+          border-radius: 50%;
+          border: 2px dashed rgba(205, 127, 110, 0.1);
+          animation: spin-slow 15s linear infinite reverse;
         }
         .text-plum { color: #5e2e4a; }
         .text-charcoal { color: #36454f; }
@@ -146,7 +177,7 @@ export default function Login({ onLogin }) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 1.5rem;
+          gap: 1rem;
           padding: 2rem 1.5rem;
         }
         .login-header {
@@ -157,40 +188,76 @@ export default function Login({ onLogin }) {
         }
         .login-form {
           width: 100%;
-          max-width: 320px;
+          max-width: 300px;
         }
         .login-footer {
           text-align: center;
           width: 100%;
           border-top: 1px solid rgba(200, 200, 200, 0.3);
           padding-top: 0.75rem;
-          margin-top: 0.5rem;
+          margin-top: 0.25rem;
         }
+        /* Ligne avec Connectez-vous + QR Code sur la même ligne */
         .login-row {
           display: flex;
           flex-direction: row;
-          align-items: center;
+          align-items: stretch;
           justify-content: center;
           gap: 1.5rem;
           width: 100%;
-          flex-wrap: wrap;
         }
         .login-row .login-text {
           flex: 1;
-          min-width: 120px;
-          text-align: center;
+          min-width: 140px;
+          display: flex;
+          flex-direction: column;
         }
         .login-row .login-qr {
-          flex: 1;
-          min-width: 120px;
+          flex: 0 0 auto;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
+          min-width: 120px;
+        }
+        .login-row .login-qr .qr-label {
+          font-size: 10px;
+          color: #36454f;
+          opacity: 0.6;
+          font-weight: 500;
+          margin-bottom: 4px;
+          text-align: center;
+        }
+        .login-row .login-text .form-label {
+          font-size: 10px;
+          color: #36454f;
+          opacity: 0.7;
+          font-weight: 500;
+          margin-bottom: 6px;
+          text-align: center;
         }
         @media (max-width: 480px) {
+          .glass-card {
+            margin-right: 0;
+            max-width: 95%;
+          }
           .login-row {
             flex-direction: column;
             gap: 0.75rem;
+            align-items: center;
+          }
+          .login-row .login-qr {
+            flex: 1;
+            width: 100%;
+          }
+          .logo-container {
+            width: 80px;
+            height: 80px;
+          }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+          .glass-card {
+            margin-right: 1rem;
           }
         }
       `}</style>
@@ -200,32 +267,33 @@ export default function Login({ onLogin }) {
             SECTION HAUT : LOGO + TITRE (Image 1)
             ============================================================ */}
         <div className="login-header">
-          <div className="logo-3d h-20 w-20 rounded-full bg-white/90 shadow-lg flex items-center justify-center animate-float-logo ring-2 ring-blush/40">
-            <div className="logo-3d-inner h-16 w-16 rounded-full flex items-center justify-center bg-gradient-to-br from-white to-gray-100">
-              <img
-                src="/FINANCE.png"
-                alt="Finance"
-                className="h-12 w-12 object-contain drop-shadow-sm"
-              />
+          <div className="logo-container">
+            <div className="logo-ring"></div>
+            <div className="logo-ring-2"></div>
+            <div className="logo-3d h-24 w-24 rounded-full bg-white/90 shadow-xl flex items-center justify-center animate-float-logo ring-2 ring-blush/40">
+              <div className="logo-3d-inner h-20 w-20 rounded-full flex items-center justify-center">
+                <img
+                  src="/FINANCE.png"
+                  alt="Finance"
+                  className="h-16 w-16 object-contain drop-shadow-md"
+                />
+              </div>
             </div>
           </div>
           <h2 className="mt-3 text-2xl font-bold text-plum tracking-tight">
             Gestion des Dîmes et Offrandes
           </h2>
-          <p className="text-xs text-charcoal/60 mt-0.5">
-            Système sécurisé - Tous droits réservés
-          </p>
         </div>
 
         {/* ============================================================
-            SECTION MILIEU : FORMULAIRE (Image 2 + 3 sur la même ligne)
+            SECTION MILIEU : FORMULAIRE + QR CODE SUR MÊME LIGNE
             ============================================================ */}
         <div className="login-row w-full">
-          {/* Colonne gauche : Formulaire (Image 2) */}
+          {/* Colonne gauche : Formulaire */}
           <div className="login-text">
-            <p className="text-xs text-charcoal/70 font-medium mb-2">
+            <p className="form-label">
               <i className="fas fa-user-circle mr-1 text-blush"></i>
-              Connectez-vous à votre espace de travail
+              Connectez-vous
             </p>
 
             <form className="space-y-3" onSubmit={handleSubmit}>
@@ -306,9 +374,9 @@ export default function Login({ onLogin }) {
             </form>
           </div>
 
-          {/* Colonne droite : QR Code (Image 3) */}
+          {/* Colonne droite : QR Code */}
           <div className="login-qr">
-            <p className="text-[10px] text-charcoal/60 font-medium mb-1 text-center">
+            <p className="qr-label">
               <i className="fas fa-qrcode mr-1 text-blush"></i>
               Scannez ce QR Code
             </p>
@@ -330,14 +398,14 @@ export default function Login({ onLogin }) {
         </div>
 
         {/* ============================================================
-            SECTION BAS : COPYRIGHT (Image 4)
+            SECTION BAS : COPYRIGHT (Image 4) - RH André
             ============================================================ */}
         <div className="login-footer">
           <p className="text-[10px] text-charcoal/50">
             © 2026 Gestion des Dîmes et Offrandes
           </p>
           <p className="text-[9px] text-charcoal/40 mt-0.5">
-            Système sécurisé - Tous droits réservés
+            RH André - Tous droits réservés
           </p>
         </div>
       </div>
