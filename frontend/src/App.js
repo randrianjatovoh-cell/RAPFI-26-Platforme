@@ -497,7 +497,7 @@ function AppContent() {
   };
 
   // ============================================================
-  // FONCTION GET_TAB_CLASSES - AJOUTÉE
+  // FONCTION GET_TAB_CLASSES
   // ============================================================
   const getTabClasses = (tabId, isActive) => {
     if (isActive) {
@@ -510,7 +510,7 @@ function AppContent() {
   };
 
   // ============================================================
-  // FONCTION POUR LE TITRE
+  // FONCTION POUR LE TITRE - AMÉLIORÉE
   // ============================================================
   const getTitleDisplay = () => {
     const firstLine = "GESTION DES DÎMES ET OFFRANDES";
@@ -522,11 +522,22 @@ function AppContent() {
     } else if (isVerificateur) {
       thirdLine = (user?.federation || "FÉDÉRATION").toUpperCase();
     } else if (isPasteur) {
-      thirdLine = (user?.district || "DISTRICT").toUpperCase();
+      // Pour Pasteur: "DISTRICT + Nom du District"
+      const districtName = (user?.district || "").toUpperCase();
+      thirdLine = districtName ? `DISTRICT ${districtName}` : "DISTRICT";
     } else if (isAncienOrTresorier) {
+      // Pour Ancien/Trésorier: "EGLISE + Nom de l'Église - District"
       const egliseName = (user?.eglise || "").toUpperCase();
       const districtName = (user?.district || "").toUpperCase();
-      thirdLine = egliseName + (districtName ? ` - ${districtName}` : "");
+      if (egliseName && districtName) {
+        thirdLine = `EGLISE ${egliseName} - ${districtName}`;
+      } else if (egliseName) {
+        thirdLine = `EGLISE ${egliseName}`;
+      } else if (districtName) {
+        thirdLine = `DISTRICT ${districtName}`;
+      } else {
+        thirdLine = "ANCIEN / TRÉSORIER";
+      }
     } else {
       thirdLine = "UTILISATEUR";
     }
