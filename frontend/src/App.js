@@ -716,46 +716,31 @@ function AppContent() {
   // ----------------------------------------------------------------------
 
   // ============================================================
-  // PAGE DE CHARGEMENT AVEC CERCLE ET LOGO RAPFI À L'INTÉRIEUR
+  // PAGE DE CHARGEMENT BASIC
   // ============================================================
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center">
-          {/* Cercle avec logo à l'intérieur */}
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            {/* Anneau extérieur qui tourne */}
-            <div className="absolute inset-0 rounded-full border-4 border-blue-200/30 animate-spin-slow"></div>
-            
-            {/* Deuxième anneau qui tourne en sens inverse */}
-            <div className="absolute inset-1 rounded-full border-4 border-blue-300/20 animate-spin-slow-reverse"></div>
-            
-            {/* Cercle intérieur avec le logo */}
-            <div className="absolute inset-2 rounded-full bg-white shadow-lg flex items-center justify-center border border-blue-200/30">
-              <img
-                src="/RAPFI.png"
-                alt="RAPFI"
-                className="w-14 h-14 object-contain animate-pulse"
-                onError={(e) => { 
-                  e.target.style.display = 'none'; 
-                  e.target.parentNode.innerHTML = '<i className="fas fa-church text-blue-600 text-3xl animate-pulse"></i>'; 
-                }}
-              />
-            </div>
-            
-            {/* Points lumineux autour du cercle */}
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-ping-slow"></div>
-            <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-indigo-400 rounded-full animate-ping-slow animation-delay-500"></div>
-          </div>
-
-          {/* Titre */}
-          <h2 className="text-xl font-semibold text-blue-800 mb-1">
-            Gestion Financière – Fiangonan
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Chargement du tableau de bord...
-          </p>
+      <div className="flex flex-col items-center justify-center h-screen bg-white">
+        {/* Logo RAPFI avec pulsation */}
+        <div className="w-24 h-24 mb-6">
+          <img
+            src="/RAPFI.png"
+            alt="RAPFI"
+            className="w-full h-full object-contain animate-pulse"
+            onError={(e) => { 
+              e.target.style.display = 'none'; 
+              e.target.parentNode.innerHTML = '<i className="fas fa-spinner fa-spin text-blue-600 text-5xl"></i>'; 
+            }}
+          />
         </div>
+        
+        {/* Spinner simple */}
+        <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        
+        {/* Texte de chargement */}
+        <p className="text-gray-500 text-sm">
+          Chargement...
+        </p>
       </div>
     );
   }
@@ -779,7 +764,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE AVEC COULEURS "ETEEZY" - DÉGRADÉ ÉLÉGANT */}
+        {/* EN-TÊTE */}
         <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
@@ -815,7 +800,7 @@ function AppContent() {
             </div>
           </div>
 
-          {/* AVATAR + DÉCONNEXION EN ICÔNES */}
+          {/* AVATAR + DÉCONNEXION */}
           <div className="flex items-center gap-2 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -852,7 +837,6 @@ function AppContent() {
               </div>
             )}
 
-            {/* AVATAR */}
             <button 
               onClick={() => setShowProfile(!showProfile)} 
               className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border-2 border-white/20 shadow-lg flex items-center justify-center overflow-hidden"
@@ -867,7 +851,6 @@ function AppContent() {
               )}
             </button>
 
-            {/* DÉCONNEXION */}
             <button 
               onClick={handleLogout} 
               className="w-10 h-10 rounded-full bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border border-red-400/20 flex items-center justify-center text-red-200 hover:text-white"
@@ -881,7 +864,7 @@ function AppContent() {
         {/* Barre de navigation vérificateur */}
         {renderVerificateurNavigation()}
 
-        {/* BARRE D'ONGLETS AVEC ICÔNES ET LIBELLÉS */}
+        {/* BARRE D'ONGLETS */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
             {visibleTabs.map(tab => {
@@ -939,7 +922,6 @@ function AppContent() {
         </div>
       </div>
 
-      {/* ANIMATIONS CSS */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -1033,14 +1015,6 @@ function AppContent() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
         }
-        @keyframes spin-slow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes spin-slow-reverse {
-          0% { transform: rotate(360deg); }
-          100% { transform: rotate(0deg); }
-        }
 
         .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
         .animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
@@ -1067,8 +1041,7 @@ function AppContent() {
         .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
         .animate-bounce { animation: bounce 1s ease-in-out infinite; }
         .animate-pulse { animation: pulse 2s ease-in-out infinite; }
-        .animate-spin-slow { animation: spin-slow 2s linear infinite; }
-        .animate-spin-slow-reverse { animation: spin-slow-reverse 3s linear infinite; }
+        .animate-spin { animation: spin 1s linear infinite; }
 
         .animation-delay-1000 { animation-delay: 1s; }
         .animation-delay-500 { animation-delay: 0.5s; }
