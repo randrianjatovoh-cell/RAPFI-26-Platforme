@@ -48,8 +48,8 @@ export default function Login({ onLogin }) {
            ANIMATIONS PRINCIPALES
            ============================================================ */
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
-          50% { transform: translateY(-6px) rotateX(2deg) rotateY(2deg); }
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
         }
         @keyframes pulseGlow {
           0% { box-shadow: 0 0 0 0 rgba(205, 127, 110, 0.4); }
@@ -66,8 +66,8 @@ export default function Login({ onLogin }) {
           20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
         @keyframes pulse-logo {
-          0%, 100% { box-shadow: 0 0 20px rgba(205, 127, 110, 0.2), 0 0 40px rgba(205, 127, 110, 0.05); }
-          50% { box-shadow: 0 0 30px rgba(205, 127, 110, 0.3), 0 0 60px rgba(205, 127, 110, 0.1); }
+          0%, 100% { box-shadow: 0 0 30px rgba(205, 127, 110, 0.3), 0 0 60px rgba(205, 127, 110, 0.1); }
+          50% { box-shadow: 0 0 50px rgba(205, 127, 110, 0.5), 0 0 100px rgba(205, 127, 110, 0.2); }
         }
         @keyframes spin-slow {
           0% { transform: rotate(0deg); }
@@ -79,56 +79,31 @@ export default function Login({ onLogin }) {
         }
         
         /* ============================================================
-           ANIMATIONS 3D DU LOGO
+           ANIMATIONS DU LOGO - SIMPLES ET EFFICACES
            ============================================================ */
-        @keyframes float-3d {
+        @keyframes float-logo {
           0%, 100% { 
-            transform: translateY(0px) rotateX(0deg) rotateY(0deg) scale(1); 
-          }
-          25% { 
-            transform: translateY(-12px) rotateX(8deg) rotateY(12deg) scale(1.02); 
+            transform: translateY(0px) scale(1); 
           }
           50% { 
-            transform: translateY(0px) rotateX(0deg) rotateY(-8deg) scale(0.98); 
-          }
-          75% { 
-            transform: translateY(8px) rotateX(-6deg) rotateY(15deg) scale(1.01); 
+            transform: translateY(-10px) scale(1.02); 
           }
         }
-        @keyframes rotate-3d {
-          0% { transform: rotateY(0deg) rotateX(0deg); }
-          25% { transform: rotateY(90deg) rotateX(5deg); }
-          50% { transform: rotateY(180deg) rotateX(0deg); }
-          75% { transform: rotateY(270deg) rotateX(-5deg); }
-          100% { transform: rotateY(360deg) rotateX(0deg); }
-        }
-        @keyframes glow-pulse-3d {
+        @keyframes glow-logo {
           0%, 100% { 
-            box-shadow: 0 0 20px rgba(205, 127, 110, 0.15), 
-                        0 0 40px rgba(205, 127, 110, 0.05),
-                        inset 0 0 20px rgba(255,255,255,0.1);
+            box-shadow: 0 0 30px rgba(205, 127, 110, 0.2), 0 0 60px rgba(205, 127, 110, 0.05);
           }
           50% { 
-            box-shadow: 0 0 40px rgba(205, 127, 110, 0.3), 
-                        0 0 80px rgba(205, 127, 110, 0.1),
-                        inset 0 0 30px rgba(255,255,255,0.2);
+            box-shadow: 0 0 50px rgba(205, 127, 110, 0.4), 0 0 80px rgba(205, 127, 110, 0.1);
           }
         }
-        @keyframes ring-rotate-3d {
-          0% { transform: rotateX(60deg) rotateZ(0deg); }
-          100% { transform: rotateX(60deg) rotateZ(360deg); }
+        @keyframes ring-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
-        @keyframes ring-rotate-3d-reverse {
-          0% { transform: rotateX(30deg) rotateZ(360deg); }
-          100% { transform: rotateX(30deg) rotateZ(0deg); }
-        }
-        @keyframes sparkle {
-          0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-          50% { opacity: 1; transform: scale(1) rotate(180deg); }
-        }
-        @keyframes shimmer-3d {
-          0% { transform: translateX(-100%) rotate(25deg); }
-          100% { transform: translateX(200%) rotate(25deg); }
+        @keyframes ring-spin-reverse {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
         }
         
         /* ============================================================
@@ -142,141 +117,93 @@ export default function Login({ onLogin }) {
         .animate-spin-slow { animation: spin-slow 10s linear infinite; }
         .animate-spin-slow-reverse { animation: spin-slow-reverse 15s linear infinite; }
         
-        /* Animations 3D du logo */
-        .animate-float-3d { animation: float-3d 4s ease-in-out infinite; }
-        .animate-rotate-3d { animation: rotate-3d 8s ease-in-out infinite; }
-        .animate-glow-3d { animation: glow-pulse-3d 3s ease-in-out infinite; }
-        .animate-ring-3d { animation: ring-rotate-3d 12s linear infinite; }
-        .animate-ring-3d-reverse { animation: ring-rotate-3d-reverse 15s linear infinite; }
-        .animate-sparkle { animation: sparkle 2s ease-in-out infinite; }
-        .animate-shimmer-3d { animation: shimmer-3d 3s ease-in-out infinite; }
+        /* Animations du logo */
+        .animate-float-logo { animation: float-logo 3s ease-in-out infinite; }
+        .animate-glow-logo { animation: glow-logo 3s ease-in-out infinite; }
+        .animate-ring-spin { animation: ring-spin 12s linear infinite; }
+        .animate-ring-spin-reverse { animation: ring-spin-reverse 18s linear infinite; }
         
         /* ============================================================
-           STYLES DU LOGO 3D
+           STYLES DU LOGO - TRÈS VISIBLE
            ============================================================ */
-        .logo-3d-container {
+        .logo-main-container {
           position: relative;
-          width: 130px;
-          height: 130px;
+          width: 140px;
+          height: 140px;
           display: flex;
           align-items: center;
           justify-content: center;
-          perspective: 800px;
-          transform-style: preserve-3d;
         }
-        .logo-3d-wrapper {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          transform-style: preserve-3d;
-          animation: float-3d 4s ease-in-out infinite;
-        }
-        .logo-3d-inner {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          background: linear-gradient(145deg, #ffffff, #f5f0ed);
-          box-shadow: 0 10px 40px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transform-style: preserve-3d;
-          animation: glow-pulse-3d 3s ease-in-out infinite;
-          border: 3px solid rgba(205, 127, 110, 0.15);
-        }
-        .logo-3d-inner:hover {
-          transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.05);
-        }
-        .logo-3d-image {
-          width: 85px;
-          height: 85px;
-          object-fit: contain;
-          display: block;
-          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.12));
-          position: relative;
-          z-index: 10;
-          animation: rotate-3d 8s ease-in-out infinite;
-          transform-style: preserve-3d;
-        }
-        .logo-3d-image:hover {
-          animation-play-state: paused;
-        }
-        /* Anneaux 3D */
-        .ring-3d {
-          position: absolute;
-          border-radius: 50%;
-          border: 2px solid rgba(205, 127, 110, 0.15);
-          animation: ring-rotate-3d 12s linear infinite;
-          transform-style: preserve-3d;
-          pointer-events: none;
-        }
-        .ring-3d-1 {
-          inset: -6px;
-          border-color: rgba(205, 127, 110, 0.2);
-          animation-duration: 10s;
-        }
-        .ring-3d-2 {
-          inset: -14px;
-          border-color: rgba(205, 127, 110, 0.15);
-          border-style: dashed;
-          animation: ring-rotate-3d-reverse 15s linear infinite;
-        }
-        .ring-3d-3 {
-          inset: -22px;
-          border-color: rgba(205, 127, 110, 0.1);
-          border-width: 1px;
-          animation-duration: 20s;
-        }
-        .ring-3d-4 {
-          inset: -30px;
-          border-color: rgba(205, 127, 110, 0.06);
-          border-width: 1px;
-          border-style: dotted;
-          animation: ring-rotate-3d-reverse 25s linear infinite;
-        }
-        /* Particules lumineuses 3D */
-        .sparkle-3d {
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(205, 127, 110, 0.6), rgba(205, 127, 110, 0.1));
-          pointer-events: none;
-          animation: sparkle 2s ease-in-out infinite;
-        }
-        .sparkle-3d:nth-child(1) { top: -5px; right: 15px; animation-delay: 0s; }
-        .sparkle-3d:nth-child(2) { bottom: -5px; left: 15px; animation-delay: 0.7s; }
-        .sparkle-3d:nth-child(3) { top: 20px; right: -10px; animation-delay: 1.4s; }
-        .sparkle-3d:nth-child(4) { bottom: 20px; left: -10px; animation-delay: 0.3s; }
-        .sparkle-3d:nth-child(5) { top: 50%; right: -15px; animation-delay: 0.9s; }
-        .sparkle-3d:nth-child(6) { top: 50%; left: -15px; animation-delay: 1.7s; }
-        /* Effet de brillance 3D */
-        .shimmer-3d {
+        /* Cercle de fond blanc pour faire ressortir le logo */
+        .logo-white-bg {
           position: absolute;
           inset: 0;
           border-radius: 50%;
-          overflow: hidden;
-          pointer-events: none;
-          opacity: 0.5;
+          background: white;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.9);
+          border: 4px solid rgba(205, 127, 110, 0.15);
+          animation: glow-logo 3s ease-in-out infinite;
         }
-        .shimmer-3d::before {
+        .logo-white-bg::after {
           content: '';
           position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: linear-gradient(
-            105deg,
-            transparent 40%,
-            rgba(255,255,255,0.3) 45%,
-            rgba(255,255,255,0.5) 50%,
-            rgba(255,255,255,0.3) 55%,
-            transparent 60%
-          );
-          animation: shimmer-3d 3s ease-in-out infinite;
+          inset: -8px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(205, 127, 110, 0.08) 0%, transparent 70%);
+          animation: pulse-logo 3s ease-in-out infinite;
         }
+        /* Anneaux décoratifs */
+        .logo-ring {
+          position: absolute;
+          border-radius: 50%;
+          border: 2px solid rgba(205, 127, 110, 0.15);
+          pointer-events: none;
+        }
+        .logo-ring-1 {
+          inset: -8px;
+          border-color: rgba(205, 127, 110, 0.2);
+          animation: ring-spin 10s linear infinite;
+        }
+        .logo-ring-2 {
+          inset: -16px;
+          border-color: rgba(205, 127, 110, 0.1);
+          border-style: dashed;
+          animation: ring-spin-reverse 14s linear infinite;
+        }
+        .logo-ring-3 {
+          inset: -24px;
+          border-color: rgba(205, 127, 110, 0.06);
+          border-width: 1px;
+          animation: ring-spin 18s linear infinite;
+        }
+        /* L'image du logo - TRÈS VISIBLE */
+        .logo-image-main {
+          position: relative;
+          z-index: 10;
+          width: 90px;
+          height: 90px;
+          object-fit: contain;
+          display: block;
+          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
+          animation: float-logo 3s ease-in-out infinite;
+          transition: transform 0.3s ease;
+        }
+        .logo-image-main:hover {
+          transform: scale(1.08);
+          filter: drop-shadow(0 8px 20px rgba(0,0,0,0.15));
+        }
+        /* Points lumineux */
+        .glow-dot {
+          position: absolute;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(205, 127, 110, 0.4), rgba(205, 127, 110, 0.05));
+          pointer-events: none;
+          animation: pulse-logo 2s ease-in-out infinite;
+        }
+        .glow-dot-1 { width: 8px; height: 8px; top: -2px; right: 10px; animation-delay: 0s; }
+        .glow-dot-2 { width: 6px; height: 6px; bottom: -2px; left: 10px; animation-delay: 0.7s; }
+        .glow-dot-3 { width: 5px; height: 5px; top: 25px; right: -8px; animation-delay: 1.4s; }
+        .glow-dot-4 { width: 5px; height: 5px; bottom: 25px; left: -8px; animation-delay: 0.3s; }
         
         /* ============================================================
            AUTRES STYLES
@@ -415,14 +342,13 @@ export default function Login({ onLogin }) {
             background: linear-gradient(to right, transparent, rgba(200, 180, 170, 0.4), rgba(200, 180, 170, 0.6), rgba(200, 180, 170, 0.4), transparent);
             margin: 0.25rem 0;
           }
-          .logo-3d-container { width: 100px; height: 100px; }
-          .logo-3d-image { width: 65px; height: 65px; }
+          .logo-main-container { width: 110px; height: 110px; }
+          .logo-image-main { width: 70px; height: 70px; }
           .login-container { padding: 1.5rem 1rem; }
           .qr-image { width: 140px; height: 140px; }
-          .ring-3d-1 { inset: -4px; }
-          .ring-3d-2 { inset: -10px; }
-          .ring-3d-3 { inset: -16px; }
-          .ring-3d-4 { inset: -22px; }
+          .logo-ring-1 { inset: -6px; }
+          .logo-ring-2 { inset: -12px; }
+          .logo-ring-3 { inset: -18px; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
           .glass-card { margin-right: 1.5rem; }
@@ -432,46 +358,41 @@ export default function Login({ onLogin }) {
 
       <div className="glass-card rounded-2xl shadow-xl login-container animate-fadeInUp">
         {/* ============================================================
-            LOGO 3D AVEC ANIMATIONS
+            LOGO TRÈS VISIBLE AVEC ANIMATIONS
             ============================================================ */}
         <div className="login-header">
-          <div className="logo-3d-container">
-            <div className="logo-3d-wrapper">
-              {/* Anneaux 3D */}
-              <div className="ring-3d ring-3d-1"></div>
-              <div className="ring-3d ring-3d-2"></div>
-              <div className="ring-3d ring-3d-3"></div>
-              <div className="ring-3d ring-3d-4"></div>
-              
-              {/* Particules lumineuses */}
-              <div className="sparkle-3d"></div>
-              <div className="sparkle-3d"></div>
-              <div className="sparkle-3d"></div>
-              <div className="sparkle-3d"></div>
-              <div className="sparkle-3d"></div>
-              <div className="sparkle-3d"></div>
-              
-              {/* Logo principal 3D */}
-              <div className="logo-3d-inner animate-glow-3d">
-                <div className="shimmer-3d"></div>
-                <img
-                  src="/FINANCE.png"
-                  alt="Finance"
-                  className="logo-3d-image"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    const parent = e.target.parentElement;
-                    const fallback = document.createElement('div');
-                    fallback.className = 'logo-3d-image flex items-center justify-center text-5xl';
-                    fallback.style.cssText = 'position:relative;z-index:10;width:85px;height:85px;display:flex;align-items:center;justify-content:center;font-size:4rem;color:#5e2e4a;';
-                    fallback.innerHTML = '<i class="fas fa-church"></i>';
-                    parent.appendChild(fallback);
-                  }}
-                />
-              </div>
-            </div>
+          <div className="logo-main-container">
+            {/* Anneaux décoratifs */}
+            <div className="logo-ring logo-ring-1"></div>
+            <div className="logo-ring logo-ring-2"></div>
+            <div className="logo-ring logo-ring-3"></div>
+            
+            {/* Points lumineux */}
+            <div className="glow-dot glow-dot-1"></div>
+            <div className="glow-dot glow-dot-2"></div>
+            <div className="glow-dot glow-dot-3"></div>
+            <div className="glow-dot glow-dot-4"></div>
+            
+            {/* Fond blanc pour le logo */}
+            <div className="logo-white-bg"></div>
+            
+            {/* Le logo FINANCE.png */}
+            <img
+              src="/FINANCE.png"
+              alt="Finance"
+              className="logo-image-main"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                const parent = e.target.parentElement;
+                const fallback = document.createElement('div');
+                fallback.className = 'logo-image-main flex items-center justify-center';
+                fallback.style.cssText = 'position:relative;z-index:10;width:90px;height:90px;display:flex;align-items:center;justify-content:center;font-size:4rem;color:#5e2e4a;';
+                fallback.innerHTML = '<i class="fas fa-church"></i>';
+                parent.appendChild(fallback);
+              }}
+            />
           </div>
-          <h2 className="mt-3 text-2xl font-bold text-plum tracking-tight">
+          <h2 className="mt-4 text-2xl font-bold text-plum tracking-tight">
             Gestion des Dîmes et Offrandes
           </h2>
         </div>
