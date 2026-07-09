@@ -147,72 +147,203 @@ async function getEglisesByFederation(federation) {
   return Array.from(allEglises);
 }
 
-// ---------- Grand Livre ----------
+// ============================================================
+// ✅ GRAND LIVRE - CORRIGÉ AVEC UPSERT ET BONNE CLÉ
+// ============================================================
+
+/**
+ * Sauvegarde les données du Grand Livre avec UPSERT
+ * La clé unique est : (month, eglise, sabbath_index)
+ */
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
-  await db.run('DELETE FROM gl_data WHERE user_id = ? AND month = ? AND eglise = ?', userId, month, eglise);
-  await db.run(
-    'INSERT INTO gl_data (user_id, month, data, eglise, district, federation) VALUES (?, ?, ?, ?, ?, ?)',
-    userId, month, JSON.stringify(data), eglise, district, federation
-  );
+  
+  // 🔥 Nettoyer le nom de l'église
+  const cleanEglise = eglise ? eglise.trim() : '';
+  if (!cleanEglise) {
+    throw new Error('Le nom de l\'église est requis');
+  }
+
+  console.log(`📝 saveGLData: Mois=${month}, Église=${cleanEglise}, Sabbats=${Object.keys(data).filter(k => !isNaN(k)).length}`);
+
+  const sabbathIndices = Object.keys(data).filter(key => !isNaN(key));
+  
+  for (const sabbathIndex of sabbathIndices) {
+    const entries = data[sabbathIndex];
+    if (!entries || entries.length === 0) continue;
+    
+    // 🔥 Enrichir chaque entrée avec les informations de contexte
+    const enrichedEntries = entries.map(entry => ({
+      ...entry,
+      monthId: month,
+      eglise: cleanEglise,
+      sabbathIndex: parseInt(sabbathIndex)
+    }));
+
+    // 🔥 UPSERT - Insertion ou mise à jour basée sur (month, eglise, sabbath_index)
+    if (db.isPostgres) {
+      await db.run(
+        `INSERT INTO gl_data (user_id, month, eglise, district, federation, sabbath_index, data)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (month, eglise, sabbath_index) 
+         DO UPDATE SET 
+           data = EXCLUDED.data,
+           user_id = EXCLUDED.user_id,
+           district = EXCLUDED.district,
+           federation = EXCLUDED.federation,
+           updated_at = CURRENT_TIMESTAMP`,
+        userId, month, cleanEglise, district, federation, parseInt(sabbathIndex), JSON.stringify(enrichedEntries)
+      );
+    } else {
+      // SQLite - Vérifier l'existence
+      const existing = await db.get(
+        'SELECT id FROM gl_data WHERE month = ? AND eglise = ? AND sabbath_index = ?',
+        month, cleanEglise, parseInt(sabbathIndex)
+      );
+      
+      if (existing) {
+        await db.run(
+          `UPDATE gl_data 
+           SET data = ?, district = ?, federation = ?, user_id = ?
+           WHERE month = ? AND eglise = ? AND sabbath_index = ?`,
+          JSON.stringify(enrichedEntries), district, federation, userId,
+          month, cleanEglise, parseInt(sabbathIndex)
+        );
+      } else {
+        await db.run(
+          `INSERT INTO gl_data (user_id, month, eglise, district, federation, sabbath_index, data)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          userId, month, cleanEglise, district, federation, parseInt(sabbathIndex), JSON.stringify(enrichedEntries)
+        );
+      }
+    }
+  }
+  
+  console.log(`✅ GL sauvegardé pour ${cleanEglise} - ${month} (${sabbathIndices.length} sabbats)`);
 }
 
+// ============================================================
+// ✅ LECTURE GL - AVEC FILTRAGE PAR ÉGLISE
+// ============================================================
+
+/**
+ * Récupère les données GL pour une église spécifique
+ */
 async function getGLDataByEglise(month, eglise) {
   const db = await openDb();
-  const rows = await db.all('SELECT data FROM gl_data WHERE month = ? AND eglise = ?', month, eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  if (!cleanEglise) return {};
+  
+  const rows = await db.all(
+    'SELECT sabbath_index, data FROM gl_data WHERE month = ? AND eglise = ?',
+    month, cleanEglise
+  );
+  
   const result = {};
   for (const row of rows) {
-    const data = JSON.parse(row.data);
-    for (const sabbathIndex in data) {
-      if (!result[sabbathIndex]) result[sabbathIndex] = [];
-      result[sabbathIndex] = result[sabbathIndex].concat(data[sabbathIndex]);
+    try {
+      const data = JSON.parse(row.data);
+      // Si data est un tableau, le stocker directement
+      if (Array.isArray(data)) {
+        result[row.sabbath_index] = data;
+      } else {
+        // Sinon, essayer de l'utiliser comme objet
+        result[row.sabbath_index] = data;
+      }
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing data pour ${month} - ${cleanEglise}, sabbath ${row.sabbath_index}`);
+      result[row.sabbath_index] = [];
     }
   }
   return result;
 }
 
+/**
+ * Récupère les données GL pour un district
+ */
 async function getGLDataByDistrict(month, district) {
   const db = await openDb();
-  const rows = await db.all('SELECT data FROM gl_data WHERE month = ? AND district = ?', month, district);
+  const cleanDistrict = district ? district.trim() : '';
+  if (!cleanDistrict) return {};
+  
+  const rows = await db.all(
+    'SELECT eglise, sabbath_index, data FROM gl_data WHERE month = ? AND district = ?',
+    month, cleanDistrict
+  );
+  
   const result = {};
   for (const row of rows) {
-    const data = JSON.parse(row.data);
-    for (const sabbathIndex in data) {
-      if (!result[sabbathIndex]) result[sabbathIndex] = [];
-      result[sabbathIndex] = result[sabbathIndex].concat(data[sabbathIndex]);
+    try {
+      const data = JSON.parse(row.data);
+      if (!result[row.sabbath_index]) result[row.sabbath_index] = [];
+      if (Array.isArray(data)) {
+        result[row.sabbath_index] = result[row.sabbath_index].concat(data);
+      } else {
+        result[row.sabbath_index] = result[row.sabbath_index].concat([data]);
+      }
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing data pour ${month} - ${row.eglise}, sabbath ${row.sabbath_index}`);
     }
   }
   return result;
 }
 
+/**
+ * Récupère les données GL pour une fédération
+ */
 async function getGLDataByFederation(month, federation) {
   const db = await openDb();
-  const rows = await db.all('SELECT data FROM gl_data WHERE month = ? AND federation = ?', month, federation);
+  const cleanFederation = federation ? federation.trim() : '';
+  if (!cleanFederation) return {};
+  
+  const rows = await db.all(
+    'SELECT eglise, sabbath_index, data FROM gl_data WHERE month = ? AND federation = ?',
+    month, cleanFederation
+  );
+  
   const result = {};
   for (const row of rows) {
-    const data = JSON.parse(row.data);
-    for (const sabbathIndex in data) {
-      if (!result[sabbathIndex]) result[sabbathIndex] = [];
-      result[sabbathIndex] = result[sabbathIndex].concat(data[sabbathIndex]);
+    try {
+      const data = JSON.parse(row.data);
+      if (!result[row.sabbath_index]) result[row.sabbath_index] = [];
+      if (Array.isArray(data)) {
+        result[row.sabbath_index] = result[row.sabbath_index].concat(data);
+      } else {
+        result[row.sabbath_index] = result[row.sabbath_index].concat([data]);
+      }
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing data pour ${month} - ${row.eglise}, sabbath ${row.sabbath_index}`);
     }
   }
   return result;
 }
 
+/**
+ * Récupère les données GL pour l'admin avec filtres
+ */
 async function getGLDataForAdmin(month, federation, district, eglise) {
   const db = await openDb();
-  let sql = 'SELECT data FROM gl_data WHERE month = ?';
+  let sql = 'SELECT eglise, sabbath_index, data FROM gl_data WHERE month = ?';
   const params = [month];
-  if (federation) { sql += ' AND federation = ?'; params.push(federation); }
-  if (district) { sql += ' AND district = ?'; params.push(district); }
-  if (eglise) { sql += ' AND eglise = ?'; params.push(eglise); }
+  
+  if (federation) { sql += ' AND federation = ?'; params.push(federation.trim()); }
+  if (district) { sql += ' AND district = ?'; params.push(district.trim()); }
+  if (eglise) { sql += ' AND eglise = ?'; params.push(eglise.trim()); }
+  
   const rows = await db.all(sql, params);
+  
   const result = {};
   for (const row of rows) {
-    const data = JSON.parse(row.data);
-    for (const sabbathIndex in data) {
-      if (!result[sabbathIndex]) result[sabbathIndex] = [];
-      result[sabbathIndex] = result[sabbathIndex].concat(data[sabbathIndex]);
+    try {
+      const data = JSON.parse(row.data);
+      if (!result[row.sabbath_index]) result[row.sabbath_index] = [];
+      if (Array.isArray(data)) {
+        result[row.sabbath_index] = result[row.sabbath_index].concat(data);
+      } else {
+        result[row.sabbath_index] = result[row.sabbath_index].concat([data]);
+      }
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing data pour ${month} - ${row.eglise}`);
     }
   }
   return result;
@@ -221,41 +352,60 @@ async function getGLDataForAdmin(month, federation, district, eglise) {
 // ---------- Dépenses ----------
 async function saveDepenses({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
-  await db.run('DELETE FROM depenses WHERE user_id = ? AND month = ? AND eglise = ?', userId, month, eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  
+  // Supprimer les anciennes dépenses pour cette église/mois
+  await db.run('DELETE FROM depenses WHERE month = ? AND eglise = ?', month, cleanEglise);
+  
   for (const dep of data) {
     await db.run(
       'INSERT INTO depenses (user_id, month, data, eglise, district, federation) VALUES (?, ?, ?, ?, ?, ?)',
-      userId, month, JSON.stringify(dep), eglise, district, federation
+      userId, month, JSON.stringify(dep), cleanEglise, district, federation
     );
   }
 }
 
 async function getDepensesByEglise(month, eglise) {
   const db = await openDb();
-  const rows = await db.all('SELECT data FROM depenses WHERE month = ? AND eglise = ?', month, eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  const rows = await db.all('SELECT data FROM depenses WHERE month = ? AND eglise = ?', month, cleanEglise);
   const result = [];
   for (const row of rows) {
-    result.push(JSON.parse(row.data));
+    try {
+      result.push(JSON.parse(row.data));
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing dépense ${month} - ${cleanEglise}`);
+    }
   }
   return result;
 }
 
 async function getDepensesByDistrict(month, district) {
   const db = await openDb();
-  const rows = await db.all('SELECT data FROM depenses WHERE month = ? AND district = ?', month, district);
+  const cleanDistrict = district ? district.trim() : '';
+  const rows = await db.all('SELECT data FROM depenses WHERE month = ? AND district = ?', month, cleanDistrict);
   const result = [];
   for (const row of rows) {
-    result.push(JSON.parse(row.data));
+    try {
+      result.push(JSON.parse(row.data));
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing dépense ${month} - ${cleanDistrict}`);
+    }
   }
   return result;
 }
 
 async function getDepensesByFederation(month, federation) {
   const db = await openDb();
-  const rows = await db.all('SELECT data FROM depenses WHERE month = ? AND federation = ?', month, federation);
+  const cleanFederation = federation ? federation.trim() : '';
+  const rows = await db.all('SELECT data FROM depenses WHERE month = ? AND federation = ?', month, cleanFederation);
   const result = [];
   for (const row of rows) {
-    result.push(JSON.parse(row.data));
+    try {
+      result.push(JSON.parse(row.data));
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing dépense ${month} - ${cleanFederation}`);
+    }
   }
   return result;
 }
@@ -264,13 +414,17 @@ async function getDepensesForAdmin(month, federation, district, eglise) {
   const db = await openDb();
   let sql = 'SELECT data FROM depenses WHERE month = ?';
   const params = [month];
-  if (federation) { sql += ' AND federation = ?'; params.push(federation); }
-  if (district) { sql += ' AND district = ?'; params.push(district); }
-  if (eglise) { sql += ' AND eglise = ?'; params.push(eglise); }
+  if (federation) { sql += ' AND federation = ?'; params.push(federation.trim()); }
+  if (district) { sql += ' AND district = ?'; params.push(district.trim()); }
+  if (eglise) { sql += ' AND eglise = ?'; params.push(eglise.trim()); }
   const rows = await db.all(sql, params);
   const result = [];
   for (const row of rows) {
-    result.push(JSON.parse(row.data));
+    try {
+      result.push(JSON.parse(row.data));
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing dépense`);
+    }
   }
   return result;
 }
@@ -348,33 +502,30 @@ async function saveChurchConfig(userId, config) {
 // ---------- Rapports mensuels ----------
 async function getMonthlyReport(month, eglise) {
   const db = await openDb();
-  return db.get('SELECT * FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  return db.get('SELECT * FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, cleanEglise);
 }
 
-// ✅ CORRECTION : updateReportField avec logs et création automatique
 async function updateReportField(month, eglise, field, value) {
   const db = await openDb();
-  // Convertir les valeurs JSON en chaîne si nécessaire
+  const cleanEglise = eglise ? eglise.trim() : '';
   let finalValue = value;
   if (field === 'soraBolaLinesJson' && typeof value === 'object') {
     finalValue = JSON.stringify(value);
   }
   try {
-    // Utiliser des guillemets doubles pour les noms de colonnes (PostgreSQL)
     const result = await db.run(
       `UPDATE monthly_reports SET "${field}" = ? WHERE month_id = ? AND eglise = ?`,
-      finalValue, month, eglise
+      finalValue, month, cleanEglise
     );
-    console.log(`✅ updateReportField: ${field} mis à jour pour ${month} - ${eglise}, changements: ${result.changes}`);
+    console.log(`✅ updateReportField: ${field} mis à jour pour ${month} - ${cleanEglise}`);
     if (result.changes === 0) {
-      console.warn(`⚠️ Aucune ligne mise à jour pour ${month} - ${eglise}. Tentative de création du rapport...`);
-      // Tenter de créer le rapport
-      await upsertMonthlyReport(month, eglise, {});
-      const result2 = await db.run(
+      console.warn(`⚠️ Aucune ligne mise à jour pour ${month} - ${cleanEglise}. Création du rapport...`);
+      await upsertMonthlyReport(month, cleanEglise, {});
+      await db.run(
         `UPDATE monthly_reports SET "${field}" = ? WHERE month_id = ? AND eglise = ?`,
-        finalValue, month, eglise
+        finalValue, month, cleanEglise
       );
-      console.log(`✅ Après création, ${field} mis à jour, changements: ${result2.changes}`);
     }
   } catch (err) {
     console.error(`❌ Erreur updateReportField pour ${field}:`, err);
@@ -382,13 +533,12 @@ async function updateReportField(month, eglise, field, value) {
   }
 }
 
-// 🔥 CORRECTION : filtrer les clés pour éviter la duplication
 async function upsertMonthlyReport(month, eglise, data) {
   const db = await openDb();
-  // Filtrer les clés pour exclure month_id et eglise (déjà passés en paramètres)
+  const cleanEglise = eglise ? eglise.trim() : '';
   const keys = Object.keys(data).filter(k => k !== 'month_id' && k !== 'eglise');
   const columns = ['month_id', 'eglise', ...keys];
-  const values = [month, eglise, ...keys.map(k => data[k])];
+  const values = [month, cleanEglise, ...keys.map(k => data[k])];
 
   if (db.isPostgres) {
     const placeholders = keys.map((_, i) => `$${i + 3}`).join(', ');
@@ -409,16 +559,35 @@ async function upsertMonthlyReport(month, eglise, data) {
 // ---------- Fonction de recalcul du rapport mensuel ----------
 async function computeAndSaveMonthlyReports(monthId, eglise) {
   const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  if (!cleanEglise) {
+    console.warn('⚠️ computeAndSaveMonthlyReports: église vide');
+    return;
+  }
 
-  const glRows = await db.all('SELECT data FROM gl_data WHERE month = ? AND eglise = ?', monthId, eglise);
+  console.log(`📊 Recalcul du rapport pour ${monthId} - ${cleanEglise}`);
+
+  // 🔥 Récupérer les données GL avec la bonne église
+  const glRows = await db.all(
+    'SELECT data FROM gl_data WHERE month = ? AND eglise = ?',
+    monthId, cleanEglise
+  );
+  
   const allEntries = [];
   for (const row of glRows) {
-    const data = JSON.parse(row.data);
-    for (const sabbathIndex in data) {
-      const entries = data[sabbathIndex];
-      for (const entry of entries) {
-        allEntries.push({ ...entry, sabbathIndex: parseInt(sabbathIndex) });
+    try {
+      const data = JSON.parse(row.data);
+      if (Array.isArray(data)) {
+        allEntries.push(...data);
+      } else if (typeof data === 'object') {
+        for (const key in data) {
+          if (Array.isArray(data[key])) {
+            allEntries.push(...data[key]);
+          }
+        }
       }
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing GL data pour ${monthId} - ${cleanEglise}`);
     }
   }
 
@@ -429,14 +598,22 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     totalB += (entry.b9 || 0) + (entry.b10 || 0);
   }
 
-  const depRows = await db.all('SELECT data FROM depenses WHERE month = ? AND eglise = ?', monthId, eglise);
+  const depRows = await db.all(
+    'SELECT data FROM depenses WHERE month = ? AND eglise = ?',
+    monthId, cleanEglise
+  );
+  
   let totalExpenses = 0;
   for (const row of depRows) {
-    const dep = JSON.parse(row.data);
-    totalExpenses += dep.amount || 0;
+    try {
+      const dep = JSON.parse(row.data);
+      totalExpenses += dep.amount || 0;
+    } catch (e) {
+      console.warn(`⚠️ Erreur parsing dépense pour ${monthId} - ${cleanEglise}`);
+    }
   }
 
-  const oldReport = await getMonthlyReport(monthId, eglise);
+  const oldReport = await getMonthlyReport(monthId, cleanEglise);
   const sabbathDates = (oldReport && oldReport.sabbath_dates) ? JSON.parse(oldReport.sabbath_dates) : ["", "", "", "", ""];
   const saramPandefasana = oldReport?.saramPandefasana || 0;
   const dateVersementFME = oldReport?.dateVersementFME || "";
@@ -458,7 +635,6 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   const receiptNumber = oldReport?.receiptNumber || "";
   const note = oldReport?.note || "";
   const volamPiangonanaApetraka = oldReport?.volamPiangonanaApetraka || 0;
-  // 🔥 Récupération de volaSisaTeoAloha depuis l'ancien rapport
   const volaSisaTeoAloha = oldReport?.volaSisaTeoAloha || 0;
 
   const balanceChurch = totalB - totalExpenses;
@@ -489,33 +665,35 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     receiptNumber,
     note,
     volamPiangonanaApetraka,
-    volaSisaTeoAloha // ✅ Ajout
+    volaSisaTeoAloha
   };
 
-  await upsertMonthlyReport(monthId, eglise, report);
-  console.log(`✅ Rapport mensuel recalculé pour ${monthId} - ${eglise}`);
+  await upsertMonthlyReport(monthId, cleanEglise, report);
+  console.log(`✅ Rapport mensuel recalculé pour ${monthId} - ${cleanEglise}`);
 }
 
 // ---------- Frais ----------
 async function getFrais(month, eglise) {
   const db = await openDb();
-  const row = await db.get('SELECT amount FROM frais WHERE month_id = ? AND eglise = ?', month, eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  const row = await db.get('SELECT amount FROM frais WHERE month_id = ? AND eglise = ?', month, cleanEglise);
   return row ? row.amount : 0;
 }
 
 async function setFrais(month, eglise, amount) {
   const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
   if (db.isPostgres) {
     await db.run(
       `INSERT INTO frais (month_id, eglise, amount)
        VALUES ($1, $2, $3)
        ON CONFLICT (month_id, eglise) DO UPDATE SET amount = EXCLUDED.amount`,
-      month, eglise, amount
+      month, cleanEglise, amount
     );
   } else {
     await db.run(
       'INSERT OR REPLACE INTO frais (month_id, eglise, amount) VALUES (?, ?, ?)',
-      month, eglise, amount
+      month, cleanEglise, amount
     );
   }
 }
@@ -523,10 +701,12 @@ async function setFrais(month, eglise, amount) {
 // ---------- Suppression ----------
 async function deleteAllDataForMonth(month, eglise) {
   const db = await openDb();
-  await db.run('DELETE FROM gl_data WHERE month = ? AND eglise = ?', month, eglise);
-  await db.run('DELETE FROM depenses WHERE month = ? AND eglise = ?', month, eglise);
-  await db.run('DELETE FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, eglise);
-  await db.run('DELETE FROM frais WHERE month_id = ? AND eglise = ?', month, eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  await db.run('DELETE FROM gl_data WHERE month = ? AND eglise = ?', month, cleanEglise);
+  await db.run('DELETE FROM depenses WHERE month = ? AND eglise = ?', month, cleanEglise);
+  await db.run('DELETE FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, cleanEglise);
+  await db.run('DELETE FROM frais WHERE month_id = ? AND eglise = ?', month, cleanEglise);
+  console.log(`🗑️ Données supprimées pour ${month} - ${cleanEglise}`);
 }
 
 // ---------- LOGS ----------
@@ -596,7 +776,8 @@ async function getMembersStats() {
 // ---------- Récupérer les infos d'une église ----------
 async function getEgliseInfo(eglise) {
   const db = await openDb();
-  const row = await db.get('SELECT district, federation FROM users WHERE eglise = ? LIMIT 1', eglise);
+  const cleanEglise = eglise ? eglise.trim() : '';
+  const row = await db.get('SELECT district, federation FROM users WHERE eglise = ? LIMIT 1', cleanEglise);
   return row;
 }
 
