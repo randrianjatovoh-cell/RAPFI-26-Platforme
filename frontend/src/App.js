@@ -496,24 +496,33 @@ function AppContent() {
     return false;
   };
 
-  const getTitleWithName = () => {
-    const base = `GESTION DES DÎMES ET OFFRANDES - `;
-    if (isAdmin) return base + 'ADMINISTRATION';
-    if (isVerificateur) return base + `${user?.federation || 'FÉDÉRATION'}`.trim().toUpperCase();
-    if (isPasteur) return base + `DISTRICT ${user?.district || ''}`.trim().toUpperCase();
-    if (isAncienOrTresorier) return base + `ÉGLISE ${user?.eglise || ''}`.trim().toUpperCase();
-    return base + 'UTILISATEUR';
-  };
-
-  // Fonction pour obtenir les classes d'un onglet avec animations 3D
-  const getTabClasses = (tabId, isActive) => {
-    if (isActive) {
-      const active = tabColors[tabId] || tabColors.dashboard;
-      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-105 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm ${active.pulse}`;
+  // ============================================================
+  // FONCTION POUR LE TITRE - NOUVELLE VERSION
+  // ============================================================
+  const getTitleDisplay = () => {
+    // Première ligne : toujours "GESTION DES DÎMES ET OFFRANDES"
+    const firstLine = "GESTION DES DÎMES ET OFFRANDES";
+    
+    // Deuxième ligne : "SYSTÈME DE GESTION FINANCIÈRE"
+    const secondLine = "SYSTÈME DE GESTION FINANCIÈRE";
+    
+    // Troisième ligne : selon le rôle
+    let thirdLine = "";
+    if (isAdmin) {
+      thirdLine = "ADMINISTRATEUR DE LA PLATEFORME";
+    } else if (isVerificateur) {
+      thirdLine = (user?.federation || "FÉDÉRATION").toUpperCase();
+    } else if (isPasteur) {
+      thirdLine = (user?.district || "DISTRICT").toUpperCase();
+    } else if (isAncienOrTresorier) {
+      const egliseName = (user?.eglise || "").toUpperCase();
+      const districtName = (user?.district || "").toUpperCase();
+      thirdLine = egliseName + (districtName ? ` - ${districtName}` : "");
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
-      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1`;
+      thirdLine = "UTILISATEUR";
     }
+    
+    return { firstLine, secondLine, thirdLine };
   };
 
   // Rendu du contenu actif
@@ -767,7 +776,6 @@ function AppContent() {
   }
 
   const visibleTabs = getVisibleTabs();
-  const mainTitle = getTitleWithName();
   const showTabsBar = !showProfile && (
     !isPasteur ||
     pasteurMode === 'ajout' ||
@@ -776,10 +784,13 @@ function AppContent() {
     pasteurMode === null
   );
 
+  // Récupérer les lignes du titre
+  const { firstLine, secondLine, thirdLine } = getTitleDisplay();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* EN-TÊTE AVEC COULEURS "ETEEZY" - DÉGRADÉ ÉLÉGANT */}
+        {/* EN-TÊTE AVEC NOUVEAU TITRE */}
         <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
@@ -788,7 +799,7 @@ function AppContent() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
 
-          {/* TITRE + LOGO */}
+          {/* TITRE + LOGO - NOUVELLE STRUCTURE */}
           <div className="flex items-center gap-4 z-10">
             <div className="relative">
               <div className="w-12 h-12 bg-gradient-to-br from-amber-400 via-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
@@ -804,13 +815,17 @@ function AppContent() {
               </div>
             </div>
             <div>
+              {/* Première ligne - GESTION DES DÎMES ET OFFRANDES */}
               <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider drop-shadow-lg text-white">
-                GESTION DES DÎMES ET OFFRANDES - ÉGLISE ANTSAHALAVA
+                {firstLine}
               </h1>
-              <div className="text-xs text-amber-200/80 flex items-center gap-2 mt-0.5">
-                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
-                <span>SYSTÈME DE GESTION FINANCIÈRE 2026</span>
-                <i className="fas fa-circle text-amber-300 text-[6px] animate-pulse"></i>
+              {/* Deuxième ligne - SYSTÈME DE GESTION FINANCIÈRE (très petit) */}
+              <div className="text-[8px] md:text-[9px] text-amber-300/70 uppercase tracking-[0.15em] font-medium mt-0.5">
+                {secondLine}
+              </div>
+              {/* Troisième ligne - selon le rôle */}
+              <div className="text-[10px] md:text-[11px] text-amber-200/80 font-semibold uppercase tracking-wider mt-0.5">
+                {thirdLine}
               </div>
             </div>
           </div>
