@@ -212,6 +212,12 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         }
         .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .reference-data { color: blue; font-style: italic; }
+        /* Nouveaux styles pour le tableau des références */
+        .ref-table td { vertical-align: middle; padding: 6px 8px; height: 36px; }
+        .ref-table .date-col { text-align: right; }
+        .ref-table .sora-col { text-align: center; }
+        .ref-table .rosia-col { text-align: left; }
+        .ref-table th { text-align: center; }
       `}</style>
 
       {/* EN-TÊTE AVEC LOGOS */}
@@ -368,37 +374,37 @@ export default function RapportComite({ currentMonth, selectedEglise }) {
         </table>
       </div>
 
-      {/* Tableau des références */}
+      {/* ============================================================
+          TABLEAU DES RÉFÉRENCES AMÉLIORÉ
+          ============================================================ */}
       <div className="mt-6">
         <h4 className="font-bold mb-2">Références des versements</h4>
-        <table className="w-full text-sm border border-black">
+        <table className="w-full text-sm border border-black ref-table">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border p-1" style={{width:'33%'}}>Daty nanaovana ny rotsa-bola</th>
-              <th className="border p-1" style={{width:'33%'}}>Sora-bola</th>
-              <th className="border p-1" style={{width:'34%'}}>Nomeraon'ny Rosia (référence)</th>
+              <th className="border p-2" style={{width:'33%', textAlign:'center'}}>Daty nanaovana ny rotsa-bola</th>
+              <th className="border p-2" style={{width:'33%', textAlign:'center'}}>Sora-bola</th>
+              <th className="border p-2" style={{width:'34%', textAlign:'center'}}>Nomeraon'ny Rosia (référence)</th>
             </tr>
           </thead>
           <tbody>
-            {references.map((ref, idx) => (
-              <tr key={idx}>
-                <td className="border p-1 reference-data">
-                  <span className="w-full block" style={{ textAlign: 'left', color: 'blue', fontStyle: 'italic' }}>
+            {/* 5 lignes vides pour les références */}
+            {[...Array(5)].map((_, idx) => {
+              const ref = references[idx] || { date: '', soraBola: '', rosia: '' };
+              return (
+                <tr key={idx}>
+                  <td className="border p-1 date-col reference-data" style={{ height: '36px', textAlign: 'right' }}>
                     {ref.date || ''}
-                  </span>
-                </td>
-                <td className="border p-1 reference-data">
-                  <span className="w-full block" style={{ textAlign: 'right', color: 'blue', fontStyle: 'italic' }}>
-                    {formatNumber(ref.soraBola) || ''}
-                  </span>
-                </td>
-                <td className="border p-1 reference-data">
-                  <span className="w-full block" style={{ textAlign: 'left', color: 'blue', fontStyle: 'italic' }}>
+                  </td>
+                  <td className="border p-1 sora-col reference-data" style={{ height: '36px', textAlign: 'center' }}>
+                    {ref.soraBola ? formatNumber(ref.soraBola) : ''}
+                  </td>
+                  <td className="border p-1 rosia-col reference-data" style={{ height: '36px', textAlign: 'left' }}>
                     {ref.rosia || ''}
-                  </span>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
