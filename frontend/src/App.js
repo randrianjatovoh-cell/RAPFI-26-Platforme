@@ -154,26 +154,26 @@ const tabColors = {
   },
 };
 
-// Couleurs inactives modernes pour les icônes
+// Couleurs inactives modernes
 const inactiveColors = {
-  dashboard: 'bg-white/90 text-blue-600 hover:bg-blue-50/90 hover:text-blue-700 hover:shadow-lg hover:-translate-y-1 border border-blue-200/40',
-  formulaire: 'bg-white/90 text-emerald-600 hover:bg-emerald-50/90 hover:text-emerald-700 hover:shadow-lg hover:-translate-y-1 border border-emerald-200/40',
-  grandlivre: 'bg-white/90 text-purple-600 hover:bg-purple-50/90 hover:text-purple-700 hover:shadow-lg hover:-translate-y-1 border border-purple-200/40',
-  recap: 'bg-white/90 text-pink-600 hover:bg-pink-50/90 hover:text-pink-700 hover:shadow-lg hover:-translate-y-1 border border-pink-200/40',
-  rapport: 'bg-white/90 text-amber-600 hover:bg-amber-50/90 hover:text-amber-700 hover:shadow-lg hover:-translate-y-1 border border-amber-200/40',
-  rapcomite: 'bg-white/90 text-rose-600 hover:bg-rose-50/90 hover:text-rose-700 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
-  rapportannuel: 'bg-white/90 text-violet-600 hover:bg-violet-50/90 hover:text-violet-700 hover:shadow-lg hover:-translate-y-1 border border-violet-200/40',
-  depenses: 'bg-white/90 text-yellow-600 hover:bg-yellow-50/90 hover:text-yellow-700 hover:shadow-lg hover:-translate-y-1 border border-yellow-200/40',
-  carnet: 'bg-white/90 text-cyan-600 hover:bg-cyan-50/90 hover:text-cyan-700 hover:shadow-lg hover:-translate-y-1 border border-cyan-200/40',
-  recapdistrict: 'bg-white/90 text-teal-600 hover:bg-teal-50/90 hover:text-teal-700 hover:shadow-lg hover:-translate-y-1 border border-teal-200/40',
-  recapfederation: 'bg-white/90 text-indigo-600 hover:bg-indigo-50/90 hover:text-indigo-700 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
-  users: 'bg-white/90 text-gray-600 hover:bg-gray-50/90 hover:text-gray-700 hover:shadow-lg hover:-translate-y-1 border border-gray-200/40',
-  receipts: 'bg-white/90 text-rose-600 hover:bg-rose-50/90 hover:text-rose-700 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
-  stats: 'bg-white/90 text-indigo-600 hover:bg-indigo-50/90 hover:text-indigo-700 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
+  dashboard: 'bg-white/90 text-blue-700 hover:bg-blue-50/90 hover:text-blue-900 hover:shadow-lg hover:-translate-y-1 border border-blue-200/40',
+  formulaire: 'bg-white/90 text-emerald-700 hover:bg-emerald-50/90 hover:text-emerald-900 hover:shadow-lg hover:-translate-y-1 border border-emerald-200/40',
+  grandlivre: 'bg-white/90 text-purple-700 hover:bg-purple-50/90 hover:text-purple-900 hover:shadow-lg hover:-translate-y-1 border border-purple-200/40',
+  recap: 'bg-white/90 text-pink-700 hover:bg-pink-50/90 hover:text-pink-900 hover:shadow-lg hover:-translate-y-1 border border-pink-200/40',
+  rapport: 'bg-white/90 text-amber-700 hover:bg-amber-50/90 hover:text-amber-900 hover:shadow-lg hover:-translate-y-1 border border-amber-200/40',
+  rapcomite: 'bg-white/90 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
+  rapportannuel: 'bg-white/90 text-violet-700 hover:bg-violet-50/90 hover:text-violet-900 hover:shadow-lg hover:-translate-y-1 border border-violet-200/40',
+  depenses: 'bg-white/90 text-yellow-700 hover:bg-yellow-50/90 hover:text-yellow-900 hover:shadow-lg hover:-translate-y-1 border border-yellow-200/40',
+  carnet: 'bg-white/90 text-cyan-700 hover:bg-cyan-50/90 hover:text-cyan-900 hover:shadow-lg hover:-translate-y-1 border border-cyan-200/40',
+  recapdistrict: 'bg-white/90 text-teal-700 hover:bg-teal-50/90 hover:text-teal-900 hover:shadow-lg hover:-translate-y-1 border border-teal-200/40',
+  recapfederation: 'bg-white/90 text-indigo-700 hover:bg-indigo-50/90 hover:text-indigo-900 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
+  users: 'bg-white/90 text-gray-700 hover:bg-gray-50/90 hover:text-gray-900 hover:shadow-lg hover:-translate-y-1 border border-gray-200/40',
+  receipts: 'bg-white/90 text-rose-700 hover:bg-rose-50/90 hover:text-rose-900 hover:shadow-lg hover:-translate-y-1 border border-rose-200/40',
+  stats: 'bg-white/90 text-indigo-700 hover:bg-indigo-50/90 hover:text-indigo-900 hover:shadow-lg hover:-translate-y-1 border border-indigo-200/40',
 };
 
 // ============================================================
-// LISTE DES ONGLETS AVEC UNIQUEMENT DES ICÔNES
+// LISTE DES ONGLETS AVEC ICÔNES ET LIBELLÉS
 // ============================================================
 
 const tabIcons = {
@@ -193,7 +193,7 @@ const tabIcons = {
   stats: 'fa-chart-simple',
 };
 
-// Liste des onglets disponibles
+// Liste des onglets disponibles avec libellés
 const allTabs = [
   { id: 'dashboard', label: 'Tableau de bord', icon: 'fa-chart-pie', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur', 'Vérificateur'] },
   { id: 'formulaire', label: 'Formulaire', icon: 'fa-pen-to-square', requireData: false, roles: ['Admin', 'Trésorier', 'Ancien', 'Pasteur'] },
@@ -509,10 +509,10 @@ function AppContent() {
   const getTabClasses = (tabId, isActive) => {
     if (isActive) {
       const active = tabColors[tabId] || tabColors.dashboard;
-      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-110 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm ${active.pulse}`;
+      return `bg-gradient-to-r ${active.bg} ${active.hover} ${active.text} shadow-xl ${active.shadow} ${active.glow} transform hover:scale-105 transition-all duration-300 relative overflow-hidden border ${active.border} backdrop-blur-sm ${active.pulse}`;
     } else {
-      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-600 hover:bg-gray-100/90 hover:text-gray-700';
-      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-110 hover:-translate-y-1`;
+      const inactive = inactiveColors[tabId] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900';
+      return `${inactive} transition-all duration-300 hover:shadow-lg transform hover:scale-105 hover:-translate-y-1`;
     }
   };
 
@@ -719,7 +719,6 @@ function AppContent() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        {/* Logo RAPFI avec effet de pulsation */}
         <div className="relative">
           <div className="w-28 h-28 bg-white rounded-2xl shadow-xl flex items-center justify-center p-4">
             <img
@@ -732,7 +731,6 @@ function AppContent() {
               }}
             />
           </div>
-          {/* Petit indicateur de chargement */}
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
@@ -772,12 +770,9 @@ function AppContent() {
         {/* EN-TÊTE AVEC COULEURS "ETEEZY" - DÉGRADÉ ÉLÉGANT */}
         <header className="flex flex-wrap justify-between items-center bg-gradient-to-r from-stone-800 via-neutral-800 to-zinc-900 p-4 rounded-2xl shadow-2xl mb-6 no-print text-white relative overflow-hidden animate-slideDown">
           
-          {/* Effets de fond décoratifs */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-amber-400/10 to-yellow-400/5 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-stone-400/5 to-neutral-400/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float-slow animation-delay-1000"></div>
           <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-amber-400/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
-          
-          {/* Lignes lumineuses dorées */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent animate-shimmer"></div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent animate-shimmer animation-delay-500"></div>
 
@@ -808,9 +803,7 @@ function AppContent() {
             </div>
           </div>
 
-          {/* ============================================================
-              AVATAR + DÉCONNEXION EN ICÔNES UNIQUEMENT
-              ============================================================ */}
+          {/* AVATAR + DÉCONNEXION EN ICÔNES */}
           <div className="flex items-center gap-2 z-10">
             {isPasteur && (
               <div className="flex gap-1 bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-inner">
@@ -847,7 +840,7 @@ function AppContent() {
               </div>
             )}
 
-            {/* AVATAR - Cercle avec photo ou icône utilisateur */}
+            {/* AVATAR */}
             <button 
               onClick={() => setShowProfile(!showProfile)} 
               className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border-2 border-white/20 shadow-lg flex items-center justify-center overflow-hidden"
@@ -862,7 +855,7 @@ function AppContent() {
               )}
             </button>
 
-            {/* DÉCONNEXION - Icône de sortie */}
+            {/* DÉCONNEXION */}
             <button 
               onClick={handleLogout} 
               className="w-10 h-10 rounded-full bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 border border-red-400/20 flex items-center justify-center text-red-200 hover:text-white"
@@ -877,7 +870,7 @@ function AppContent() {
         {renderVerificateurNavigation()}
 
         {/* ============================================================
-            BARRE D'ONGLETS AVEC UNIQUEMENT DES ICÔNES
+            BARRE D'ONGLETS AVEC ICÔNES ET LIBELLÉS
             ============================================================ */}
         {showTabsBar && !(isVerificateur && verifEgliseSelected) && (
           <div className="flex flex-wrap gap-2 mb-6 no-print animate-fadeIn">
@@ -887,48 +880,38 @@ function AppContent() {
               const icon = tabIcons[tab.id] || tab.icon;
               const isHovered = isHoveringTab === tab.id;
               
-              // Récupérer le label pour le tooltip
-              const tabLabel = allTabs.find(t => t.id === tab.id)?.label || tab.id;
-              
               return (
-                <div key={tab.id} className="relative group">
-                  <button
-                    onClick={() => !disabled && setActiveTab(tab.id)}
-                    onMouseEnter={() => setIsHoveringTab(tab.id)}
-                    onMouseLeave={() => setIsHoveringTab(null)}
-                    className={`w-12 h-12 rounded-xl font-medium transition-all duration-300 transform relative flex items-center justify-center ${
-                      isActive
-                        ? `${getTabClasses(tab.id, true)}`
-                        : `${inactiveColors[tab.id] || 'bg-white/90 text-gray-600 hover:bg-gray-100/90 hover:text-gray-700'} hover:shadow-lg hover:-translate-y-1 hover:scale-110`
-                    } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
-                    disabled={disabled}
-                    style={{
-                      transform: isActive ? 'perspective(600px) rotateX(3deg) scale(1.1)' : 'perspective(600px) rotateX(0deg) scale(1)',
-                      transformStyle: 'preserve-3d',
-                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    }}
-                    title={tabLabel}
-                  >
-                    <span className="flex items-center justify-center text-lg">
-                      <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''} ${isHovered && !isActive ? 'animate-bounce-subtle' : ''}`}></i>
-                      {isActive && (
-                        <>
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping-slow"></span>
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></span>
-                        </>
-                      )}
-                    </span>
+                <button
+                  key={tab.id}
+                  onClick={() => !disabled && setActiveTab(tab.id)}
+                  onMouseEnter={() => setIsHoveringTab(tab.id)}
+                  onMouseLeave={() => setIsHoveringTab(null)}
+                  className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 transform relative ${
+                    isActive
+                      ? `${getTabClasses(tab.id, true)}`
+                      : `${inactiveColors[tab.id] || 'bg-white/90 text-gray-700 hover:bg-gray-100/90 hover:text-gray-900'} hover:shadow-lg hover:-translate-y-1 hover:scale-105`
+                  } ${disabled ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:-translate-y-0' : ''}`}
+                  disabled={disabled}
+                  style={{
+                    transform: isActive ? 'perspective(600px) rotateX(2deg) scale(1.02)' : 'perspective(600px) rotateX(0deg) scale(1)',
+                    transformStyle: 'preserve-3d',
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    <i className={`fas ${icon} ${isActive ? 'animate-pulse-subtle' : ''} ${isHovered && !isActive ? 'animate-bounce-subtle' : ''}`}></i>
+                    <span>{tab.label || tab.id}</span>
                     {isActive && (
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
+                      <>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping-slow"></span>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></span>
+                      </>
                     )}
-                  </button>
-                  {/* Tooltip au survol */}
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                    <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded shadow-lg">
-                      {tabLabel}
-                    </span>
-                  </div>
-                </div>
+                  </span>
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
+                  )}
+                </button>
               );
             })}
           </div>
