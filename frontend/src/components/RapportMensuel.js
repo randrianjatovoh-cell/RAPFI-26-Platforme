@@ -1,5 +1,5 @@
 // frontend/src/components/RapportMensuel.js
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
@@ -42,10 +42,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const eglise = selectedEglise || user?.eglise || '';
   const federation = user?.federation || '';
 
-  // Stabiliser les fonctions de permission
-  const stableCanViewEglise = useMemo(() => canViewEglise, [canViewEglise]);
-  const stableCanEditEglise = useMemo(() => canEditEglise, [canEditEglise]);
-
   // États
   const [report, setReport] = useState(null);
   const [saramPandefasana, setSaramPandefasana] = useState(0);
@@ -80,22 +76,37 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
-  const [loading, setLoading] = useState(true); // Initialisé à true pour afficher le chargement
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
   const abortControllerRef = useRef(null);
   const isMountedRef = useRef(true);
+  const loadDataRef = useRef(null); // Référence pour éviter les appels multiples
+  const hasLoadedRef = useRef(false); // Pour éviter le double chargement initial
 
-  const isReadOnlyMode = () => {
+  // ============================================================
+  // FONCTIONS DE PERMISSION STABILISÉES
+  // ============================================================
+  const canViewEgliseStable = useCallback(
+    (egliseName, district, federation) => canViewEglise(egliseName, district, federation),
+    [canViewEglise]
+  );
+
+  const canEditEgliseStable = useCallback(
+    (egliseName, district, federation) => canEditEglise(egliseName, district, federation),
+    [canEditEglise]
+  );
+
+  const isReadOnlyMode = useCallback(() => {
     if (isGlobalReadOnly()) return true;
     if (readOnly) return true;
     if (!eglise) return true;
-    return !stableCanEditEglise(eglise, user?.district, user?.federation);
-  };
+    return !canEditEgliseStable(eglise, user?.district, user?.federation);
+  }, [isGlobalReadOnly, readOnly, eglise, canEditEgliseStable, user?.district, user?.federation]);
 
-  const showMessage = (msg, type = 'success') => {
+  const showMessage = useCallback((msg, type = 'success') => {
     setMessage(msg);
     setMessageType(type);
     setTimeout(() => {
@@ -104,28 +115,39 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         setMessageType('');
       }
     }, 5000);
-  };
+  }, []);
 
-  // Chargement des données
-  const loadData = async () => {
+  // ============================================================
+  // FONCTION DE CHARGEMENT DES DONNÉES (STABILISÉE AVEC useCallback)
+  // ============================================================
+  const loadData = useCallback(async () => {
+    // Éviter les appels multiples simultanés
+    if (loadDataRef.current) return;
+    
     if (!currentMonth || !eglise) {
       setLoading(false);
       return;
     }
-    if (!stableCanViewEglise(eglise, user?.district, user?.federation)) {
+
+    if (!canViewEgliseStable(eglise, user?.district, user?.federation)) {
       setError("Vous n'avez pas accès à cette église.");
       setLoading(false);
       return;
     }
 
-    if (abortControllerRef.current) abortControllerRef.current.abort();
+    // Annuler la requête précédente
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    loadDataRef.current = true;
 
     setLoading(true);
     setError(null);
 
     try {
+      // Charger toutes les données en parallèle
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
         api.getMonthlyReport(currentMonth, eglise),
         api.getFrais(currentMonth, eglise),
@@ -133,15 +155,24 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         api.getDepenses(currentMonth, null, null, eglise)
       ]);
 
-      if (controller.signal.aborted || !isMountedRef.current) return;
+      // Vérifier si le composant est toujours monté et si la requête n'a pas été annulée
+      if (!isMountedRef.current || controller.signal.aborted) {
+        loadDataRef.current = false;
+        return;
+      }
 
+      // Traiter les données du rapport
       let r = reportData;
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
-        if (controller.signal.aborted || !isMountedRef.current) return;
+        if (!isMountedRef.current || controller.signal.aborted) {
+          loadDataRef.current = false;
+          return;
+        }
       }
       setReport(r);
 
+      // Traiter les données du rapport
       if (r) {
         const sabbathDatesRaw = getField(r, 'sabbath_dates');
         if (sabbathDatesRaw) {
@@ -200,6 +231,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
+      // Traiter les données du grand livre
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -228,6 +260,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(catSums);
 
+      // Traiter les dépenses
       const depenses = depensesData || [];
       const totalExp = depenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
@@ -256,34 +289,80 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setBalanceChurch(Number(currentSisa) + totalB - totalExp);
 
     } catch (err) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') {
+        loadDataRef.current = false;
+        return;
+      }
       console.error('Erreur chargement:', err);
       if (isMountedRef.current) setError(err.message);
     } finally {
-      if (isMountedRef.current) setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+        loadDataRef.current = false;
+      }
     }
-  };
+  }, [currentMonth, eglise, user, canViewEgliseStable, canEditEgliseStable]);
 
-  // Chargement initial et au changement de mois/église
+  // ============================================================
+  // CHARGEMENT INITIAL - UNE SEULE FOIS
+  // ============================================================
   useEffect(() => {
-    loadData();
+    hasLoadedRef.current = false;
+    loadDataRef.current = false;
+    
     return () => {
       isMountedRef.current = false;
-      if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, [currentMonth, eglise, user, stableCanViewEglise, stableCanEditEglise]); // dépendances nécessaires
+  }, []);
 
-  // Écouter les événements de mise à jour externe
+  // ============================================================
+  // CHARGEMENT DES DONNÉES - AVEC CONDITIONS POUR ÉVITER LA BOUCLE
+  // ============================================================
+  useEffect(() => {
+    // Ne charger que si le mois et l'église sont disponibles et que le composant est monté
+    if (!currentMonth || !eglise || !isMountedRef.current) {
+      setLoading(false);
+      return;
+    }
+
+    // Empêcher le double chargement
+    if (hasLoadedRef.current && loadDataRef.current) {
+      return;
+    }
+
+    hasLoadedRef.current = true;
+    loadData();
+
+    // Nettoyage
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth, eglise]); // SEULEMENT currentMonth et eglise comme dépendances
+
+  // ============================================================
+  // ÉCOUTEUR DES ÉVÉNEMENTS DE MISE À JOUR EXTERNE
+  // ============================================================
   useEffect(() => {
     const handleDataUpdate = () => {
+      // Réinitialiser les flags et recharger
+      hasLoadedRef.current = false;
+      loadDataRef.current = false;
       loadData();
     };
     window.addEventListener('data-updated', handleDataUpdate);
     return () => window.removeEventListener('data-updated', handleDataUpdate);
-  }, []);
+  }, [loadData]);
 
-  // Sauvegarde générique
-  const updateField = async (field, value) => {
+  // ============================================================
+  // FONCTIONS DE SAUVEGARDE
+  // ============================================================
+  const updateField = useCallback(async (field, value) => {
     if (isReadOnlyMode()) return;
     try {
       await api.updateReportField(currentMonth, eglise, field, value);
@@ -292,9 +371,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       console.error(`❌ Erreur sauvegarde ${field}:`, err);
       showMessage(`Erreur lors de la sauvegarde du champ "${field}" : ${err.message}`, 'error');
     }
-  };
+  }, [currentMonth, eglise, isReadOnlyMode, showMessage]);
 
-  const updateChequeSoraData = async (cheque, sora) => {
+  const updateChequeSoraData = useCallback(async (cheque, sora) => {
     if (isReadOnlyMode()) return;
     const data = { cheque, soraBola: sora };
     try {
@@ -304,9 +383,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       console.error('❌ Erreur sauvegarde tableau:', err);
       showMessage(`Erreur lors de la sauvegarde du tableau des chèques : ${err.message}`, 'error');
     }
-  };
+  }, [currentMonth, eglise, isReadOnlyMode, showMessage]);
 
-  // Gestionnaires avec sauvegarde sur blur
+  // ============================================================
+  // GESTIONNAIRES D'ÉVÉNEMENTS
+  // ============================================================
   const handleChequeChange = (idx, value) => {
     if (isReadOnlyMode()) return;
     const newLines = [...chequeLines];
@@ -382,6 +463,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     return value ? formatDateInput(value) : '__/__/____';
   };
 
+  // ============================================================
+  // RENDU
+  // ============================================================
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
