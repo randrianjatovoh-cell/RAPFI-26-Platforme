@@ -1,4 +1,4 @@
-// src/components/Depenses.js
+// frontend/src/components/Depenses.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -37,6 +37,15 @@ const sampanaOptions = [
   "Mpitam-bola", "Mpitantsoratra", "MOZIKA", "PARL", "Sekoly Sabata", "Tanora Adventiste (JA)"
 ];
 
+// 🔥 Options pour les Sabatas
+const SABATA_OPTIONS = [
+  { value: 1, label: 'Sabata 1' },
+  { value: 2, label: 'Sabata 2' },
+  { value: 3, label: 'Sabata 3' },
+  { value: 4, label: 'Sabata 4' },
+  { value: 5, label: 'Sabata 5' }
+];
+
 export default function Depenses({ currentMonth, refreshAll, user: propUser, selectedEglise, readOnly = false }) {
   const { user: contextUser } = useUser();
   const user = propUser || contextUser;
@@ -56,7 +65,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   const isPasteur = user?.fonction === 'Pasteur';
   const isAncienOrTresorier = user?.fonction === 'Ancien' || user?.fonction === 'Trésorier';
   
-  // 🔥 Utiliser selectedEglise s'il est fourni, sinon user.eglise
   let effectiveEglise = selectedEglise || user?.eglise || '';
   let effectiveDistrict = user?.district || '';
   let effectiveFederation = user?.federation || '';
@@ -73,8 +81,11 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
 
   const idCounter = useRef(0);
 
+  // 🔥 Ajout du champ sabata dans le nouvel état
   const [newExpense, setNewExpense] = useState({
-    date: "", vote: "", comDate: "", reason: "", sampana: "", voaray: 0, amount: 0, mpiandraikitra: "", sonia: ""
+    date: "", vote: "", comDate: "", reason: "", sampana: "", 
+    voaray: 0, amount: 0, mpiandraikitra: "", sonia: "",
+    sabata: 1
   });
 
   useEffect(() => {
@@ -103,7 +114,8 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       const formatted = expensesList.map(exp => ({
         ...exp,
         date: isValidDateStr(exp.date) ? exp.date : "",
-        comDate: isValidDateStr(exp.comDate) ? exp.comDate : ""
+        comDate: isValidDateStr(exp.comDate) ? exp.comDate : "",
+        sabata: exp.sabata || 1
       }));
       
       if (formatted.length > 0) {
@@ -155,7 +167,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     window.dispatchEvent(new Event('expenses-updated'));
   }
 
-  // Validation commune pour les montants
   function validateAmount(value, fieldName = 'Montant') {
     const num = Number(value);
     if (isNaN(num) || num < 0) {
@@ -177,9 +188,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     const amountVal = parseFloat(newExpense.amount);
     const voarayVal = parseFloat(newExpense.voaray) || 0;
 
-    // Validation du montant de la dépense
     if (!validateAmount(amountVal, 'Montant de la dépense')) return;
-    // Validation du montant reçu (voaray) – optionnel mais cohérent
     if (!validateAmount(voarayVal, 'Montant reçu (voaray)')) return;
 
     const newId = idCounter.current++;
@@ -196,7 +205,8 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       amount: amountVal,
       ambiny: voarayVal - amountVal,
       mpiandraikitra: newExpense.mpiandraikitra || "",
-      sonia: newExpense.sonia || ""
+      sonia: newExpense.sonia || "",
+      sabata: parseInt(newExpense.sabata) || 1
     };
 
     setIsAdding(true);
@@ -223,7 +233,9 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       });
 
       setNewExpense({
-        date: "", vote: "", comDate: "", reason: "", sampana: "", voaray: 0, amount: 0, mpiandraikitra: "", sonia: ""
+        date: "", vote: "", comDate: "", reason: "", sampana: "", 
+        voaray: 0, amount: 0, mpiandraikitra: "", sonia: "",
+        sabata: 1
       });
 
       await loadData();
@@ -253,7 +265,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     const expense = expenses.find(e => e.id === id);
     if (!expense) return;
 
-    // Validation des montants avant sauvegarde
     if (!validateAmount(expense.amount, 'Montant de la dépense')) return;
     if (!validateAmount(expense.voaray, 'Montant reçu (voaray)')) return;
 
@@ -291,12 +302,10 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
 
   function handleFieldChange(id, field, value) {
     if (readOnly) return;
-    // Pour les champs numériques, vérifier la limite immédiatement
     if ((field === 'amount' || field === 'voaray') && value !== '') {
       const num = parseFloat(value);
       if (!isNaN(num) && num > MAX_AMOUNT) {
         alert(`Le ${field === 'amount' ? 'montant' : 'voaray'} ne peut pas dépasser ${MAX_AMOUNT.toLocaleString()} Ar.`);
-        // On ne modifie pas la valeur, on reste à l'ancienne valeur
         return;
       }
     }
@@ -672,6 +681,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
               <tr>
                 <th rowSpan="2">N°</th>
                 <th rowSpan="2">Daty</th>
+                <th rowSpan="2">Sabata</th>
                 <th colSpan="4">KOMITY</th>
                 <th colSpan="3">Vola</th>
                 <th colSpan="2">Mpiandraikitra &amp; sonia</th>
@@ -707,6 +717,22 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
                         />
                       ) : (
                         <span>{formatDateShort(exp.date)}</span>
+                      )}
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <select
+                          value={exp.sabata || 1}
+                          onChange={e => handleFieldChange(exp.id, "sabata", parseInt(e.target.value))}
+                          disabled={readOnly}
+                          style={{ width: '80px' }}
+                        >
+                          {SABATA_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span>Sabata {exp.sabata || 1}</span>
                       )}
                     </td>
                     <td>
@@ -829,7 +855,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan="7" className="text-right font-bold">Total des dépenses :</td>
+                <td colSpan="8" className="text-right font-bold">Total des dépenses :</td>
                 <td className="font-bold text-right"><MontantDisplay value={totalExpenses} /></td>
                 <td></td>
                 <td></td>
@@ -851,9 +877,19 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
         </div>
       </div>
 
-      {/* Formulaire d'ajout – désactivé en mode lecture seule */}
-      <div className="mt-3 no-print grid grid-cols-1 md:grid-cols-9 gap-2 bg-gray-50 p-3 rounded-lg">
+      {/* Formulaire d'ajout avec sélection Sabata */}
+      <div className="mt-3 no-print grid grid-cols-1 md:grid-cols-10 gap-2 bg-gray-50 p-3 rounded-lg">
         <input type="date" value={newExpense.date} onChange={e => setNewExpense({ ...newExpense, date: e.target.value })} className="border p-1 rounded" disabled={readOnly} />
+        <select 
+          value={newExpense.sabata} 
+          onChange={e => setNewExpense({ ...newExpense, sabata: parseInt(e.target.value) })} 
+          className="border p-1 rounded"
+          disabled={readOnly}
+        >
+          {SABATA_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
         <input type="text" value={newExpense.vote} onChange={e => setNewExpense({ ...newExpense, vote: e.target.value })} placeholder="Voty faha" className="border p-1 rounded" disabled={readOnly} />
         <input type="date" value={newExpense.comDate} onChange={e => setNewExpense({ ...newExpense, comDate: e.target.value })} className="border p-1 rounded" disabled={readOnly} />
         <input type="text" value={newExpense.reason} onChange={e => setNewExpense({ ...newExpense, reason: e.target.value })} placeholder="Antony" className="border p-1 rounded" disabled={readOnly} />

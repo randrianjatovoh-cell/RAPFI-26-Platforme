@@ -83,8 +83,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const abortControllerRef = useRef(null);
   const isMountedRef = useRef(true);
-  const loadDataRef = useRef(null); // Référence pour éviter les appels multiples
-  const hasLoadedRef = useRef(false); // Pour éviter le double chargement initial
+  const loadDataRef = useRef(null);
+  const hasLoadedRef = useRef(false);
 
   // ============================================================
   // FONCTIONS DE PERMISSION STABILISÉES
@@ -118,10 +118,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   }, []);
 
   // ============================================================
-  // FONCTION DE CHARGEMENT DES DONNÉES (STABILISÉE AVEC useCallback)
+  // FONCTION DE CHARGEMENT DES DONNÉES
   // ============================================================
   const loadData = useCallback(async () => {
-    // Éviter les appels multiples simultanés
     if (loadDataRef.current) return;
     
     if (!currentMonth || !eglise) {
@@ -135,7 +134,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       return;
     }
 
-    // Annuler la requête précédente
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -147,7 +145,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     setError(null);
 
     try {
-      // Charger toutes les données en parallèle
       const [reportData, fraisData, glData, depensesData] = await Promise.all([
         api.getMonthlyReport(currentMonth, eglise),
         api.getFrais(currentMonth, eglise),
@@ -155,13 +152,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         api.getDepenses(currentMonth, null, null, eglise)
       ]);
 
-      // Vérifier si le composant est toujours monté et si la requête n'a pas été annulée
       if (!isMountedRef.current || controller.signal.aborted) {
         loadDataRef.current = false;
         return;
       }
 
-      // Traiter les données du rapport
       let r = reportData;
       if (!r) {
         r = await api.rebuildMonthlyReport(currentMonth, eglise);
@@ -172,7 +167,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       }
       setReport(r);
 
-      // Traiter les données du rapport
       if (r) {
         const sabbathDatesRaw = getField(r, 'sabbath_dates');
         if (sabbathDatesRaw) {
@@ -260,29 +254,55 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(catSums);
 
-      // Traiter les dépenses
+      // ============================================================
+      // 🔥 TRAITER LES DÉPENSES AVEC RÉPARTITION PAR SABATA
+      // ============================================================
       const depenses = depensesData || [];
       const totalExp = depenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
+
+      // Répartir les dépenses par Sabata
       const expensesByWeek = [0, 0, 0, 0, 0];
-      if (sabbathDates[0]) {
-        for (let exp of depenses) {
-          if (!exp.date) continue;
+      
+      // Vérifier si les dépenses ont un champ sabata
+      for (let exp of depenses) {
+        const amount = Number(exp.amount) || 0;
+        
+        // Si la dépense a un champ sabata, l'utiliser directement
+        if (exp.sabata && exp.sabata >= 1 && exp.sabata <= 5) {
+          expensesByWeek[exp.sabata - 1] += amount;
+          continue;
+        }
+        
+        // Sinon, essayer de déterminer par la date
+        if (exp.date && sabbathDates[0]) {
           const expDate = new Date(exp.date);
-          if (isNaN(expDate)) continue;
-          for (let i = 0; i < sabbathDates.length; i++) {
-            const sabDate = new Date(sabbathDates[i]);
-            if (isNaN(sabDate)) continue;
-            const startOfWeek = new Date(sabDate);
-            startOfWeek.setDate(sabDate.getDate() - 6);
-            const endOfWeek = new Date(sabDate);
-            if (expDate >= startOfWeek && expDate <= endOfWeek) {
-              expensesByWeek[i] += Number(exp.amount) || 0;
-              break;
+          if (!isNaN(expDate)) {
+            let assigned = false;
+            for (let i = 0; i < sabbathDates.length; i++) {
+              const sabDate = new Date(sabbathDates[i]);
+              if (isNaN(sabDate)) continue;
+              
+              const startOfWeek = new Date(sabDate);
+              startOfWeek.setDate(sabDate.getDate() - 6);
+              const endOfWeek = new Date(sabDate);
+              endOfWeek.setHours(23, 59, 59, 999);
+              
+              if (expDate >= startOfWeek && expDate <= endOfWeek) {
+                expensesByWeek[i] += amount;
+                assigned = true;
+                break;
+              }
+            }
+            if (!assigned) {
+              expensesByWeek[0] += amount; // Fallback sur Sabata 1
             }
           }
+        } else {
+          expensesByWeek[0] += amount; // Fallback sur Sabata 1
         }
-      } else expensesByWeek[0] = totalExp;
+      }
+      
       setExpensesBySabbath(expensesByWeek);
 
       const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
@@ -304,7 +324,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   }, [currentMonth, eglise, user, canViewEgliseStable, canEditEgliseStable]);
 
   // ============================================================
-  // CHARGEMENT INITIAL - UNE SEULE FOIS
+  // CHARGEMENT INITIAL
   // ============================================================
   useEffect(() => {
     hasLoadedRef.current = false;
@@ -319,16 +339,14 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   }, []);
 
   // ============================================================
-  // CHARGEMENT DES DONNÉES - AVEC CONDITIONS POUR ÉVITER LA BOUCLE
+  // CHARGEMENT DES DONNÉES
   // ============================================================
   useEffect(() => {
-    // Ne charger que si le mois et l'église sont disponibles et que le composant est monté
     if (!currentMonth || !eglise || !isMountedRef.current) {
       setLoading(false);
       return;
     }
 
-    // Empêcher le double chargement
     if (hasLoadedRef.current && loadDataRef.current) {
       return;
     }
@@ -336,21 +354,19 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     hasLoadedRef.current = true;
     loadData();
 
-    // Nettoyage
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMonth, eglise]); // SEULEMENT currentMonth et eglise comme dépendances
+  }, [currentMonth, eglise]);
 
   // ============================================================
   // ÉCOUTEUR DES ÉVÉNEMENTS DE MISE À JOUR EXTERNE
   // ============================================================
   useEffect(() => {
     const handleDataUpdate = () => {
-      // Réinitialiser les flags et recharger
       hasLoadedRef.current = false;
       loadDataRef.current = false;
       loadData();
