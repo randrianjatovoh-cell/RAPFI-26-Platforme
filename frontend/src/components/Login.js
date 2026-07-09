@@ -135,27 +135,23 @@ export default function Login({ onLogin }) {
           margin-right: 3rem;
           box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        /* Logo 3D avec perspective - TAILLE AUGMENTÉE */
-        .logo-3d {
-          perspective: 800px;
-          transform-style: preserve-3d;
-        }
-        .logo-3d-inner {
-          transform: rotateX(5deg) rotateY(-5deg) rotateZ(1deg);
-          transition: transform 0.4s ease;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.12);
-          background: linear-gradient(145deg, #ffffff, #f5f0ed);
-        }
-        .logo-3d-inner:hover {
-          transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.03);
-        }
+        /* Logo 3D avec perspective - AMÉLIORÉ POUR LA VISIBILITÉ */
         .logo-container {
           position: relative;
-          width: 110px;
-          height: 110px;
+          width: 120px;
+          height: 120px;
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+        /* Cercle extérieur avec fond blanc pour faire ressortir le logo */
+        .logo-circle-bg {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: white;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.8);
+          border: 3px solid rgba(205, 127, 110, 0.15);
         }
         .logo-ring {
           position: absolute;
@@ -184,6 +180,16 @@ export default function Login({ onLogin }) {
           border-radius: 50%;
           background: radial-gradient(circle, rgba(205, 127, 110, 0.08) 0%, transparent 70%);
           animation: pulse-logo 3s ease-in-out infinite;
+        }
+        /* Le logo lui-même - bien visible */
+        .logo-image {
+          width: 80px;
+          height: 80px;
+          object-fit: contain;
+          display: block;
+          filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+          position: relative;
+          z-index: 10;
         }
         .text-plum { color: #5e2e4a; }
         .text-charcoal { color: #36454f; }
@@ -294,8 +300,12 @@ export default function Login({ onLogin }) {
             margin: 0.25rem 0;
           }
           .logo-container {
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
+          }
+          .logo-image {
+            width: 60px;
+            height: 60px;
           }
           .login-container {
             padding: 1.5rem 1rem;
@@ -310,24 +320,39 @@ export default function Login({ onLogin }) {
 
       <div className="glass-card rounded-2xl shadow-xl login-container animate-fadeInUp">
         {/* ============================================================
-            SECTION HAUT : LOGO + TITRE (Image 1)
+            SECTION HAUT : LOGO + TITRE
             ============================================================ */}
         <div className="login-header">
           <div className="logo-container animate-pulse-logo">
+            {/* Effets décoratifs */}
             <div className="logo-glow"></div>
             <div className="logo-ring"></div>
             <div className="logo-ring-2"></div>
             <div className="logo-ring-3"></div>
-            <div className="logo-3d h-28 w-28 rounded-full bg-white/95 shadow-2xl flex items-center justify-center animate-float-logo ring-4 ring-blush/30">
-              <div className="logo-3d-inner h-24 w-24 rounded-full flex items-center justify-center">
-                <img
-                  src="/FINANCE.png"
-                  alt="Finance"
-                  className="h-20 w-20 object-contain drop-shadow-lg"
-                  style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}
-                />
-              </div>
-            </div>
+            
+            {/* Fond blanc pour le logo */}
+            <div className="logo-circle-bg"></div>
+            
+            {/* Le logo FINANCE.png */}
+            <img
+              src="/FINANCE.png"
+              alt="Finance"
+              className="logo-image animate-float-logo"
+              style={{
+                position: 'relative',
+                zIndex: 10,
+              }}
+              onError={(e) => {
+                // Fallback si l'image ne charge pas
+                e.target.style.display = 'none';
+                const parent = e.target.parentElement;
+                const fallback = document.createElement('div');
+                fallback.className = 'logo-image flex items-center justify-center text-4xl';
+                fallback.style.cssText = 'position:relative;z-index:10;width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:3rem;color:#5e2e4a;';
+                fallback.innerHTML = '<i class="fas fa-church"></i>';
+                parent.appendChild(fallback);
+              }}
+            />
           </div>
           <h2 className="mt-3 text-2xl font-bold text-plum tracking-tight">
             Gestion des Dîmes et Offrandes
@@ -450,7 +475,7 @@ export default function Login({ onLogin }) {
         </div>
 
         {/* ============================================================
-            SECTION BAS : COPYRIGHT (Image 4) - RH André
+            SECTION BAS : COPYRIGHT - RH André
             ============================================================ */}
         <div className="login-footer">
           <p className="text-[10px] text-charcoal/50">
