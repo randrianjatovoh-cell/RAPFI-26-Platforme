@@ -289,6 +289,27 @@ class ApiService {
     });
   }
 
+  // ============================================================
+  // ✅ VOLA SISA TEO ALOHA
+  // ============================================================
+
+  async getVolaSisa(month, eglise) {
+    try {
+      const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
+      return data.value || 0;
+    } catch (err) {
+      console.warn('⚠️ Erreur getVolaSisa:', err);
+      return 0;
+    }
+  }
+
+  async setVolaSisa(month, eglise, amount) {
+    return this.request('/reports/volaSisa', {
+      method: 'POST',
+      body: JSON.stringify({ month, eglise, amount }),
+    });
+  }
+
   // ===== STATS =====
   async getMembersStats() {
     return this.request('/stats/members');
@@ -306,14 +327,13 @@ class ApiService {
     return this.request(`/logs?limit=${limit}&offset=${offset}`);
   }
 
-  // ✅ Méthodes ajoutées pour les statistiques
   async getUserLogs() {
     return this.getLogs(10000);
   }
 
   async getUniqueVisitorsCount() {
     const data = await this.request('/logs/unique');
-    return data; // { count: ... }
+    return data;
   }
 
   async getVisitsPerUser() {

@@ -192,9 +192,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         const volamValue = getField(r, 'volamPiangonanaApetraka');
         setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-        // 🔥 Récupérer volaSisaTeoAloha depuis le rapport
-        const sisaValue = getField(r, 'volaSisaTeoAloha');
-        setVolaSisaTeoAloha(sisaValue !== undefined ? Number(sisaValue) : 0);
+        // 🔥 Récupérer volaSisaTeoAloha depuis la nouvelle table via l'API
+        try {
+          const sisaValue = await api.getVolaSisa(currentMonth, eglise);
+          setVolaSisaTeoAloha(sisaValue);
+          console.log(`✅ volaSisaTeoAloha récupéré: ${sisaValue} pour ${currentMonth} - ${eglise}`);
+        } catch (err) {
+          console.warn('⚠️ Erreur récupération volaSisaTeoAloha depuis API:', err);
+          // Fallback: essayer depuis le rapport
+          const sisaFromReport = getField(r, 'volaSisaTeoAloha');
+          setVolaSisaTeoAloha(sisaFromReport !== undefined ? Number(sisaFromReport) : 0);
+        }
 
         const soraJson = getField(r, 'soraBolaLinesJson');
         if (soraJson) {
@@ -302,7 +310,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       // 🔥 Calcul de VOLA SISA tamin'ny faran'ny volana
       // = (VOLA SISA tamin'ny volana teo aloha + VOLA NIDITRA) - VOLA NIVOAKA
-      const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
+      const currentSisa = volaSisaTeoAloha || 0;
       const balance = Number(currentSisa) + totalB - totalExp;
       setBalanceChurch(balance);
 

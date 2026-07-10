@@ -5,7 +5,9 @@ const {
   updateReportField, 
   upsertMonthlyReport, 
   getAllUsers,
-  computeAndSaveMonthlyReports
+  computeAndSaveMonthlyReports,
+  getVolaSisa,
+  setVolaSisa
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
 const { ensureColumn, openDb } = require('../db');
@@ -53,14 +55,13 @@ router.put('/field', checkAccess, async (req, res) => {
       'soraBolaDate', 'soraBolaMontant', 'soraBolaLettres', 'soraBolaSignataire',
       'soraBolaLinesJson', 'signatures', 'endOfYear', 'receiptNumber', 'note',
       'volamPiangonanaApetraka',
-      'volaSisaTeoAloha' // ✅ Ajout
+      'volaSisaTeoAloha'
     ];
     if (!allowedFields.includes(field)) {
       console.warn(`⛔ Champ non autorisé: ${field}`);
       return res.status(400).json({ error: 'Champ non autorisé' });
     }
 
-    // Vérifier que la colonne existe
     const dbInstance = await openDb();
     let columnType = 'TEXT';
     if (field === 'volamPiangonanaApetraka' || field === 'soraBolaMontant' || field === 'volaSisaTeoAloha') {
@@ -70,7 +71,6 @@ router.put('/field', checkAccess, async (req, res) => {
     }
     await ensureColumn(dbInstance, 'monthly_reports', field, columnType);
 
-    // 1. Vérifier si le rapport existe
     let report = await getMonthlyReport(month, eglise);
     if (!report) {
       await computeAndSaveMonthlyReports(month, eglise);
@@ -81,7 +81,6 @@ router.put('/field', checkAccess, async (req, res) => {
       }
     }
 
-    // 2. Mettre à jour le champ
     await updateReportField(month, eglise, field, value);
     console.log(`✅ Champ ${field} mis à jour pour ${month} - ${eglise}`);
     res.json({ success: true });
@@ -186,6 +185,64 @@ router.get('/federation/:federation', async (req, res) => {
     res.json(reports);
   } catch (err) {
     console.error('❌ Erreur /federation:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// ✅ ROUTES POUR VOLA SISA TEO ALOHA
+// ============================================================
+
+/**
+ * Récupère la valeur de volaSisaTeoAloha
+ */
+router.get('/volaSisa/:month/:eglise', checkAccess, async (req, res) => {
+  try {
+    const { month, eglise } = req.params;
+    const user = req.user;
+    
+    // Vérifier les permissions
+    if (user.fonction !== 'Admin') {
+      if (user.eglise && user.eglise !== eglise && user.fonction !== 'Pasteur' && user.fonction !== 'Vérificateur') {
+        if (user.fonction === 'Ancien' || user.fonction === 'Trésorier') {
+          if (user.eglise !== eglise) {
+            return res.status(403).json({ error: 'Accès interdit à cette église' });
+          }
+        }
+      }
+    }
+    
+    const value = await getVolaSisa(month, eglise);
+    res.json({ value });
+  } catch (err) {
+    console.error('❌ Erreur GET /volaSisa:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Sauvegarde la valeur de volaSisaTeoAloha
+ */
+router.post('/volaSisa', checkAccess, async (req, res) => {
+  try {
+    const { month, eglise, amount } = req.body;
+    const user = req.user;
+    
+    // Vérifier les permissions
+    if (user.fonction !== 'Admin') {
+      if (user.eglise && user.eglise !== eglise && user.fonction !== 'Pasteur' && user.fonction !== 'Vérificateur') {
+        if (user.fonction === 'Ancien' || user.fonction === 'Trésorier') {
+          if (user.eglise !== eglise) {
+            return res.status(403).json({ error: 'Accès interdit à cette église' });
+          }
+        }
+      }
+    }
+    
+    await setVolaSisa(month, eglise, amount);
+    res.json({ success: true, value: amount });
+  } catch (err) {
+    console.error('❌ Erreur POST /volaSisa:', err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -151,39 +151,17 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       }
       setVolaNihiditra(totalB);
 
-      // 🔥 Récupérer volaSisaTeoAloha depuis le backend
+      // 🔥 Récupérer volaSisaTeoAloha depuis la nouvelle table via l'API
       try {
-        const report = await api.getMonthlyReport(currentMonth, eglise);
-        if (report && report.volaSisaTeoAloha !== undefined && report.volaSisaTeoAloha !== null) {
-          const val = Number(report.volaSisaTeoAloha);
-          setVolaSisaTeoAloha(val);
-          const displayVal = formatMontant(val) || '0';
-          setVolaSisaTeoAlohaDisplay(displayVal);
-          setSisaInputValue(displayVal);
-        } else {
-          // Fallback: vérifier localStorage pour migration
-          const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-          if (saved) {
-            const val = parseFloat(saved);
-            if (!isNaN(val) && val > 0) {
-              setVolaSisaTeoAloha(val);
-              const displayVal = formatMontant(val) || '0';
-              setVolaSisaTeoAlohaDisplay(displayVal);
-              setSisaInputValue(displayVal);
-              // Migrer vers le backend
-              try {
-                await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', val);
-                localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-                console.log('✅ Migration volaSisaTeoAloha vers backend réussie');
-              } catch (err) {
-                console.warn('⚠️ Migration échouée, gardé en localStorage:', err);
-              }
-            }
-          }
-        }
+        const val = await api.getVolaSisa(currentMonth, eglise);
+        setVolaSisaTeoAloha(val);
+        const displayVal = formatMontant(val) || '0';
+        setVolaSisaTeoAlohaDisplay(displayVal);
+        setSisaInputValue(displayVal);
+        console.log(`✅ volaSisaTeoAloha récupéré: ${val} pour ${currentMonth} - ${eglise}`);
       } catch (err) {
-        console.warn('⚠️ Erreur récupération volaSisaTeoAloha depuis backend:', err);
-        // Fallback localStorage
+        console.warn('⚠️ Erreur récupération volaSisaTeoAloha:', err);
+        // Fallback: essayer localStorage
         const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
         if (saved) {
           const val = parseFloat(saved);
@@ -192,6 +170,14 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
             const displayVal = formatMontant(val) || '0';
             setVolaSisaTeoAlohaDisplay(displayVal);
             setSisaInputValue(displayVal);
+            // Migrer vers le backend
+            try {
+              await api.setVolaSisa(currentMonth, eglise, val);
+              localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+              console.log('✅ Migration volaSisaTeoAloha vers backend réussie');
+            } catch (err2) {
+              console.warn('⚠️ Migration échouée:', err2);
+            }
           }
         }
       }
@@ -403,13 +389,12 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     setOpenMenuId(openMenuId === id ? null : id);
   }
 
-  // 🔥 SAUVEGARDE SUR onBlur - L'utilisateur saisit complètement puis on sauvegarde
+  // 🔥 SAUVEGARDE SUR onBlur avec la nouvelle API
   const handleSisaInputChange = (e) => {
     if (readOnly) return;
     const raw = e.target.value;
     setSisaInputValue(raw);
     
-    // Mettre à jour l'affichage formaté
     const numeric = raw.replace(/\s/g, '');
     const num = parseFloat(numeric);
     if (!isNaN(num) && num >= 0) {
@@ -421,7 +406,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     if (readOnly) return;
     if (isSavingSisa) return;
     
-    // Nettoyer la valeur
     const numeric = sisaInputValue.replace(/\s/g, '');
     const num = parseFloat(numeric);
     
@@ -430,15 +414,13 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       finalValue = num;
     }
     
-    // Mettre à jour les états
     setVolaSisaTeoAloha(finalValue);
     setVolaSisaTeoAlohaDisplay(formatMontant(finalValue) || '0');
     
-    // 🔥 Sauvegarder dans le backend
     setIsSavingSisa(true);
     try {
-      await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', finalValue);
-      // Supprimer l'ancienne clé localStorage
+      // 🔥 Utiliser la nouvelle API pour sauvegarder dans la table séparée
+      await api.setVolaSisa(currentMonth, eglise, finalValue);
       localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       console.log(`✅ volaSisaTeoAloha sauvegardé: ${finalValue} pour ${currentMonth} - ${eglise}`);
       
@@ -447,7 +429,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       window.dispatchEvent(new Event('data-updated'));
       notifyExpensesUpdated();
       
-      // Afficher un bref message de confirmation
       const input = document.querySelector('.sisa-input');
       if (input) {
         input.style.borderColor = 'green';
@@ -459,13 +440,19 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       console.error('❌ Erreur sauvegarde volaSisaTeoAloha:', err);
       alert(`Erreur lors de la sauvegarde : ${err.message}`);
       // Recharger la valeur depuis le backend
-      await loadData();
+      try {
+        const val = await api.getVolaSisa(currentMonth, eglise);
+        setVolaSisaTeoAloha(val);
+        setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+        setSisaInputValue(formatMontant(val) || '0');
+      } catch (err2) {
+        console.warn('⚠️ Erreur rechargement:', err2);
+      }
     } finally {
       setIsSavingSisa(false);
     }
   };
 
-  // Gestionnaire pour la touche Entrée
   const handleSisaKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.target.blur();
@@ -492,242 +479,53 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   return (
     <div className="depenses-container">
       <style>{`
-        .depenses-container .table-wrapper {
-          overflow-x: auto;
-        }
-
-        .depenses-container table {
-          width: 100%;
-          border-collapse: collapse;
-          border: 1px solid #000;
-          table-layout: auto;
-        }
-
-        .depenses-container table th,
-        .depenses-container table td {
-          padding: 6px 10px;
-          vertical-align: middle;
-          border: 1px solid #000;
-          white-space: nowrap;
-          text-align: center;
-        }
-
-        .depenses-container table thead th {
-          background-color: #f3f4f6;
-          font-weight: 600;
-        }
-
-        .col-daty-komity {
-          width: 8% !important;
-          min-width: 70px !important;
-        }
-
-        .col-antony {
-          width: 22% !important;
-          min-width: 150px !important;
-        }
-
-        td.col-voaray,
-        td.col-fandaniana,
-        td.col-ambiny {
-          text-align: right !important;
-          white-space: nowrap;
-        }
-
-        .depenses-container input,
-        .depenses-container select {
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          padding: 2px 4px;
-          font-size: inherit;
-          width: 100%;
-          box-sizing: border-box;
-          background: #fff;
-        }
-        .depenses-container input:disabled,
-        .depenses-container select:disabled {
-          background: transparent;
-          border: none;
-          color: #000;
-          cursor: default;
-        }
-        .depenses-container input[type="number"] {
-          text-align: right;
-        }
-
-        .depenses-container .action-cell {
-          text-align: center;
-          white-space: nowrap;
-        }
-        .depenses-container .action-cell .dropdown-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-size: 16px;
-          padding: 2px 6px;
-        }
-        .depenses-container .action-cell .dropdown-menu {
-          position: absolute;
-          background: white;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-          z-index: 10;
-          min-width: 120px;
-          padding: 4px 0;
-          margin-top: 2px;
-        }
-        .depenses-container .action-cell .dropdown-menu button {
-          display: block;
-          width: 100%;
-          text-align: left;
-          padding: 6px 12px;
-          border: none;
-          background: none;
-          cursor: pointer;
-          font-size: 13px;
-        }
-        .depenses-container .action-cell .dropdown-menu button:hover {
-          background-color: #f0f0f0;
-        }
-        .depenses-container .action-cell .edit-actions button {
-          margin: 0 2px;
-          padding: 2px 6px;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-size: 14px;
-        }
-        .depenses-container .action-cell .edit-actions button:hover {
-          opacity: 0.7;
-        }
-
-        .signatures-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 8px;
-          margin-top: 8px;
-          padding-top: 8px;
-          border-top: none;
-        }
-        .signature-block {
-          font-size: 10px;
-          text-align: center;
-        }
-
-        .total-text {
-          margin-top: 6px;
-          margin-bottom: 4px;
-          text-align: right;
-          font-size: 11px;
-        }
-
-        .tableau-recaps {
-          margin-left: auto;
-          width: auto;
-          border: 1px solid #000;
-        }
-        .tableau-recaps td {
-          padding: 2px 6px;
-          border: 1px solid #000;
-        }
-        .tableau-recaps td:first-child {
-          text-align: left !important;
-        }
-        .tableau-recaps td:last-child {
-          text-align: right !important;
-        }
-        .tableau-recaps input {
-          text-align: right;
-          width: 120px;
-          border: none;
-          background: transparent;
-          font-weight: inherit;
-        }
-
-        .montant-cell {
-          display: inline;
-          white-space: nowrap;
-        }
-
-        .separator-line {
-          width: 1px;
-          height: 50px;
-          background-color: #000;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-
-        .sisa-input {
-          transition: border-color 0.3s ease;
-        }
-        .sisa-input-saving {
-          opacity: 0.7;
-        }
-
+        .depenses-container .table-wrapper { overflow-x: auto; }
+        .depenses-container table { width: 100%; border-collapse: collapse; border: 1px solid #000; table-layout: auto; }
+        .depenses-container table th, .depenses-container table td { padding: 6px 10px; vertical-align: middle; border: 1px solid #000; white-space: nowrap; text-align: center; }
+        .depenses-container table thead th { background-color: #f3f4f6; font-weight: 600; }
+        .col-daty-komity { width: 8% !important; min-width: 70px !important; }
+        .col-antony { width: 22% !important; min-width: 150px !important; }
+        td.col-voaray, td.col-fandaniana, td.col-ambiny { text-align: right !important; white-space: nowrap; }
+        .depenses-container input, .depenses-container select { border: 1px solid #ccc; border-radius: 4px; padding: 2px 4px; font-size: inherit; width: 100%; box-sizing: border-box; background: #fff; }
+        .depenses-container input:disabled, .depenses-container select:disabled { background: transparent; border: none; color: #000; cursor: default; }
+        .depenses-container input[type="number"] { text-align: right; }
+        .depenses-container .action-cell { text-align: center; white-space: nowrap; }
+        .depenses-container .action-cell .dropdown-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 6px; }
+        .depenses-container .action-cell .dropdown-menu { position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10; min-width: 120px; padding: 4px 0; margin-top: 2px; }
+        .depenses-container .action-cell .dropdown-menu button { display: block; width: 100%; text-align: left; padding: 6px 12px; border: none; background: none; cursor: pointer; font-size: 13px; }
+        .depenses-container .action-cell .dropdown-menu button:hover { background-color: #f0f0f0; }
+        .depenses-container .action-cell .edit-actions button { margin: 0 2px; padding: 2px 6px; border: none; background: transparent; cursor: pointer; font-size: 14px; }
+        .depenses-container .action-cell .edit-actions button:hover { opacity: 0.7; }
+        .signatures-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; padding-top: 8px; border-top: none; }
+        .signature-block { font-size: 10px; text-align: center; }
+        .total-text { margin-top: 6px; margin-bottom: 4px; text-align: right; font-size: 11px; }
+        .tableau-recaps { margin-left: auto; width: auto; border: 1px solid #000; }
+        .tableau-recaps td { padding: 2px 6px; border: 1px solid #000; }
+        .tableau-recaps td:first-child { text-align: left !important; }
+        .tableau-recaps td:last-child { text-align: right !important; }
+        .tableau-recaps input { text-align: right; width: 120px; border: none; background: transparent; font-weight: inherit; }
+        .montant-cell { display: inline; white-space: nowrap; }
+        .separator-line { width: 1px; height: 50px; background-color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .sisa-input { transition: border-color 0.3s ease; }
+        .sisa-input-saving { opacity: 0.7; }
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 0.4cm 0.3cm;
-          }
-
-          body, .depenses-print {
-            font-size: 8pt !important;
-          }
-
-          .no-print,
-          .no-print-action {
-            display: none !important;
-          }
-
-          table {
-            page-break-inside: avoid;
-          }
-
-          th, td {
-            padding: 2px 4px !important;
-          }
-
-          input,
-          select {
-            border: none !important;
-            background: transparent !important;
-            font-size: inherit !important;
-          }
-
-          .depenses-container table {
-            table-layout: auto !important;
-            width: 100% !important;
-          }
-
-          .signatures-grid {
-            border-top: none !important;
-            page-break-inside: avoid;
-          }
-
-          .total-text {
-            font-size: 9pt;
-          }
-
-          .depenses-container .action-cell .dropdown-menu {
-            display: none !important;
-          }
-
-          .depenses-container .table-wrapper {
-            overflow-x: visible !important;
-          }
-
-          .sabata-col {
-            display: none !important;
-          }
-          .sabata-col-header {
-            display: none !important;
-          }
+          @page { size: A4 landscape; margin: 0.4cm 0.3cm; }
+          body, .depenses-print { font-size: 8pt !important; }
+          .no-print, .no-print-action { display: none !important; }
+          table { page-break-inside: avoid; }
+          th, td { padding: 2px 4px !important; }
+          input, select { border: none !important; background: transparent !important; font-size: inherit !important; }
+          .depenses-container table { table-layout: auto !important; width: 100% !important; }
+          .signatures-grid { border-top: none !important; page-break-inside: avoid; }
+          .total-text { font-size: 9pt; }
+          .depenses-container .action-cell .dropdown-menu { display: none !important; }
+          .depenses-container .table-wrapper { overflow-x: visible !important; }
+          .sabata-col { display: none !important; }
+          .sabata-col-header { display: none !important; }
         }
       `}</style>
 
       <div className="depenses-print">
-        {/* EN-TÊTE AVEC LOGOS ET BOUTON IMPRIMER */}
         <div className="flex items-center justify-between mb-2" style={{ borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ width: '50px', height: '50px' }}>
@@ -817,142 +615,42 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
                     <td>{idx+1}</td>
                     <td>
                       {isEditing ? (
-                        <input
-                          type="date"
-                          value={exp.date || ""}
-                          onChange={e => handleFieldChange(exp.id, "date", e.target.value)}
-                          style={{ width: '120px' }}
-                          disabled={readOnly}
-                        />
+                        <input type="date" value={exp.date || ""} onChange={e => handleFieldChange(exp.id, "date", e.target.value)} style={{ width: '120px' }} disabled={readOnly} />
                       ) : (
                         <span>{formatDateShort(exp.date)}</span>
                       )}
                     </td>
                     <td className="sabata-col">
                       {isEditing ? (
-                        <select
-                          value={exp.sabata || 1}
-                          onChange={e => handleFieldChange(exp.id, "sabata", parseInt(e.target.value))}
-                          disabled={readOnly}
-                          style={{ width: '80px' }}
-                        >
-                          {SABATA_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
+                        <select value={exp.sabata || 1} onChange={e => handleFieldChange(exp.id, "sabata", parseInt(e.target.value))} disabled={readOnly} style={{ width: '80px' }}>
+                          {SABATA_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                         </select>
                       ) : (
                         <span>Sabata {exp.sabata || 1}</span>
                       )}
                     </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={exp.vote || ""}
-                        onChange={e => isEditing ? handleFieldChange(exp.id, "vote", e.target.value) : null}
-                        disabled={!isEditing || readOnly}
-                      />
-                    </td>
-                    <td className="col-daty-komity">
-                      <input
-                        type="text"
-                        value={exp.comDate || ""}
-                        onChange={e => isEditing ? handleFieldChange(exp.id, "comDate", e.target.value) : null}
-                        disabled={!isEditing || readOnly}
-                        style={{ textAlign: 'center' }}
-                      />
-                    </td>
-                    <td className="col-antony">
-                      <input
-                        type="text"
-                        value={exp.reason || ""}
-                        onChange={e => isEditing ? handleFieldChange(exp.id, "reason", e.target.value) : null}
-                        disabled={!isEditing || readOnly}
-                      />
-                    </td>
-                    <td>
-                      <select
-                        value={exp.sampana || ""}
-                        onChange={e => isEditing ? handleFieldChange(exp.id, "sampana", e.target.value) : null}
-                        disabled={!isEditing || readOnly}
-                      >
-                        <option value="">--</option>
-                        {sampanaOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    </td>
-                    <td className="col-voaray">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={exp.voaray || 0}
-                          onChange={e => handleFieldChange(exp.id, "voaray", e.target.value)}
-                          step="any"
-                          disabled={readOnly}
-                        />
-                      ) : (
-                        <MontantDisplay value={exp.voaray} />
-                      )}
-                    </td>
-                    <td className="col-fandaniana">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={exp.amount || 0}
-                          onChange={e => handleFieldChange(exp.id, "amount", e.target.value)}
-                          step="any"
-                          disabled={readOnly}
-                        />
-                      ) : (
-                        <MontantDisplay value={exp.amount} />
-                      )}
-                    </td>
-                    <td className="col-ambiny">
-                      <MontantDisplay value={ambinyCalculated} />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={exp.mpiandraikitra || ""}
-                        onChange={e => isEditing ? handleFieldChange(exp.id, "mpiandraikitra", e.target.value) : null}
-                        disabled={!isEditing || readOnly}
-                        placeholder="Nom"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={exp.sonia || ""}
-                        onChange={e => isEditing ? handleFieldChange(exp.id, "sonia", e.target.value) : null}
-                        disabled={!isEditing || readOnly}
-                      />
-                    </td>
+                    <td><input type="text" value={exp.vote || ""} onChange={e => isEditing ? handleFieldChange(exp.id, "vote", e.target.value) : null} disabled={!isEditing || readOnly} /></td>
+                    <td className="col-daty-komity"><input type="text" value={exp.comDate || ""} onChange={e => isEditing ? handleFieldChange(exp.id, "comDate", e.target.value) : null} disabled={!isEditing || readOnly} style={{ textAlign: 'center' }} /></td>
+                    <td className="col-antony"><input type="text" value={exp.reason || ""} onChange={e => isEditing ? handleFieldChange(exp.id, "reason", e.target.value) : null} disabled={!isEditing || readOnly} /></td>
+                    <td><select value={exp.sampana || ""} onChange={e => isEditing ? handleFieldChange(exp.id, "sampana", e.target.value) : null} disabled={!isEditing || readOnly}><option value="">--</option>{sampanaOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></td>
+                    <td className="col-voaray">{isEditing ? <input type="number" value={exp.voaray || 0} onChange={e => handleFieldChange(exp.id, "voaray", e.target.value)} step="any" disabled={readOnly} /> : <MontantDisplay value={exp.voaray} />}</td>
+                    <td className="col-fandaniana">{isEditing ? <input type="number" value={exp.amount || 0} onChange={e => handleFieldChange(exp.id, "amount", e.target.value)} step="any" disabled={readOnly} /> : <MontantDisplay value={exp.amount} />}</td>
+                    <td className="col-ambiny"><MontantDisplay value={ambinyCalculated} /></td>
+                    <td><input type="text" value={exp.mpiandraikitra || ""} onChange={e => isEditing ? handleFieldChange(exp.id, "mpiandraikitra", e.target.value) : null} disabled={!isEditing || readOnly} placeholder="Nom" /></td>
+                    <td><input type="text" value={exp.sonia || ""} onChange={e => isEditing ? handleFieldChange(exp.id, "sonia", e.target.value) : null} disabled={!isEditing || readOnly} /></td>
                     <td className="action-cell no-print-action">
                       {isEditing ? (
                         <div className="edit-actions">
-                          <button onClick={() => handleSaveEdit(exp.id)} className="text-green-600" title="Sauvegarder" disabled={readOnly}>
-                            <i className="fas fa-save"></i>
-                          </button>
-                          <button onClick={handleCancelEdit} className="text-gray-500" title="Annuler" disabled={readOnly}>
-                            <i className="fas fa-times"></i>
-                          </button>
+                          <button onClick={() => handleSaveEdit(exp.id)} className="text-green-600" title="Sauvegarder" disabled={readOnly}><i className="fas fa-save"></i></button>
+                          <button onClick={handleCancelEdit} className="text-gray-500" title="Annuler" disabled={readOnly}><i className="fas fa-times"></i></button>
                         </div>
                       ) : (
                         <div style={{ position: 'relative' }}>
-                          <button
-                            className="dropdown-btn"
-                            onClick={() => toggleMenu(exp.id)}
-                            title="Actions"
-                            disabled={readOnly}
-                          >
-                            <i className="fas fa-ellipsis-v"></i>
-                          </button>
+                          <button className="dropdown-btn" onClick={() => toggleMenu(exp.id)} title="Actions" disabled={readOnly}><i className="fas fa-ellipsis-v"></i></button>
                           {openMenuId === exp.id && !readOnly && (
                             <div className="dropdown-menu">
-                              <button onClick={() => handleEdit(exp.id)}>
-                                <i className="fas fa-edit"></i> Modifier
-                              </button>
-                              <button onClick={() => handleDelete(exp.id)} className="text-red-600">
-                                <i className="fas fa-trash"></i> Supprimer
-                              </button>
+                              <button onClick={() => handleEdit(exp.id)}><i className="fas fa-edit"></i> Modifier</button>
+                              <button onClick={() => handleDelete(exp.id)} className="text-red-600"><i className="fas fa-trash"></i> Supprimer</button>
                             </div>
                           )}
                         </div>
@@ -966,9 +664,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
               <tr>
                 <td colSpan="8" className="text-right font-bold">Total des dépenses :</td>
                 <td className="font-bold text-right"><MontantDisplay value={totalExpenses} /></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td></td><td></td><td></td>
               </tr>
             </tfoot>
           </table>
@@ -989,15 +685,8 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       {/* Formulaire d'ajout avec sélection Sabata */}
       <div className="mt-3 no-print grid grid-cols-1 md:grid-cols-10 gap-2 bg-gray-50 p-3 rounded-lg">
         <input type="date" value={newExpense.date} onChange={e => setNewExpense({ ...newExpense, date: e.target.value })} className="border p-1 rounded" disabled={readOnly} />
-        <select 
-          value={newExpense.sabata} 
-          onChange={e => setNewExpense({ ...newExpense, sabata: parseInt(e.target.value) })} 
-          className="border p-1 rounded"
-          disabled={readOnly}
-        >
-          {SABATA_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
+        <select value={newExpense.sabata} onChange={e => setNewExpense({ ...newExpense, sabata: parseInt(e.target.value) })} className="border p-1 rounded" disabled={readOnly}>
+          {SABATA_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
         <input type="text" value={newExpense.vote} onChange={e => setNewExpense({ ...newExpense, vote: e.target.value })} placeholder="Voty faha" className="border p-1 rounded" disabled={readOnly} />
         <input type="date" value={newExpense.comDate} onChange={e => setNewExpense({ ...newExpense, comDate: e.target.value })} className="border p-1 rounded" disabled={readOnly} />
@@ -1009,11 +698,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
         <input type="number" value={newExpense.voaray} onChange={e => setNewExpense({ ...newExpense, voaray: e.target.value })} placeholder="Voaray (Ar)" className="border p-1 rounded text-right" disabled={readOnly} />
         <input type="number" value={newExpense.amount} onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })} placeholder="Fandaniana (Ar)" className="border p-1 rounded text-right" disabled={readOnly} />
         <input type="text" value={newExpense.mpiandraikitra} onChange={e => setNewExpense({ ...newExpense, mpiandraikitra: e.target.value })} placeholder="Mpiandraikitra" className="border p-1 rounded" disabled={readOnly} />
-        <button
-          onClick={handleAdd}
-          disabled={isAdding || readOnly}
-          className={`bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition ${(isAdding || readOnly) ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
+        <button onClick={handleAdd} disabled={isAdding || readOnly} className={`bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition ${(isAdding || readOnly) ? 'opacity-50 cursor-not-allowed' : ''}`}>
           {isAdding ? 'Ajout...' : <><i className="fas fa-plus"></i> Ajouter</>}
         </button>
       </div>

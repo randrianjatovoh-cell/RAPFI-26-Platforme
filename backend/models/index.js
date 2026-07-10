@@ -513,12 +513,10 @@ async function updateReportField(month, eglise, field, value) {
   const cleanEglise = eglise ? eglise.trim() : '';
   let finalValue = value;
   
-  // 🔥 Gérer les objets JSON
   if (field === 'soraBolaLinesJson' && typeof value === 'object') {
     finalValue = JSON.stringify(value);
   }
   
-  // 🔥 Gérer volaSisaTeoAloha - s'assurer que c'est un nombre
   if (field === 'volaSisaTeoAloha') {
     finalValue = parseFloat(value) || 0;
   }
@@ -577,7 +575,6 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
 
   console.log(`📊 Recalcul du rapport pour ${monthId} - ${cleanEglise}`);
 
-  // Récupérer les données GL
   const glRows = await db.all(
     'SELECT data FROM gl_data WHERE month = ? AND eglise = ?',
     monthId, cleanEglise
@@ -608,7 +605,6 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     totalB += (entry.b9 || 0) + (entry.b10 || 0);
   }
 
-  // Récupérer les dépenses avec leur Sabata
   const depRows = await db.all(
     'SELECT data FROM depenses WHERE month = ? AND eglise = ?',
     monthId, cleanEglise
@@ -656,7 +652,6 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   const receiptNumber = oldReport?.receiptNumber || "";
   const note = oldReport?.note || "";
   const volamPiangonanaApetraka = oldReport?.volamPiangonanaApetraka || 0;
-  // 🔥 Récupérer volaSisaTeoAloha depuis l'ancien rapport
   const volaSisaTeoAloha = oldReport?.volaSisaTeoAloha || 0;
 
   const balanceChurch = totalB - totalExpenses;
@@ -687,7 +682,7 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     receiptNumber,
     note,
     volamPiangonanaApetraka,
-    volaSisaTeoAloha, // ✅ Ajout
+    volaSisaTeoAloha,
     expensesBySabbath: JSON.stringify(expensesBySabbath)
   };
 
@@ -721,6 +716,62 @@ async function setFrais(month, eglise, amount) {
   }
 }
 
+// ============================================================
+// ✅ VOLA SISA TEO ALOHA - Table séparée pour synchronisation
+// ============================================================
+
+/**
+ * Récupère la valeur de volaSisaTeoAloha pour un mois et une église donnés
+ */
+async function getVolaSisa(month, eglise) {
+  const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  if (!cleanEglise || !month) return 0;
+  
+  try {
+    const row = await db.get(
+      'SELECT amount FROM vola_sisa_teo_aloha WHERE month_id = ? AND eglise = ?',
+      month, cleanEglise
+    );
+    return row ? row.amount : 0;
+  } catch (err) {
+    console.warn('⚠️ Erreur getVolaSisa:', err);
+    return 0;
+  }
+}
+
+/**
+ * Sauvegarde la valeur de volaSisaTeoAloha pour un mois et une église donnés
+ */
+async function setVolaSisa(month, eglise, amount) {
+  const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  if (!cleanEglise || !month) return;
+  
+  const finalAmount = parseFloat(amount) || 0;
+  
+  try {
+    if (db.isPostgres) {
+      await db.run(
+        `INSERT INTO vola_sisa_teo_aloha (month_id, eglise, amount, updated_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (month_id, eglise) 
+         DO UPDATE SET amount = EXCLUDED.amount, updated_at = CURRENT_TIMESTAMP`,
+        month, cleanEglise, finalAmount
+      );
+    } else {
+      await db.run(
+        'INSERT OR REPLACE INTO vola_sisa_teo_aloha (month_id, eglise, amount) VALUES (?, ?, ?)',
+        month, cleanEglise, finalAmount
+      );
+    }
+    console.log(`✅ volaSisaTeoAloha sauvegardé: ${finalAmount} pour ${month} - ${cleanEglise}`);
+  } catch (err) {
+    console.error('❌ Erreur setVolaSisa:', err);
+    throw err;
+  }
+}
+
 // ---------- Suppression ----------
 async function deleteAllDataForMonth(month, eglise) {
   const db = await openDb();
@@ -729,6 +780,7 @@ async function deleteAllDataForMonth(month, eglise) {
   await db.run('DELETE FROM depenses WHERE month = ? AND eglise = ?', month, cleanEglise);
   await db.run('DELETE FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, cleanEglise);
   await db.run('DELETE FROM frais WHERE month_id = ? AND eglise = ?', month, cleanEglise);
+  await db.run('DELETE FROM vola_sisa_teo_aloha WHERE month_id = ? AND eglise = ?', month, cleanEglise);
   console.log(`🗑️ Données supprimées pour ${month} - ${cleanEglise}`);
 }
 
@@ -840,6 +892,8 @@ module.exports = {
   computeAndSaveMonthlyReports,
   getFrais,
   setFrais,
+  getVolaSisa,
+  setVolaSisa,
   deleteAllDataForMonth,
   addUserLog,
   getUserLogs,
