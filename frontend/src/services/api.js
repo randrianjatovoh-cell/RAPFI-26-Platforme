@@ -4,6 +4,10 @@ const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 
+// 🔥 SYSTÈME DE CACHE POUR ÉVITER LES DOUBLONS
+const requestCache = new Map();
+const CACHE_TTL = 30000; // 30 secondes
+
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('token');
@@ -24,6 +28,49 @@ class ApiService {
       localStorage.setItem('token', token);
     } else {
       localStorage.removeItem('token');
+    }
+  }
+
+  // 🔥 MÉTHODE PRINCIPALE AVEC CACHE
+  async requestWithCache(endpoint, options = {}, ttl = CACHE_TTL) {
+    const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
+    const now = Date.now();
+    
+    // Vérifier si en cache et pas expiré
+    if (requestCache.has(cacheKey)) {
+      const cached = requestCache.get(cacheKey);
+      if (now - cached.timestamp < ttl) {
+        console.log(`🔄 Cache hit pour ${endpoint}`);
+        return cached.data;
+      }
+      requestCache.delete(cacheKey);
+    }
+
+    // Faire la requête
+    const data = await this.request(endpoint, options);
+    
+    // Mettre en cache
+    requestCache.set(cacheKey, {
+      data,
+      timestamp: now
+    });
+    
+    return data;
+  }
+
+  // 🔥 MÉTHODE POUR VIDER LE CACHE
+  clearCache() {
+    requestCache.clear();
+    console.log('🧹 Cache vidé');
+  }
+
+  // 🔥 MÉTHODE POUR VIDER UNE URL SPÉCIFIQUE
+  clearCacheFor(endpoint) {
+    for (const key of requestCache.keys()) {
+      if (key.startsWith(endpoint)) {
+        requestCache.delete(key);
+        console.log(`🧹 Cache vidé pour ${endpoint}`);
+      }
     }
   }
 
@@ -146,10 +193,12 @@ class ApiService {
     if (district) params.append('district', district);
     if (eglise) params.append('eglise', eglise);
     if (params.toString()) url += '?' + params.toString();
-    return this.request(url);
+    return this.requestWithCache(url);
   }
 
   async saveGL(data) {
+    // Vider le cache pour les GL après sauvegarde
+    this.clearCacheFor('/gl/');
     return this.request('/gl/save', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -164,10 +213,12 @@ class ApiService {
     if (district) params.append('district', district);
     if (eglise) params.append('eglise', eglise);
     if (params.toString()) url += '?' + params.toString();
-    return this.request(url);
+    return this.requestWithCache(url);
   }
 
   async saveDepenses(data) {
+    // Vider le cache pour les dépenses après sauvegarde
+    this.clearCacheFor('/depenses/');
     return this.request('/depenses/save', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -201,10 +252,12 @@ class ApiService {
 
   // ===== MOIS =====
   async getMonths() {
-    return this.request('/months');
+    return this.requestWithCache('/months');
   }
 
   async addMonth(id, name = null) {
+    // Vider le cache des mois après ajout
+    this.clearCacheFor('/months');
     return this.request('/months', {
       method: 'POST',
       body: JSON.stringify({ id, name }),
@@ -212,6 +265,8 @@ class ApiService {
   }
 
   async deleteMonthData(month, eglise) {
+    // Vider le cache après suppression
+    this.clearCache();
     return this.request(`/months/${month}/eglise/${eglise}`, {
       method: 'DELETE',
     });
@@ -219,10 +274,11 @@ class ApiService {
 
   // ===== CONFIG =====
   async getChurchConfig() {
-    return this.request('/config');
+    return this.requestWithCache('/config');
   }
 
   async saveChurchConfig(data) {
+    this.clearCacheFor('/config');
     return this.request('/config', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -234,10 +290,11 @@ class ApiService {
   // ============================================================
 
   async getMonthlyReport(month, eglise) {
-    return this.request(`/reports/monthly/${month}/${eglise}`);
+    return this.requestWithCache(`/reports/monthly/${month}/${eglise}`);
   }
 
   async rebuildMonthlyReport(month, eglise) {
+    this.clearCacheFor('/reports/');
     return this.request('/reports/rebuild', {
       method: 'POST',
       body: JSON.stringify({ month, eglise }),
@@ -245,6 +302,7 @@ class ApiService {
   }
 
   async updateSabbathDate(month, eglise, sabbathIndex, date) {
+    this.clearCacheFor('/reports/');
     return this.request('/reports/sabbath-date', {
       method: 'PUT',
       body: JSON.stringify({ month, eglise, sabbathIndex, date }),
@@ -252,6 +310,7 @@ class ApiService {
   }
 
   async updateReportField(month, eglise, field, value) {
+    this.clearCacheFor('/reports/');
     return this.request('/reports/field', {
       method: 'PUT',
       body: JSON.stringify({ month, eglise, field, value }),
@@ -263,10 +322,11 @@ class ApiService {
   // ============================================================
 
   async getFrais(month, eglise) {
-    return this.request(`/frais/${month}/${eglise}`);
+    return this.requestWithCache(`/frais/${month}/${eglise}`);
   }
 
   async saveFrais(month, eglise, frais) {
+    this.clearCacheFor('/frais/');
     return this.request('/frais', {
       method: 'POST',
       body: JSON.stringify({ month, eglise, frais }),
@@ -279,7 +339,6 @@ class ApiService {
 
   async getVolaSisa(month, eglise) {
     try {
-      // 🔥 Utiliser getMonthlyReport au lieu de l'API directe
       const report = await this.getMonthlyReport(month, eglise);
       return report?.volaSisaTeoAloha || 0;
     } catch (err) {
@@ -289,7 +348,6 @@ class ApiService {
   }
 
   async setVolaSisa(month, eglise, amount) {
-    // 🔥 Utiliser updateReportField au lieu de l'API directe
     return this.updateReportField(month, eglise, 'volaSisaTeoAloha', amount);
   }
 
@@ -334,11 +392,11 @@ class ApiService {
   // ============================================================
 
   async getEglisesByDistrict(district) {
-    return this.request(`/eglises/district/${district}`);
+    return this.requestWithCache(`/eglises/district/${district}`);
   }
 
   async getEglisesByFederation(federation) {
-    return this.request(`/eglises/federation/${federation}`);
+    return this.requestWithCache(`/eglises/federation/${federation}`);
   }
 }
 
