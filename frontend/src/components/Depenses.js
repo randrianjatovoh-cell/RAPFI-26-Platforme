@@ -59,6 +59,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   const [editingId, setEditingId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [isSavingSisa, setIsSavingSisa] = useState(false);
+  const [sisaInputValue, setSisaInputValue] = useState('0');
   
   const isAdmin = user?.fonction === 'Admin';
   const isVerificateur = user?.fonction === 'Vérificateur';
@@ -80,6 +81,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   const federation = effectiveFederation;
 
   const idCounter = useRef(0);
+  const saveTimeoutRef = useRef(null);
 
   const [newExpense, setNewExpense] = useState({
     date: "", vote: "", comDate: "", reason: "", sampana: "", 
@@ -150,31 +152,49 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       }
       setVolaNihiditra(totalB);
 
-      // 🔥 Récupérer volaSisaTeoAloha depuis le backend (via le rapport mensuel)
+      // 🔥 Récupérer volaSisaTeoAloha depuis le backend
       try {
         const report = await api.getMonthlyReport(currentMonth, eglise);
         if (report && report.volaSisaTeoAloha !== undefined && report.volaSisaTeoAloha !== null) {
           const val = Number(report.volaSisaTeoAloha);
           setVolaSisaTeoAloha(val);
-          setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+          const displayVal = formatMontant(val) || '0';
+          setVolaSisaTeoAlohaDisplay(displayVal);
+          setSisaInputValue(displayVal);
         } else {
-          // Fallback: essayer localStorage si la valeur n'existe pas dans le backend
+          // Fallback: vérifier localStorage pour migration
           const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-          const val = saved ? parseFloat(saved) : 0;
-          setVolaSisaTeoAloha(val);
-          setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
-          // Si on a une valeur en localStorage, la sauvegarder dans le backend
-          if (val > 0) {
-            await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', val);
+          if (saved) {
+            const val = parseFloat(saved);
+            if (!isNaN(val) && val > 0) {
+              setVolaSisaTeoAloha(val);
+              const displayVal = formatMontant(val) || '0';
+              setVolaSisaTeoAlohaDisplay(displayVal);
+              setSisaInputValue(displayVal);
+              // Migrer vers le backend
+              try {
+                await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', val);
+                localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+                console.log('✅ Migration volaSisaTeoAloha vers backend réussie');
+              } catch (err) {
+                console.warn('⚠️ Migration échouée, gardé en localStorage:', err);
+              }
+            }
           }
         }
       } catch (err) {
         console.warn('⚠️ Erreur récupération volaSisaTeoAloha depuis backend:', err);
         // Fallback localStorage
         const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-        const val = saved ? parseFloat(saved) : 0;
-        setVolaSisaTeoAloha(val);
-        setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+        if (saved) {
+          const val = parseFloat(saved);
+          if (!isNaN(val)) {
+            setVolaSisaTeoAloha(val);
+            const displayVal = formatMontant(val) || '0';
+            setVolaSisaTeoAlohaDisplay(displayVal);
+            setSisaInputValue(displayVal);
+          }
+        }
       }
     } catch (err) {
       console.error('❌ Erreur chargement dépenses:', err);
@@ -384,50 +404,69 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     setOpenMenuId(openMenuId === id ? null : id);
   }
 
-  // 🔥 MODIFICATION: Sauvegarde dans le backend au lieu de localStorage
-  async function handleVolaSisaChange(e) {
+  // 🔥 SAUVEGARDE SUR onBlur - L'utilisateur saisit complètement puis on sauvegarde
+  const handleSisaInputChange = (e) => {
+    if (readOnly) return;
+    const raw = e.target.value;
+    setSisaInputValue(raw);
+    
+    // Mettre à jour l'affichage formaté
+    const numeric = raw.replace(/\s/g, '');
+    const num = parseFloat(numeric);
+    if (!isNaN(num) && num >= 0) {
+      setVolaSisaTeoAlohaDisplay(formatMontant(num) || '0');
+    }
+  };
+
+  const handleSisaBlur = async () => {
     if (readOnly) return;
     if (isSavingSisa) return;
     
-    const raw = e.target.value;
-    const numeric = raw.replace(/\s/g, '');
+    // Nettoyer la valeur
+    const numeric = sisaInputValue.replace(/\s/g, '');
     const num = parseFloat(numeric);
     
+    let finalValue = 0;
     if (!isNaN(num) && num >= 0) {
-      setVolaSisaTeoAloha(num);
-      setVolaSisaTeoAlohaDisplay(formatMontant(num) || '0');
-      
-      // 🔥 Sauvegarder dans le backend
-      setIsSavingSisa(true);
-      try {
-        await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', num);
-        // Supprimer l'ancienne clé localStorage pour éviter la confusion
-        localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-        notifyExpensesUpdated();
-      } catch (err) {
-        console.error('❌ Erreur sauvegarde volaSisaTeoAloha:', err);
-        alert(`Erreur lors de la sauvegarde : ${err.message}`);
-        // Recharger la valeur depuis le backend
-        await loadData();
-      } finally {
-        setIsSavingSisa(false);
-      }
-    } else if (raw === '') {
-      setVolaSisaTeoAloha(0);
-      setVolaSisaTeoAlohaDisplay('0');
-      
-      setIsSavingSisa(true);
-      try {
-        await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', 0);
-        localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-        notifyExpensesUpdated();
-      } catch (err) {
-        console.error('❌ Erreur sauvegarde volaSisaTeoAloha:', err);
-      } finally {
-        setIsSavingSisa(false);
-      }
+      finalValue = num;
     }
-  }
+    
+    // Mettre à jour les états
+    setVolaSisaTeoAloha(finalValue);
+    setVolaSisaTeoAlohaDisplay(formatMontant(finalValue) || '0');
+    
+    // 🔥 Sauvegarder dans le backend
+    setIsSavingSisa(true);
+    try {
+      await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', finalValue);
+      // Supprimer l'ancienne clé localStorage
+      localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+      console.log(`✅ volaSisaTeoAloha sauvegardé: ${finalValue} pour ${currentMonth} - ${eglise}`);
+      notifyExpensesUpdated();
+      // Afficher un bref message de confirmation
+      const input = document.querySelector('.sisa-input');
+      if (input) {
+        input.style.borderColor = 'green';
+        setTimeout(() => {
+          input.style.borderColor = '';
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('❌ Erreur sauvegarde volaSisaTeoAloha:', err);
+      alert(`Erreur lors de la sauvegarde : ${err.message}`);
+      // Recharger la valeur depuis le backend
+      await loadData();
+    } finally {
+      setIsSavingSisa(false);
+    }
+  };
+
+  // Gestionnaire pour la touche Entrée
+  const handleSisaKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.target.blur();
+    }
+  };
 
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois pour afficher les dépenses.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
@@ -615,6 +654,13 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
           print-color-adjust: exact;
         }
 
+        .sisa-input {
+          transition: border-color 0.3s ease;
+        }
+        .sisa-input-saving {
+          opacity: 0.7;
+        }
+
         @media print {
           @page {
             size: A4 landscape;
@@ -713,8 +759,11 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
                   <td className="text-right">
                     <input
                       type="text"
-                      value={volaSisaTeoAlohaDisplay}
-                      onChange={handleVolaSisaChange}
+                      value={sisaInputValue}
+                      onChange={handleSisaInputChange}
+                      onBlur={handleSisaBlur}
+                      onKeyDown={handleSisaKeyDown}
+                      className={`sisa-input ${isSavingSisa ? 'sisa-input-saving' : ''}`}
                       style={{ textAlign: 'right', width: '120px' }}
                       placeholder="0"
                       disabled={readOnly || isSavingSisa}
