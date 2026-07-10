@@ -1,11 +1,8 @@
 // frontend/src/services/api.js
+// ⚠️ URL forcée pour la production (Render)
 const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
-
-// 🔥 SYSTÈME DE CACHE
-const requestCache = new Map();
-const CACHE_TTL = 30000;
 
 class ApiService {
   constructor() {
@@ -30,38 +27,6 @@ class ApiService {
     }
   }
 
-  // 🔥 MÉTHODE AVEC CACHE
-  async requestWithCache(endpoint, options = {}, ttl = CACHE_TTL) {
-    const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
-    const now = Date.now();
-    
-    if (requestCache.has(cacheKey)) {
-      const cached = requestCache.get(cacheKey);
-      if (now - cached.timestamp < ttl) {
-        console.log(`🔄 Cache hit pour ${endpoint}`);
-        return cached.data;
-      }
-      requestCache.delete(cacheKey);
-    }
-
-    const data = await this.request(endpoint, options);
-    requestCache.set(cacheKey, { data, timestamp: now });
-    return data;
-  }
-
-  clearCache() {
-    requestCache.clear();
-    console.log('🧹 Cache vidé');
-  }
-
-  clearCacheFor(endpoint) {
-    for (const key of requestCache.keys()) {
-      if (key.startsWith(endpoint)) {
-        requestCache.delete(key);
-      }
-    }
-  }
-
   async request(endpoint, options = {}) {
     const url = `${API_URL}${endpoint}`;
     console.log(`📤 Requête vers ${url}`);
@@ -74,7 +39,10 @@ class ApiService {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const config = { ...options, headers };
+    const config = {
+      ...options,
+      headers,
+    };
 
     try {
       const response = await fetch(url, config);
@@ -147,7 +115,9 @@ class ApiService {
     console.log(`📤 Upload photo vers ${url}`);
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${this.token}` },
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+      },
       body: formData,
     });
     if (!response.ok) {
@@ -176,11 +146,10 @@ class ApiService {
     if (district) params.append('district', district);
     if (eglise) params.append('eglise', eglise);
     if (params.toString()) url += '?' + params.toString();
-    return this.requestWithCache(url);
+    return this.request(url);
   }
 
   async saveGL(data) {
-    this.clearCacheFor('/gl/');
     return this.request('/gl/save', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -195,11 +164,10 @@ class ApiService {
     if (district) params.append('district', district);
     if (eglise) params.append('eglise', eglise);
     if (params.toString()) url += '?' + params.toString();
-    return this.requestWithCache(url);
+    return this.request(url);
   }
 
   async saveDepenses(data) {
-    this.clearCacheFor('/depenses/');
     return this.request('/depenses/save', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -233,11 +201,10 @@ class ApiService {
 
   // ===== MOIS =====
   async getMonths() {
-    return this.requestWithCache('/months');
+    return this.request('/months');
   }
 
   async addMonth(id, name = null) {
-    this.clearCacheFor('/months');
     return this.request('/months', {
       method: 'POST',
       body: JSON.stringify({ id, name }),
@@ -245,7 +212,6 @@ class ApiService {
   }
 
   async deleteMonthData(month, eglise) {
-    this.clearCache();
     return this.request(`/months/${month}/eglise/${eglise}`, {
       method: 'DELETE',
     });
@@ -253,11 +219,10 @@ class ApiService {
 
   // ===== CONFIG =====
   async getChurchConfig() {
-    return this.requestWithCache('/config');
+    return this.request('/config');
   }
 
   async saveChurchConfig(data) {
-    this.clearCacheFor('/config');
     return this.request('/config', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -266,11 +231,10 @@ class ApiService {
 
   // ===== REPORTS =====
   async getMonthlyReport(month, eglise) {
-    return this.requestWithCache(`/reports/monthly/${month}/${eglise}`);
+    return this.request(`/reports/monthly/${month}/${eglise}`);
   }
 
   async rebuildMonthlyReport(month, eglise) {
-    this.clearCacheFor('/reports/');
     return this.request('/reports/rebuild', {
       method: 'POST',
       body: JSON.stringify({ month, eglise }),
@@ -278,7 +242,6 @@ class ApiService {
   }
 
   async updateSabbathDate(month, eglise, sabbathIndex, date) {
-    this.clearCacheFor('/reports/');
     return this.request('/reports/sabbath-date', {
       method: 'PUT',
       body: JSON.stringify({ month, eglise, sabbathIndex, date }),
@@ -286,7 +249,6 @@ class ApiService {
   }
 
   async updateReportField(month, eglise, field, value) {
-    this.clearCacheFor('/reports/');
     return this.request('/reports/field', {
       method: 'PUT',
       body: JSON.stringify({ month, eglise, field, value }),
@@ -294,7 +256,7 @@ class ApiService {
   }
 
   async getEgliseReports(eglise) {
-    return this.requestWithCache(`/reports/eglise/${eglise}`);
+    return this.request(`/reports/eglise/${eglise}`);
   }
 
   async getDistrictReports(district, year = null, month = null) {
@@ -303,7 +265,7 @@ class ApiService {
     if (year) params.append('year', year);
     if (month) params.append('month', month);
     if (params.toString()) url += '?' + params.toString();
-    return this.requestWithCache(url);
+    return this.request(url);
   }
 
   async getFederationReports(federation, year = null, month = null) {
@@ -312,16 +274,15 @@ class ApiService {
     if (year) params.append('year', year);
     if (month) params.append('month', month);
     if (params.toString()) url += '?' + params.toString();
-    return this.requestWithCache(url);
+    return this.request(url);
   }
 
   // ===== FRAIS =====
   async getFrais(month, eglise) {
-    return this.requestWithCache(`/frais/${month}/${eglise}`);
+    return this.request(`/frais/${month}/${eglise}`);
   }
 
   async saveFrais(month, eglise, frais) {
-    this.clearCacheFor('/frais/');
     return this.request('/frais', {
       method: 'POST',
       body: JSON.stringify({ month, eglise, frais }),
@@ -345,12 +306,14 @@ class ApiService {
     return this.request(`/logs?limit=${limit}&offset=${offset}`);
   }
 
+  // ✅ Méthodes ajoutées pour les statistiques
   async getUserLogs() {
     return this.getLogs(10000);
   }
 
   async getUniqueVisitorsCount() {
-    return this.request('/logs/unique');
+    const data = await this.request('/logs/unique');
+    return data; // { count: ... }
   }
 
   async getVisitsPerUser() {
@@ -359,11 +322,11 @@ class ApiService {
 
   // ===== EGLISES =====
   async getEglisesByDistrict(district) {
-    return this.requestWithCache(`/eglises/district/${district}`);
+    return this.request(`/eglises/district/${district}`);
   }
 
   async getEglisesByFederation(federation) {
-    return this.requestWithCache(`/eglises/federation/${federation}`);
+    return this.request(`/eglises/federation/${federation}`);
   }
 }
 
