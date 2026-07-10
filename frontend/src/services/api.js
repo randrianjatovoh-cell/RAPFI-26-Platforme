@@ -229,7 +229,10 @@ class ApiService {
     });
   }
 
-  // ===== REPORTS =====
+  // ============================================================
+  // ✅ REPORTS
+  // ============================================================
+
   async getMonthlyReport(month, eglise) {
     return this.request(`/reports/monthly/${month}/${eglise}`);
   }
@@ -255,29 +258,10 @@ class ApiService {
     });
   }
 
-  async getEgliseReports(eglise) {
-    return this.request(`/reports/eglise/${eglise}`);
-  }
+  // ============================================================
+  // ✅ FRAIS
+  // ============================================================
 
-  async getDistrictReports(district, year = null, month = null) {
-    let url = `/reports/district/${district}`;
-    const params = new URLSearchParams();
-    if (year) params.append('year', year);
-    if (month) params.append('month', month);
-    if (params.toString()) url += '?' + params.toString();
-    return this.request(url);
-  }
-
-  async getFederationReports(federation, year = null, month = null) {
-    let url = `/reports/federation/${federation}`;
-    const params = new URLSearchParams();
-    if (year) params.append('year', year);
-    if (month) params.append('month', month);
-    if (params.toString()) url += '?' + params.toString();
-    return this.request(url);
-  }
-
-  // ===== FRAIS =====
   async getFrais(month, eglise) {
     return this.request(`/frais/${month}/${eglise}`);
   }
@@ -290,32 +274,37 @@ class ApiService {
   }
 
   // ============================================================
-  // ✅ VOLA SISA TEO ALOHA
+  // ✅ VOLA SISA TEO ALOHA - Méthodes corrigées
   // ============================================================
 
   async getVolaSisa(month, eglise) {
     try {
-      const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
-      return data.value || 0;
+      // 🔥 Utiliser getMonthlyReport au lieu de l'API directe
+      const report = await this.getMonthlyReport(month, eglise);
+      return report?.volaSisaTeoAloha || 0;
     } catch (err) {
-      console.warn('⚠️ Erreur getVolaSisa:', err);
+      console.warn('⚠️ Erreur getVolaSisa (via getMonthlyReport):', err);
       return 0;
     }
   }
 
   async setVolaSisa(month, eglise, amount) {
-    return this.request('/reports/volaSisa', {
-      method: 'POST',
-      body: JSON.stringify({ month, eglise, amount }),
-    });
+    // 🔥 Utiliser updateReportField au lieu de l'API directe
+    return this.updateReportField(month, eglise, 'volaSisaTeoAloha', amount);
   }
 
-  // ===== STATS =====
+  // ============================================================
+  // ✅ STATS
+  // ============================================================
+
   async getMembersStats() {
     return this.request('/stats/members');
   }
 
-  // ===== LOGS =====
+  // ============================================================
+  // ✅ LOGS
+  // ============================================================
+
   async addLog(userId, userName, userFonction) {
     return this.request('/logs', {
       method: 'POST',
@@ -340,7 +329,10 @@ class ApiService {
     return this.request('/logs/visits');
   }
 
-  // ===== EGLISES =====
+  // ============================================================
+  // ✅ EGLISES
+  // ============================================================
+
   async getEglisesByDistrict(district) {
     return this.request(`/eglises/district/${district}`);
   }
