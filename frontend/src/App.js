@@ -251,94 +251,66 @@ function AppContent() {
   const isPasteur = user?.fonction === 'Pasteur';
   const isAncienOrTresorier = user?.fonction === 'Ancien' || user?.fonction === 'Trésorier';
 
-  // ============================================================
-  // 🔥 MODIFICATION 1: useEffet pour vérifier les données existantes (Pasteur)
-  // ============================================================
+  // Vérification des données existantes pour le mois/église (Pasteur)
   useEffect(() => {
     if (!isPasteur || !currentMonth || !selectedEglise) {
       setPasteurReadOnly(false);
       return;
     }
-    let isMounted = true;
     async function checkExistingData() {
       try {
         const glData = await api.getGL(currentMonth, null, null, selectedEglise);
-        if (isMounted) {
-          let hasAnyData = false;
-          if (glData) {
-            for (let s = 1; s <= 5; s++) {
-              if (glData[s] && glData[s].length > 0) {
-                hasAnyData = true;
-                break;
-              }
+        let hasAnyData = false;
+        if (glData) {
+          for (let s = 1; s <= 5; s++) {
+            if (glData[s] && glData[s].length > 0) {
+              hasAnyData = true;
+              break;
             }
           }
-          setPasteurReadOnly(hasAnyData);
         }
+        setPasteurReadOnly(hasAnyData);
       } catch (err) {
         console.error('Erreur vérification données existantes:', err);
-        if (isMounted) setPasteurReadOnly(false);
+        setPasteurReadOnly(false);
       }
     }
     checkExistingData();
-    return () => { isMounted = false; };
-  }, [currentMonth, selectedEglise, isPasteur]); // ✅ Retiré `isPasteur` des dépendances
+  }, [currentMonth, selectedEglise, isPasteur]);
 
-  // ============================================================
-  // 🔥 MODIFICATION 2: useEffet pour charger les mois (CORRIGÉ)
-  // ============================================================
   useEffect(() => {
     if (!user) return;
-    let isMounted = true;
-    const loadMonths = async () => {
+    async function loadMonths() {
       try {
         const mois = await api.getMonths();
-        if (isMounted) {
-          setMonths(mois);
-          if (mois.length > 0 && !currentMonth) {
-            setCurrentMonth(mois[0].id);
-          }
-        }
+        setMonths(mois);
+        if (mois.length > 0 && !currentMonth) setCurrentMonth(mois[0].id);
       } catch (err) {
-        if (err.message === "SESSION_EXPIRED") {
-          console.warn("Session expirée");
-        } else {
-          console.error("Erreur chargement mois :", err);
-        }
+        if (err.message === "SESSION_EXPIRED") console.warn("Session expirée");
+        else console.error("Erreur chargement mois :", err);
       }
-    };
+    }
     loadMonths();
-    return () => { isMounted = false; };
-  }, [user]); // ✅ Plus de `currentMonth` dans les dépendances
+  }, [user, currentMonth]);
 
-  // ============================================================
-  // 🔥 MODIFICATION 3: useEffet pour vérifier l'existence des données (CORRIGÉ)
-  // ============================================================
   useEffect(() => {
     if (!user || !currentMonth || !selectedEglise || !selectedSabbath) {
       setHasData(false);
       return;
     }
-    let isMounted = true;
-    const checkDataExistence = async () => {
+    async function checkDataExistence() {
       try {
         const glData = await api.getGL(currentMonth, null, null, selectedEglise);
-        if (isMounted) {
-          const entries = glData && glData[selectedSabbath] ? glData[selectedSabbath] : [];
-          setHasData(entries.length > 0);
-        }
+        const entries = glData && glData[selectedSabbath] ? glData[selectedSabbath] : [];
+        setHasData(entries.length > 0);
       } catch (err) {
         console.error("Erreur vérification données", err);
-        if (isMounted) setHasData(false);
+        setHasData(false);
       }
-    };
+    }
     checkDataExistence();
-    return () => { isMounted = false; };
-  }, [currentMonth, selectedEglise, selectedSabbath]); // ✅ Retiré `user` des dépendances
+  }, [currentMonth, selectedEglise, selectedSabbath, user]);
 
-  // ============================================================
-  // 🔥 MODIFICATION 4: useEffet pour l'église par défaut (optimisé)
-  // ============================================================
   useEffect(() => {
     if (user && user.eglise && !selectedEglise && isAncienOrTresorier) {
       setSelectedEglise(user.eglise);
@@ -362,8 +334,6 @@ function AppContent() {
 
   const refreshAll = async () => {
     await refreshMonths();
-    // Vider le cache API
-    api.clearCache();
   };
 
   const handleDataSaved = () => {
@@ -389,8 +359,6 @@ function AppContent() {
     setShowReceiptsTab(false);
     setSelectedDistrictForVerif(null);
     setVerifEgliseSelected(false);
-    // Vider le cache au logout
-    api.clearCache();
   };
 
   const handleOpenReceipts = (data) => {
@@ -554,9 +522,11 @@ function AppContent() {
     } else if (isVerificateur) {
       thirdLine = (user?.federation || "FÉDÉRATION").toUpperCase();
     } else if (isPasteur) {
+      // Pour Pasteur: "DISTRICT + Nom du District"
       const districtName = (user?.district || "").toUpperCase();
       thirdLine = districtName ? `DISTRICT ${districtName}` : "DISTRICT";
     } else if (isAncienOrTresorier) {
+      // Pour Ancien/Trésorier: "EGLISE + Nom de l'Église - District"
       const egliseName = (user?.eglise || "").toUpperCase();
       const districtName = (user?.district || "").toUpperCase();
       if (egliseName && districtName) {

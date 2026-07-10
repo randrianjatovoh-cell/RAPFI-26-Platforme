@@ -4,10 +4,6 @@ const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 
-// 🔥 SYSTÈME DE CACHE POUR ÉVITER LES DOUBLONS
-const requestCache = new Map();
-const CACHE_TTL = 30000; // 30 secondes
-
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('token');
@@ -28,49 +24,6 @@ class ApiService {
       localStorage.setItem('token', token);
     } else {
       localStorage.removeItem('token');
-    }
-  }
-
-  // 🔥 MÉTHODE PRINCIPALE AVEC CACHE
-  async requestWithCache(endpoint, options = {}, ttl = CACHE_TTL) {
-    const cacheKey = `${endpoint}-${JSON.stringify(options)}`;
-    const now = Date.now();
-    
-    // Vérifier si en cache et pas expiré
-    if (requestCache.has(cacheKey)) {
-      const cached = requestCache.get(cacheKey);
-      if (now - cached.timestamp < ttl) {
-        console.log(`🔄 Cache hit pour ${endpoint}`);
-        return cached.data;
-      }
-      requestCache.delete(cacheKey);
-    }
-
-    // Faire la requête
-    const data = await this.request(endpoint, options);
-    
-    // Mettre en cache
-    requestCache.set(cacheKey, {
-      data,
-      timestamp: now
-    });
-    
-    return data;
-  }
-
-  // 🔥 MÉTHODE POUR VIDER LE CACHE
-  clearCache() {
-    requestCache.clear();
-    console.log('🧹 Cache vidé');
-  }
-
-  // 🔥 MÉTHODE POUR VIDER UNE URL SPÉCIFIQUE
-  clearCacheFor(endpoint) {
-    for (const key of requestCache.keys()) {
-      if (key.startsWith(endpoint)) {
-        requestCache.delete(key);
-        console.log(`🧹 Cache vidé pour ${endpoint}`);
-      }
     }
   }
 
@@ -193,12 +146,10 @@ class ApiService {
     if (district) params.append('district', district);
     if (eglise) params.append('eglise', eglise);
     if (params.toString()) url += '?' + params.toString();
-    return this.requestWithCache(url);
+    return this.request(url);
   }
 
   async saveGL(data) {
-    // Vider le cache pour les GL après sauvegarde
-    this.clearCacheFor('/gl/');
     return this.request('/gl/save', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -213,12 +164,10 @@ class ApiService {
     if (district) params.append('district', district);
     if (eglise) params.append('eglise', eglise);
     if (params.toString()) url += '?' + params.toString();
-    return this.requestWithCache(url);
+    return this.request(url);
   }
 
   async saveDepenses(data) {
-    // Vider le cache pour les dépenses après sauvegarde
-    this.clearCacheFor('/depenses/');
     return this.request('/depenses/save', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -252,12 +201,10 @@ class ApiService {
 
   // ===== MOIS =====
   async getMonths() {
-    return this.requestWithCache('/months');
+    return this.request('/months');
   }
 
   async addMonth(id, name = null) {
-    // Vider le cache des mois après ajout
-    this.clearCacheFor('/months');
     return this.request('/months', {
       method: 'POST',
       body: JSON.stringify({ id, name }),
@@ -265,8 +212,6 @@ class ApiService {
   }
 
   async deleteMonthData(month, eglise) {
-    // Vider le cache après suppression
-    this.clearCache();
     return this.request(`/months/${month}/eglise/${eglise}`, {
       method: 'DELETE',
     });
@@ -274,27 +219,22 @@ class ApiService {
 
   // ===== CONFIG =====
   async getChurchConfig() {
-    return this.requestWithCache('/config');
+    return this.request('/config');
   }
 
   async saveChurchConfig(data) {
-    this.clearCacheFor('/config');
     return this.request('/config', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  // ============================================================
-  // ✅ REPORTS
-  // ============================================================
-
+  // ===== REPORTS =====
   async getMonthlyReport(month, eglise) {
-    return this.requestWithCache(`/reports/monthly/${month}/${eglise}`);
+    return this.request(`/reports/monthly/${month}/${eglise}`);
   }
 
   async rebuildMonthlyReport(month, eglise) {
-    this.clearCacheFor('/reports/');
     return this.request('/reports/rebuild', {
       method: 'POST',
       body: JSON.stringify({ month, eglise }),
@@ -302,7 +242,6 @@ class ApiService {
   }
 
   async updateSabbathDate(month, eglise, sabbathIndex, date) {
-    this.clearCacheFor('/reports/');
     return this.request('/reports/sabbath-date', {
       method: 'PUT',
       body: JSON.stringify({ month, eglise, sabbathIndex, date }),
@@ -310,59 +249,52 @@ class ApiService {
   }
 
   async updateReportField(month, eglise, field, value) {
-    this.clearCacheFor('/reports/');
     return this.request('/reports/field', {
       method: 'PUT',
       body: JSON.stringify({ month, eglise, field, value }),
     });
   }
 
-  // ============================================================
-  // ✅ FRAIS
-  // ============================================================
+  async getEgliseReports(eglise) {
+    return this.request(`/reports/eglise/${eglise}`);
+  }
 
+  async getDistrictReports(district, year = null, month = null) {
+    let url = `/reports/district/${district}`;
+    const params = new URLSearchParams();
+    if (year) params.append('year', year);
+    if (month) params.append('month', month);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  async getFederationReports(federation, year = null, month = null) {
+    let url = `/reports/federation/${federation}`;
+    const params = new URLSearchParams();
+    if (year) params.append('year', year);
+    if (month) params.append('month', month);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  // ===== FRAIS =====
   async getFrais(month, eglise) {
-    return this.requestWithCache(`/frais/${month}/${eglise}`);
+    return this.request(`/frais/${month}/${eglise}`);
   }
 
   async saveFrais(month, eglise, frais) {
-    this.clearCacheFor('/frais/');
     return this.request('/frais', {
       method: 'POST',
       body: JSON.stringify({ month, eglise, frais }),
     });
   }
 
-  // ============================================================
-  // ✅ VOLA SISA TEO ALOHA - Méthodes corrigées
-  // ============================================================
-
-  async getVolaSisa(month, eglise) {
-    try {
-      const report = await this.getMonthlyReport(month, eglise);
-      return report?.volaSisaTeoAloha || 0;
-    } catch (err) {
-      console.warn('⚠️ Erreur getVolaSisa (via getMonthlyReport):', err);
-      return 0;
-    }
-  }
-
-  async setVolaSisa(month, eglise, amount) {
-    return this.updateReportField(month, eglise, 'volaSisaTeoAloha', amount);
-  }
-
-  // ============================================================
-  // ✅ STATS
-  // ============================================================
-
+  // ===== STATS =====
   async getMembersStats() {
     return this.request('/stats/members');
   }
 
-  // ============================================================
-  // ✅ LOGS
-  // ============================================================
-
+  // ===== LOGS =====
   async addLog(userId, userName, userFonction) {
     return this.request('/logs', {
       method: 'POST',
@@ -374,29 +306,27 @@ class ApiService {
     return this.request(`/logs?limit=${limit}&offset=${offset}`);
   }
 
+  // ✅ Méthodes ajoutées pour les statistiques
   async getUserLogs() {
     return this.getLogs(10000);
   }
 
   async getUniqueVisitorsCount() {
     const data = await this.request('/logs/unique');
-    return data;
+    return data; // { count: ... }
   }
 
   async getVisitsPerUser() {
     return this.request('/logs/visits');
   }
 
-  // ============================================================
-  // ✅ EGLISES
-  // ============================================================
-
+  // ===== EGLISES =====
   async getEglisesByDistrict(district) {
-    return this.requestWithCache(`/eglises/district/${district}`);
+    return this.request(`/eglises/district/${district}`);
   }
 
   async getEglisesByFederation(federation) {
-    return this.requestWithCache(`/eglises/federation/${federation}`);
+    return this.request(`/eglises/federation/${federation}`);
   }
 }
 
