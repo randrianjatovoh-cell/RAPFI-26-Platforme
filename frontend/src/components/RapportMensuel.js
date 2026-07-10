@@ -365,12 +365,25 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   // ============================================================
   useEffect(() => {
     const handleDataUpdate = () => {
+      console.log('🔄 data-updated détecté, rechargement du rapport...');
       hasLoadedRef.current = false;
       loadDataRef.current = false;
       loadData();
     };
+    
+    const handleSisaUpdate = () => {
+      console.log('🔄 sisa-updated détecté, rechargement du rapport...');
+      hasLoadedRef.current = false;
+      loadDataRef.current = false;
+      loadData();
+    };
+    
     window.addEventListener('data-updated', handleDataUpdate);
-    return () => window.removeEventListener('data-updated', handleDataUpdate);
+    window.addEventListener('sisa-updated', handleSisaUpdate);
+    return () => {
+      window.removeEventListener('data-updated', handleDataUpdate);
+      window.removeEventListener('sisa-updated', handleSisaUpdate);
+    };
   }, [loadData]);
 
   // ============================================================

@@ -81,7 +81,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   const federation = effectiveFederation;
 
   const idCounter = useRef(0);
-  const saveTimeoutRef = useRef(null);
 
   const [newExpense, setNewExpense] = useState({
     date: "", vote: "", comDate: "", reason: "", sampana: "", 
@@ -442,7 +441,12 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       // Supprimer l'ancienne clé localStorage
       localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       console.log(`✅ volaSisaTeoAloha sauvegardé: ${finalValue} pour ${currentMonth} - ${eglise}`);
+      
+      // 🔥 Dispatcher les événements pour mettre à jour tous les composants
+      window.dispatchEvent(new Event('sisa-updated'));
+      window.dispatchEvent(new Event('data-updated'));
       notifyExpensesUpdated();
+      
       // Afficher un bref message de confirmation
       const input = document.querySelector('.sisa-input');
       if (input) {
