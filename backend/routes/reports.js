@@ -40,15 +40,12 @@ router.post('/rebuild', checkAccess, async (req, res) => {
   }
 });
 
-// Mettre à jour un champ du rapport (avec création automatique si le rapport n'existe pas)
+// Mettre à jour un champ du rapport
 router.put('/field', checkAccess, async (req, res) => {
   try {
     const { month, eglise, field, value } = req.body;
     console.log(`📝 PUT /reports/field: month=${month}, eglise=${eglise}, field=${field}, value=${value}`);
 
-    // ════════════════════════════════════════════════════════════════
-    // 🔧 MODIFICATION : ajout de volamPiangonanaApetraka et volaSisaTeoAloha
-    // ════════════════════════════════════════════════════════════════
     const allowedFields = [
       'sabbath_dates', 'totalA', 'totalB', 'totalExpenses', 'balanceChurch',
       'saramPandefasana', 'dateVersementFME', 'rosiaNum', 'bokyBe', 'rapano',
@@ -63,7 +60,7 @@ router.put('/field', checkAccess, async (req, res) => {
       return res.status(400).json({ error: 'Champ non autorisé' });
     }
 
-    // Vérifier que la colonne existe, et l'ajouter si nécessaire
+    // Vérifier que la colonne existe
     const dbInstance = await openDb();
     let columnType = 'TEXT';
     if (field === 'volamPiangonanaApetraka' || field === 'soraBolaMontant' || field === 'volaSisaTeoAloha') {

@@ -4,7 +4,7 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { formatMonthYear, formatNumber, nombreEnLettresCapitalized, escapeHtml, capitalizeFirstLetter } from '../services/helpers';
 
-const MAX_AMOUNT = 1_000_000_000; // 1 milliard Ar
+const MAX_AMOUNT = 1_000_000_000;
 
 function isValidDateStr(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return false;
@@ -37,7 +37,6 @@ const sampanaOptions = [
   "Mpitam-bola", "Mpitantsoratra", "MOZIKA", "PARL", "Sekoly Sabata", "Tanora Adventiste (JA)"
 ];
 
-// 🔥 Options pour les Sabatas
 const SABATA_OPTIONS = [
   { value: 1, label: 'Sabata 1' },
   { value: 2, label: 'Sabata 2' },
@@ -59,6 +58,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [isSavingSisa, setIsSavingSisa] = useState(false);
   
   const isAdmin = user?.fonction === 'Admin';
   const isVerificateur = user?.fonction === 'Vérificateur';
@@ -81,7 +81,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
 
   const idCounter = useRef(0);
 
-  // 🔥 Ajout du champ sabata dans le nouvel état
   const [newExpense, setNewExpense] = useState({
     date: "", vote: "", comDate: "", reason: "", sampana: "", 
     voaray: 0, amount: 0, mpiandraikitra: "", sonia: "",
@@ -151,10 +150,32 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       }
       setVolaNihiditra(totalB);
 
-      const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-      const val = saved ? parseFloat(saved) : 0;
-      setVolaSisaTeoAloha(val);
-      setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+      // 🔥 Récupérer volaSisaTeoAloha depuis le backend (via le rapport mensuel)
+      try {
+        const report = await api.getMonthlyReport(currentMonth, eglise);
+        if (report && report.volaSisaTeoAloha !== undefined && report.volaSisaTeoAloha !== null) {
+          const val = Number(report.volaSisaTeoAloha);
+          setVolaSisaTeoAloha(val);
+          setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+        } else {
+          // Fallback: essayer localStorage si la valeur n'existe pas dans le backend
+          const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+          const val = saved ? parseFloat(saved) : 0;
+          setVolaSisaTeoAloha(val);
+          setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+          // Si on a une valeur en localStorage, la sauvegarder dans le backend
+          if (val > 0) {
+            await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', val);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Erreur récupération volaSisaTeoAloha depuis backend:', err);
+        // Fallback localStorage
+        const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+        const val = saved ? parseFloat(saved) : 0;
+        setVolaSisaTeoAloha(val);
+        setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
+      }
     } catch (err) {
       console.error('❌ Erreur chargement dépenses:', err);
       setError(err.message);
@@ -363,21 +384,48 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     setOpenMenuId(openMenuId === id ? null : id);
   }
 
-  function handleVolaSisaChange(e) {
+  // 🔥 MODIFICATION: Sauvegarde dans le backend au lieu de localStorage
+  async function handleVolaSisaChange(e) {
     if (readOnly) return;
+    if (isSavingSisa) return;
+    
     const raw = e.target.value;
     const numeric = raw.replace(/\s/g, '');
     const num = parseFloat(numeric);
+    
     if (!isNaN(num) && num >= 0) {
       setVolaSisaTeoAloha(num);
       setVolaSisaTeoAlohaDisplay(formatMontant(num) || '0');
-      localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, num);
-      notifyExpensesUpdated();
+      
+      // 🔥 Sauvegarder dans le backend
+      setIsSavingSisa(true);
+      try {
+        await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', num);
+        // Supprimer l'ancienne clé localStorage pour éviter la confusion
+        localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+        notifyExpensesUpdated();
+      } catch (err) {
+        console.error('❌ Erreur sauvegarde volaSisaTeoAloha:', err);
+        alert(`Erreur lors de la sauvegarde : ${err.message}`);
+        // Recharger la valeur depuis le backend
+        await loadData();
+      } finally {
+        setIsSavingSisa(false);
+      }
     } else if (raw === '') {
       setVolaSisaTeoAloha(0);
       setVolaSisaTeoAlohaDisplay('0');
-      localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, 0);
-      notifyExpensesUpdated();
+      
+      setIsSavingSisa(true);
+      try {
+        await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', 0);
+        localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+        notifyExpensesUpdated();
+      } catch (err) {
+        console.error('❌ Erreur sauvegarde volaSisaTeoAloha:', err);
+      } finally {
+        setIsSavingSisa(false);
+      }
     }
   }
 
@@ -567,7 +615,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
           print-color-adjust: exact;
         }
 
-        /* 🔥 Masquer la colonne Sabata en impression */
         @media print {
           @page {
             size: A4 landscape;
@@ -620,7 +667,6 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
             overflow-x: visible !important;
           }
 
-          /* 🔥 Masquer la colonne Sabata */
           .sabata-col {
             display: none !important;
           }
@@ -671,8 +717,9 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
                       onChange={handleVolaSisaChange}
                       style={{ textAlign: 'right', width: '120px' }}
                       placeholder="0"
-                      disabled={readOnly}
+                      disabled={readOnly || isSavingSisa}
                     />
+                    {isSavingSisa && <span className="ml-1 text-xs text-blue-500 animate-pulse">⏳</span>}
                     Ar
                   </td>
                 </tr>

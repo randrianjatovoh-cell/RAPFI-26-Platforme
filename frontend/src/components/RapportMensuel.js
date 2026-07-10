@@ -74,7 +74,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const [balanceChurch, setBalanceChurch] = useState(0);
   const [sabbathDates, setSabbathDates] = useState(['', '', '', '', '']);
   const [volaSisaTeoAloha, setVolaSisaTeoAloha] = useState(0);
-  const [volaSisaFromDepenses, setVolaSisaFromDepenses] = useState(0);
   const [categorySums, setCategorySums] = useState(Array(8).fill().map(() => [0, 0, 0, 0, 0]));
   const [volamPiangonanaApetraka, setVolamPiangonanaApetraka] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -193,6 +192,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         const volamValue = getField(r, 'volamPiangonanaApetraka');
         setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
+        // 🔥 Récupérer volaSisaTeoAloha depuis le rapport
         const sisaValue = getField(r, 'volaSisaTeoAloha');
         setVolaSisaTeoAloha(sisaValue !== undefined ? Number(sisaValue) : 0);
 
@@ -255,19 +255,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(catSums);
 
-      // ============================================================
-      // 🔥 TRAITER LES DÉPENSES AVEC RÉPARTITION PAR SABATA
-      // ============================================================
+      // Traiter les dépenses avec répartition par Sabata
       const depenses = depensesData || [];
       const totalExp = depenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
 
-      // 🔥 Récupérer volaSisaTeoAloha depuis le localStorage (valeur saisie dans l'onglet Dépenses)
-      const savedVolaSisa = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-      const volaSisaValue = savedVolaSisa ? parseFloat(savedVolaSisa) : 0;
-      setVolaSisaFromDepenses(volaSisaValue);
-
-      // Répartir les dépenses par Sabata
       const expensesByWeek = [0, 0, 0, 0, 0];
       
       for (let exp of depenses) {
@@ -309,9 +301,9 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setExpensesBySabbath(expensesByWeek);
 
       // 🔥 Calcul de VOLA SISA tamin'ny faran'ny volana
-      // = (VOLA SISA tamin'ny volana teo aloha + VOLA NIDITRA nandritra ny volana) - VOLA NIVOAKA
-      const currentSisa = volaSisaValue || getField(r, 'volaSisaTeoAloha') || 0;
-      const balance = currentSisa + totalB - totalExp;
+      // = (VOLA SISA tamin'ny volana teo aloha + VOLA NIDITRA) - VOLA NIVOAKA
+      const currentSisa = getField(r, 'volaSisaTeoAloha') || 0;
+      const balance = Number(currentSisa) + totalB - totalExp;
       setBalanceChurch(balance);
 
     } catch (err) {
@@ -468,7 +460,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     if (isReadOnlyMode()) return;
     const num = parseFloat(val) || 0;
     setVolaSisaTeoAloha(num);
-    // 🔥 Mettre à jour le solde avec la nouvelle valeur
     setBalanceChurch(num + totalB - totalExpenses);
   };
 
@@ -509,9 +500,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   ];
   const totalNetFederation = totalA - saramPandefasana;
   const displayFederation = (federation || '').toUpperCase();
-
-  // 🔥 Utiliser volaSisaFromDepenses si disponible, sinon volaSisaTeoAloha
-  const volaSisaDisplay = volaSisaFromDepenses > 0 ? volaSisaFromDepenses : volaSisaTeoAloha;
 
   const sabbathHeaders = [1, 2, 3, 4, 5].map(i => {
     const dateStr = sabbathDates[i - 1] || '';
@@ -959,8 +947,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right font-bold">
-                {/* 🔥 Afficher la valeur de volaSisaTeoAloha importée des dépenses */}
-                {formatMontant(volaSisaDisplay)}
+                {formatMontant(volaSisaTeoAloha)}
               </td>
             </tr>
             <tr>
@@ -985,8 +972,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right protected-cell">-</td>
               <td className="border p-0.5 text-right font-bold">
-                {/* 🔥 Calcul: (VOLA SISA tamin'ny volana teo aloha + VOLA NIDITRA) - VOLA NIVOAKA */}
-                {formatMontant(volaSisaDisplay + totalB - totalExpenses)}
+                {formatMontant(volaSisaTeoAloha + totalB - totalExpenses)}
               </td>
             </tr>
           </tbody>

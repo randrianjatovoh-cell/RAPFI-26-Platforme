@@ -151,10 +151,6 @@ async function getEglisesByFederation(federation) {
 // ✅ GRAND LIVRE - AVEC UPSERT
 // ============================================================
 
-/**
- * Sauvegarde les données du Grand Livre avec UPSERT
- * La clé unique est : (month, eglise, sabbath_index)
- */
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
   
@@ -336,14 +332,12 @@ async function saveDepenses({ userId, month, data, eglise, district, federation 
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
   
-  // Supprimer les anciennes dépenses pour cette église/mois
   await db.run('DELETE FROM depenses WHERE month = ? AND eglise = ?', month, cleanEglise);
   
   for (const dep of data) {
-    // 🔥 S'assurer que le sabata est sauvegardé
     const depWithSabata = {
       ...dep,
-      sabata: dep.sabata || 1 // Valeur par défaut si non spécifié
+      sabata: dep.sabata || 1
     };
     await db.run(
       'INSERT INTO depenses (user_id, month, data, eglise, district, federation) VALUES (?, ?, ?, ?, ?, ?)',
@@ -362,7 +356,6 @@ async function getDepensesByEglise(month, eglise) {
   for (const row of rows) {
     try {
       const data = JSON.parse(row.data);
-      // S'assurer que le champ sabata existe
       if (data && typeof data === 'object' && !data.sabata) {
         data.sabata = 1;
       }
@@ -505,7 +498,10 @@ async function saveChurchConfig(userId, config) {
   }
 }
 
-// ---------- Rapports mensuels ----------
+// ============================================================
+// ✅ RAPPORTS MENSUELS - AVEC SUPPORT DE volaSisaTeoAloha
+// ============================================================
+
 async function getMonthlyReport(month, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -516,9 +512,17 @@ async function updateReportField(month, eglise, field, value) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
   let finalValue = value;
+  
+  // 🔥 Gérer les objets JSON
   if (field === 'soraBolaLinesJson' && typeof value === 'object') {
     finalValue = JSON.stringify(value);
   }
+  
+  // 🔥 Gérer volaSisaTeoAloha - s'assurer que c'est un nombre
+  if (field === 'volaSisaTeoAloha') {
+    finalValue = parseFloat(value) || 0;
+  }
+  
   try {
     const result = await db.run(
       `UPDATE monthly_reports SET "${field}" = ? WHERE month_id = ? AND eglise = ?`,
@@ -604,7 +608,7 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     totalB += (entry.b9 || 0) + (entry.b10 || 0);
   }
 
-  // 🔥 Récupérer les dépenses avec leur Sabata
+  // Récupérer les dépenses avec leur Sabata
   const depRows = await db.all(
     'SELECT data FROM depenses WHERE month = ? AND eglise = ?',
     monthId, cleanEglise
@@ -619,12 +623,11 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
       const amount = dep.amount || 0;
       totalExpenses += amount;
       
-      // 🔥 Répartir par Sabata
       const sabata = dep.sabata || 1;
       if (sabata >= 1 && sabata <= 5) {
         expensesBySabbath[sabata - 1] += amount;
       } else {
-        expensesBySabbath[0] += amount; // Fallback sur Sabata 1
+        expensesBySabbath[0] += amount;
       }
     } catch (e) {
       console.warn(`⚠️ Erreur parsing dépense pour ${monthId} - ${cleanEglise}`);
@@ -653,6 +656,7 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   const receiptNumber = oldReport?.receiptNumber || "";
   const note = oldReport?.note || "";
   const volamPiangonanaApetraka = oldReport?.volamPiangonanaApetraka || 0;
+  // 🔥 Récupérer volaSisaTeoAloha depuis l'ancien rapport
   const volaSisaTeoAloha = oldReport?.volaSisaTeoAloha || 0;
 
   const balanceChurch = totalB - totalExpenses;
@@ -683,8 +687,7 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
     receiptNumber,
     note,
     volamPiangonanaApetraka,
-    volaSisaTeoAloha,
-    // 🔥 Ajout des dépenses par Sabata pour le rapport
+    volaSisaTeoAloha, // ✅ Ajout
     expensesBySabbath: JSON.stringify(expensesBySabbath)
   };
 
