@@ -255,31 +255,59 @@ class ApiService {
     });
   }
 
+  async getEgliseReports(eglise) {
+    return this.request(`/reports/eglise/${eglise}`);
+  }
+
+  async getDistrictReports(district, year = null, month = null) {
+    let url = `/reports/district/${district}`;
+    const params = new URLSearchParams();
+    if (year) params.append('year', year);
+    if (month) params.append('month', month);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  async getFederationReports(federation, year = null, month = null) {
+    let url = `/reports/federation/${federation}`;
+    const params = new URLSearchParams();
+    if (year) params.append('year', year);
+    if (month) params.append('month', month);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  // ===== FRAIS =====
+  async getFrais(month, eglise) {
+    return this.request(`/frais/${month}/${eglise}`);
+  }
+
+  async saveFrais(month, eglise, frais) {
+    return this.request('/frais', {
+      method: 'POST',
+      body: JSON.stringify({ month, eglise, frais }),
+    });
+  }
+
   // ============================================================
-  // ✅ VOLA SISA TEO ALOHA - Méthodes corrigées
+  // ✅ VOLA SISA TEO ALOHA
   // ============================================================
 
   async getVolaSisa(month, eglise) {
     try {
-      // 🔥 Utiliser getMonthlyReport au lieu d'un appel direct à /reports/volaSisa
-      const report = await this.getMonthlyReport(month, eglise);
-      return report?.volaSisaTeoAloha || 0;
+      const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
+      return data.value || 0;
     } catch (err) {
       console.warn('⚠️ Erreur getVolaSisa:', err);
-      // Fallback: essayer l'API directe si disponible
-      try {
-        const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
-        return data.value || 0;
-      } catch (err2) {
-        console.warn('⚠️ API directe volaSisa non disponible');
-        return 0;
-      }
+      return 0;
     }
   }
 
   async setVolaSisa(month, eglise, amount) {
-    // 🔥 Utiliser updateReportField au lieu d'un appel direct
-    return this.updateReportField(month, eglise, 'volaSisaTeoAloha', amount);
+    return this.request('/reports/volaSisa', {
+      method: 'POST',
+      body: JSON.stringify({ month, eglise, amount }),
+    });
   }
 
   // ===== STATS =====
