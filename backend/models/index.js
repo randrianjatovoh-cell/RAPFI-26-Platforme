@@ -892,8 +892,8 @@ module.exports = {
   computeAndSaveMonthlyReports,
   getFrais,
   setFrais,
-  getVolaSisa,
-  setVolaSisa,
+  getVolaSisa,      // ✅ Exporté
+  setVolaSisa,      // ✅ Exporté
   deleteAllDataForMonth,
   addUserLog,
   getUserLogs,
