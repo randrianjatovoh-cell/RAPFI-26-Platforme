@@ -151,51 +151,36 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       }
       setVolaNihiditra(totalB);
 
-      // 🔥 Récupérer volaSisaTeoAloha depuis le rapport mensuel (updateReportField)
+      // ============================================================
+      // 🔥 RÉCUPÉRATION DE volaSisaTeoAloha - Version corrigée
+      // ============================================================
+      let volaSisaValue = 0;
       try {
+        // 1. Essayer de récupérer depuis le rapport mensuel
         const report = await api.getMonthlyReport(currentMonth, eglise);
         if (report && report.volaSisaTeoAloha !== undefined && report.volaSisaTeoAloha !== null) {
-          const val = Number(report.volaSisaTeoAloha);
-          setVolaSisaTeoAloha(val);
-          const displayVal = formatMontant(val) || '0';
-          setVolaSisaTeoAlohaDisplay(displayVal);
-          setSisaInputValue(displayVal);
-          console.log(`✅ volaSisaTeoAloha récupéré: ${val} pour ${currentMonth} - ${eglise}`);
+          volaSisaValue = Number(report.volaSisaTeoAloha);
+          console.log(`✅ volaSisaTeoAloha récupéré du rapport: ${volaSisaValue}`);
         } else {
-          // Fallback: essayer la nouvelle API si disponible
-          try {
-            const val = await api.getVolaSisa(currentMonth, eglise);
-            setVolaSisaTeoAloha(val);
-            const displayVal = formatMontant(val) || '0';
-            setVolaSisaTeoAlohaDisplay(displayVal);
-            setSisaInputValue(displayVal);
-          } catch (err2) {
-            console.warn('⚠️ API getVolaSisa non disponible, utilisation de 0');
-            setVolaSisaTeoAloha(0);
-            setVolaSisaTeoAlohaDisplay('0');
-            setSisaInputValue('0');
+          // 2. Fallback: localStorage
+          const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
+          if (saved) {
+            volaSisaValue = parseFloat(saved) || 0;
+            console.log(`✅ volaSisaTeoAloha récupéré de localStorage: ${volaSisaValue}`);
           }
         }
       } catch (err) {
         console.warn('⚠️ Erreur récupération volaSisaTeoAloha:', err);
-        setVolaSisaTeoAloha(0);
-        setVolaSisaTeoAlohaDisplay('0');
-        setSisaInputValue('0');
-      }
-
-      // 🔥 Récupérer depuis localStorage si aucune valeur trouvée
-      if (volaSisaTeoAloha === 0) {
         const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
         if (saved) {
-          const val = parseFloat(saved);
-          if (!isNaN(val)) {
-            setVolaSisaTeoAloha(val);
-            const displayVal = formatMontant(val) || '0';
-            setVolaSisaTeoAlohaDisplay(displayVal);
-            setSisaInputValue(displayVal);
-          }
+          volaSisaValue = parseFloat(saved) || 0;
         }
       }
+
+      setVolaSisaTeoAloha(volaSisaValue);
+      const displayVal = formatMontant(volaSisaValue) || '0';
+      setVolaSisaTeoAlohaDisplay(displayVal);
+      setSisaInputValue(displayVal);
       
     } catch (err) {
       console.error('❌ Erreur chargement dépenses:', err);
@@ -435,7 +420,7 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     
     setIsSavingSisa(true);
     try {
-      // 🔥 Utiliser updateReportField au lieu de setVolaSisa
+      // 🔥 Utiliser updateReportField pour sauvegarder
       await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', finalValue);
       localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
       console.log(`✅ volaSisaTeoAloha sauvegardé: ${finalValue} pour ${currentMonth} - ${eglise}`);
