@@ -6,6 +6,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const { initDb } = require('./db');
 const { createAdminIfNotExists } = require('./models');
+const { openDb } = require('./db');
 
 const app = express();
 
@@ -106,6 +107,66 @@ app.use((req, res, next) => {
   next();
 });
 
+// ============================================================
+// ✅ FORCER LA CRÉATION DE LA TABLE VOLA_SISA_TEO_ALOHA
+// ============================================================
+async function ensureVolaSisaTable() {
+  try {
+    const db = await openDb();
+    console.log('📝 Vérification de la table vola_sisa_teo_aloha...');
+    
+    // Vérifier si la table existe
+    let tableExists = false;
+    try {
+      await db.get('SELECT 1 FROM vola_sisa_teo_aloha LIMIT 1');
+      tableExists = true;
+      console.log('ℹ️ La table vola_sisa_teo_aloha existe déjà');
+    } catch (err) {
+      tableExists = false;
+      console.log('📝 La table vola_sisa_teo_aloha n\'existe pas, création en cours...');
+    }
+    
+    if (!tableExists) {
+      if (db.isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS vola_sisa_teo_aloha (
+            id SERIAL PRIMARY KEY,
+            month_id VARCHAR(10) NOT NULL,
+            eglise VARCHAR(255) NOT NULL,
+            amount INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(month_id, eglise)
+          )
+        `);
+        await db.run(`
+          CREATE INDEX IF NOT EXISTS idx_vola_sisa_month_eglise 
+          ON vola_sisa_teo_aloha(month_id, eglise)
+        `);
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS vola_sisa_teo_aloha (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            month_id VARCHAR(10) NOT NULL,
+            eglise VARCHAR(255) NOT NULL,
+            amount INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(month_id, eglise)
+          )
+        `);
+        await db.run(`
+          CREATE INDEX IF NOT EXISTS idx_vola_sisa_month_eglise 
+          ON vola_sisa_teo_aloha(month_id, eglise)
+        `);
+      }
+      console.log('✅ Table vola_sisa_teo_aloha créée avec succès');
+    }
+  } catch (err) {
+    console.error('❌ Erreur lors de la vérification/création de la table vola_sisa_teo_aloha:', err);
+  }
+}
+
 // ---------- Routes API ----------
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -136,8 +197,15 @@ app.use((err, req, res, next) => {
 // ---------- Démarrage ----------
 const start = async () => {
   try {
+    // Initialiser la base de données
     const db = await initDb();
+    
+    // Créer l'admin si nécessaire
     await createAdminIfNotExists();
+    
+    // 🔥 FORCER LA CRÉATION DE LA TABLE VOLA_SISA_TEO_ALOHA
+    await ensureVolaSisaTable();
+    
     const port = process.env.PORT || 5000;
     app.listen(port, '0.0.0.0', () => {
       console.log(`✅ Backend démarré sur le port ${port}`);
