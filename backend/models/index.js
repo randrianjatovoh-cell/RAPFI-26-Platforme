@@ -857,140 +857,7 @@ async function getEgliseInfo(eglise) {
 }
 
 // ============================================================
-// ✅ NOUVELLES FONCTIONS POUR DONNÉES ANNUELLES OPTIMISÉES
-// ============================================================
-
-/**
- * Récupère toutes les données GL d'une année pour une église/district/fédération
- */
-async function getYearlyGLData(year, eglise = null, district = null, federation = null, filterType = 'eglise') {
-  const db = await openDb();
-  let sql = `SELECT month, sabbath_index, data, eglise FROM gl_data WHERE month LIKE ?`;
-  const params = [`${year}%`];
-  
-  if (filterType === 'eglise' && eglise) {
-    sql += ` AND eglise = ?`;
-    params.push(eglise);
-  } else if (filterType === 'district' && district) {
-    sql += ` AND district = ?`;
-    params.push(district);
-  } else if (filterType === 'federation' && federation) {
-    sql += ` AND federation = ?`;
-    params.push(federation);
-  }
-  
-  const rows = await db.all(sql, params);
-  const result = {};
-  
-  for (const row of rows) {
-    const month = row.month;
-    if (!result[month]) result[month] = {};
-    try {
-      const data = JSON.parse(row.data);
-      result[month][row.sabbath_index] = data;
-    } catch (e) {
-      console.warn(`⚠️ Erreur parsing GL pour ${month}:`, e);
-      result[month][row.sabbath_index] = [];
-    }
-  }
-  
-  return result;
-}
-
-/**
- * Récupère toutes les dépenses d'une année pour une église/district/fédération
- */
-async function getYearlyDepensesData(year, eglise = null, district = null, federation = null, filterType = 'eglise') {
-  const db = await openDb();
-  let sql = `SELECT month, data, eglise FROM depenses WHERE month LIKE ?`;
-  const params = [`${year}%`];
-  
-  if (filterType === 'eglise' && eglise) {
-    sql += ` AND eglise = ?`;
-    params.push(eglise);
-  } else if (filterType === 'district' && district) {
-    sql += ` AND district = ?`;
-    params.push(district);
-  } else if (filterType === 'federation' && federation) {
-    sql += ` AND federation = ?`;
-    params.push(federation);
-  }
-  
-  const rows = await db.all(sql, params);
-  const result = {};
-  
-  for (const row of rows) {
-    const month = row.month;
-    if (!result[month]) result[month] = [];
-    try {
-      const data = JSON.parse(row.data);
-      result[month].push(data);
-    } catch (e) {
-      console.warn(`⚠️ Erreur parsing dépense pour ${month}:`, e);
-    }
-  }
-  
-  return result;
-}
-
-/**
- * Récupère tous les frais d'une année pour une église/fédération
- */
-async function getYearlyFraisData(year, eglise = null, federation = null) {
-  const db = await openDb();
-  let sql = `SELECT month_id, amount FROM frais WHERE month_id LIKE ?`;
-  const params = [`${year}%`];
-  
-  if (eglise) {
-    sql += ` AND eglise = ?`;
-    params.push(eglise);
-  } else if (federation) {
-    sql = `SELECT f.month_id, f.amount FROM frais f 
-           JOIN users u ON u.eglise = f.eglise 
-           WHERE f.month_id LIKE ? AND u.federation = ?`;
-    params.push(federation);
-  }
-  
-  const rows = await db.all(sql, params);
-  const result = {};
-  for (const row of rows) {
-    result[row.month_id] = row.amount || 0;
-  }
-  return result;
-}
-
-/**
- * Récupère tous les rapports mensuels d'une année pour une église/fédération
- */
-async function getYearlyReportsData(year, eglise = null, federation = null) {
-  const db = await openDb();
-  let sql = `SELECT month_id, eglise, totalA, totalB, totalExpenses, balanceChurch, volaSisaTeoAloha 
-             FROM monthly_reports WHERE month_id LIKE ?`;
-  const params = [`${year}%`];
-  
-  if (eglise) {
-    sql += ` AND eglise = ?`;
-    params.push(eglise);
-  } else if (federation) {
-    sql = `SELECT mr.month_id, mr.eglise, mr.totalA, mr.totalB, mr.totalExpenses, mr.balanceChurch, mr.volaSisaTeoAloha 
-           FROM monthly_reports mr
-           JOIN users u ON u.eglise = mr.eglise
-           WHERE mr.month_id LIKE ? AND u.federation = ?`;
-    params.push(federation);
-  }
-  
-  const rows = await db.all(sql, params);
-  const result = {};
-  for (const row of rows) {
-    const month = row.month_id;
-    if (!result[month]) result[month] = [];
-    result[month].push(row);
-  }
-  return result;
-}
-
-// ============================================================
-// ✅ EXPORTATIONS COMPLÈTES
+// ✅ EXPORTATIONS COMPLÈTES - AVEC TOUTES LES FONCTIONS
 // ============================================================
 
 module.exports = {
@@ -1047,7 +914,7 @@ module.exports = {
   getFrais,
   setFrais,
   
-  // Vola Sisa
+  // ✅ VOLA SISA - FONCTIONS CRUCIALES
   getVolaSisa,
   setVolaSisa,
   
@@ -1062,11 +929,5 @@ module.exports = {
   getVisitsPerUser,
   
   // Stats
-  getMembersStats,
-  
-  // 🔥 NOUVELLES FONCTIONS OPTIMISÉES
-  getYearlyGLData,
-  getYearlyDepensesData,
-  getYearlyFraisData,
-  getYearlyReportsData
+  getMembersStats
 };
