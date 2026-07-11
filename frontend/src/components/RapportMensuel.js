@@ -1,4 +1,4 @@
-// frontend/src/components/RapportMensuel.js
+// frontend/src/components/RapportMensuel.js - VERSION CORRIGÉE (BOUCLE INFINIE FIXÉE)
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -35,14 +35,8 @@ function formatMontant(value) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-// Fonctions manquantes
 function renderDateField(value) {
   return formatDateInput(value);
-}
-
-function handleTextBlur(field, value) {
-  // Cette fonction sera redéfinie dans le composant
-  return { field, value };
 }
 
 export default function RapportMensuel({ currentMonth, selectedEglise, readOnly = false }) {
@@ -93,11 +87,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
   const abortControllerRef = useRef(null);
   const isMountedRef = useRef(true);
-  const loadDataRef = useRef(null);
-  const hasLoadedRef = useRef(false);
+  const loadDataRef = useRef(false);
+  const isInitialLoadRef = useRef(true);
 
   // ============================================================
-  // FONCTIONS DE PERMISSION
+  // FONCTIONS DE PERMISSION STABILISÉES
   // ============================================================
   const canViewEgliseStable = useCallback(
     (egliseName, district, federation) => canViewEglise(egliseName, district, federation),
@@ -219,11 +213,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   };
 
   // ============================================================
-  // FONCTION DE CHARGEMENT
+  // FONCTION DE CHARGEMENT - AVEC MÉCANISME ANTI-BOUCLE
   // ============================================================
   const loadData = useCallback(async () => {
+    // Éviter les chargements multiples simultanés
     if (loadDataRef.current) return;
-    
     if (!currentMonth || !eglise) {
       setLoading(false);
       return;
@@ -235,6 +229,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       return;
     }
 
+    // Annuler la requête précédente si elle existe
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -293,10 +288,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         const volamValue = getField(r, 'volamPiangonanaApetraka');
         setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-        // Récupération de volaSisaTeoAloha
         const sisaFromReport = getField(r, 'volaSisaTeoAloha');
         let sisaValue = sisaFromReport !== undefined ? Number(sisaFromReport) : 0;
-        
         if (sisaValue === 0) {
           const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
           if (saved) {
@@ -418,14 +411,15 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         loadDataRef.current = false;
       }
     }
-  }, [currentMonth, eglise, user, canViewEgliseStable, canEditEgliseStable]);
+  }, [currentMonth, eglise, user, canViewEgliseStable, canEditEgliseStable, volaSisaTeoAloha, totalB, totalExpenses]);
 
   // ============================================================
-  // HOOKS
+  // HOOKS - VERSION CORRIGÉE SANS BOUCLE INFINIE
   // ============================================================
+  
+  // Nettoyage au démontage
   useEffect(() => {
-    hasLoadedRef.current = false;
-    loadDataRef.current = false;
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {
@@ -434,33 +428,37 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     };
   }, []);
 
+  // Chargement initial - ne s'exécute qu'une seule fois
   useEffect(() => {
-    if (!currentMonth || !eglise || !isMountedRef.current) {
+    if (!currentMonth || !eglise) {
       setLoading(false);
       return;
     }
-    if (hasLoadedRef.current && loadDataRef.current) {
-      return;
+    
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      loadData();
     }
-    hasLoadedRef.current = true;
-    loadData();
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [currentMonth, eglise, loadData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth, eglise]);
 
+  // Rechargement lors des événements externes
   useEffect(() => {
     const handleDataUpdate = () => {
       console.log('🔄 data-updated détecté, rechargement du rapport...');
-      hasLoadedRef.current = false;
-      loadDataRef.current = false;
       loadData();
     };
+    
+    const handleSisaUpdate = () => {
+      console.log('🔄 sisa-updated détecté, rechargement du rapport...');
+      loadData();
+    };
+    
     window.addEventListener('data-updated', handleDataUpdate);
+    window.addEventListener('sisa-updated', handleSisaUpdate);
     return () => {
       window.removeEventListener('data-updated', handleDataUpdate);
+      window.removeEventListener('sisa-updated', handleSisaUpdate);
     };
   }, [loadData]);
 
