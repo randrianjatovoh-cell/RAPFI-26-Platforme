@@ -44,6 +44,15 @@ export default function Formulaire({
   const [federations, setFederations] = useState([]);
   const [lockedRows, setLockedRows] = useState([]);
   const [hasData, setHasData] = useState(false);
+  
+  // 🔥 État pour le modal Billetage
+  const [showBilletage, setShowBilletage] = useState(false);
+  const [billetageData, setBilletageData] = useState({
+    fanatitraTotal: 0,
+    fanatitraBillets: { 20000: 0, 10000: 0, 5000: 0, 2000: 0, 1000: 0, 500: 0, 200: 0, 100: 0 },
+    resteTotal: 0,
+    resteBillets: { 20000: 0, 10000: 0, 5000: 0, 2000: 0, 1000: 0, 500: 0, 200: 0, 100: 0 }
+  });
 
   const isAdmin = user?.fonction === 'Admin';
   const isPasteur = user?.fonction === 'Pasteur';
@@ -53,7 +62,6 @@ export default function Formulaire({
   const canAddMonth = (isAdmin || isPasteur || isTresorier || isAncien) && !readOnly && !isGlobalReadOnly();
   const hasFixedChurch = !isPasteur && !isVerificateur && !isAdmin;
 
-  // Seul le Pasteur est verrouillé si des données existent
   const lockEntries = (isPasteur && hasData) || readOnly;
 
   const isSelectorDisabled = isGlobalReadOnly() || 
@@ -61,6 +69,10 @@ export default function Formulaire({
 
   const loadingRef = useRef(false);
   const currentKeyRef = useRef('');
+
+  // Valeurs des billets
+  const BILLET_VALUES = [20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+  const BILLET_LABELS = ['20 000', '10 000', '5 000', '2 000', '1 000', '500', '200', '100'];
 
   // ===== CHARGEMENT DES LISTES =====
   useEffect(() => {
@@ -297,6 +309,71 @@ export default function Formulaire({
     return { ...entry, f1: Number(entry.f1)||0, f2: Number(entry.f2)||0, f3: Number(entry.f3)||0, f4: Number(entry.f4)||0, f5: Number(entry.f5)||0, f6: Number(entry.f6)||0, f7: Number(entry.f7)||0, f8: Number(entry.f8)||0, b9: Number(entry.b9)||0, b10: Number(entry.b10)||0 };
   }
 
+  // ============================================================
+  // 🔥 FONCTIONS POUR LE BILLETAGE
+  // ============================================================
+  
+  const openBilletage = () => {
+    // Calculer les totaux des fanatitra (f2 à f8) et des restes (b9 + b10)
+    let fanatitraTotal = 0;
+    let resteTotal = 0;
+    
+    for (const entry of entries) {
+      fanatitraTotal += (entry.f2 || 0) + (entry.f3 || 0) + (entry.f4 || 0) + 
+                        (entry.f5 || 0) + (entry.f6 || 0) + (entry.f7 || 0) + (entry.f8 || 0);
+      resteTotal += (entry.b9 || 0) + (entry.b10 || 0);
+    }
+    
+    // Initialiser les compteurs de billets à 0
+    const emptyBillets = { 20000: 0, 10000: 0, 5000: 0, 2000: 0, 1000: 0, 500: 0, 200: 0, 100: 0 };
+    
+    setBilletageData({
+      fanatitraTotal,
+      fanatitraBillets: { ...emptyBillets },
+      resteTotal,
+      resteBillets: { ...emptyBillets }
+    });
+    
+    setShowBilletage(true);
+  };
+
+  const closeBilletage = () => {
+    setShowBilletage(false);
+  };
+
+  // Mettre à jour le nombre de billets pour Fanatitra
+  const updateFanatitraBillet = (valeur, count) => {
+    const num = parseInt(count) || 0;
+    setBilletageData(prev => ({
+      ...prev,
+      fanatitraBillets: { ...prev.fanatitraBillets, [valeur]: num }
+    }));
+  };
+
+  // Mettre à jour le nombre de billets pour Reste
+  const updateResteBillet = (valeur, count) => {
+    const num = parseInt(count) || 0;
+    setBilletageData(prev => ({
+      ...prev,
+      resteBillets: { ...prev.resteBillets, [valeur]: num }
+    }));
+  };
+
+  // Calculer le total des billets pour une catégorie
+  const calculateBilletTotal = (billets) => {
+    let total = 0;
+    for (const [valeur, count] of Object.entries(billets)) {
+      total += parseInt(valeur) * count;
+    }
+    return total;
+  };
+
+  // Calculer la balance (Fanatitra total - total des billets)
+  const calculateBalance = (total, billets) => {
+    const billetTotal = calculateBilletTotal(billets);
+    return total - billetTotal;
+  };
+
   // ===== SAUVEGARDE =====
   async function handleSave() {
     if (isSaving || isGlobalReadOnly() || lockEntries) return;
@@ -465,8 +542,170 @@ export default function Formulaire({
     }
   };
 
-  // 🔥 Correction : le bouton est actif si entries.length > 0, sans condition sur lockedRows
   const showReceiptsButton = entries.length > 0;
+
+  // ============================================================
+  // 🔥 RENDU DU MODAL BILLETAGE
+  // ============================================================
+  const renderBilletageModal = () => {
+    if (!showBilletage) return null;
+
+    const fanatitraBilletTotal = calculateBilletTotal(billetageData.fanatitraBillets);
+    const fanatitraBalance = billetageData.fanatitraTotal - fanatitraBilletTotal;
+    
+    const resteBilletTotal = calculateBilletTotal(billetageData.resteBillets);
+    const resteBalance = billetageData.resteTotal - resteBilletTotal;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+          {/* En-tête */}
+          <div className="flex justify-between items-center mb-4 border-b pb-3">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <i className="fas fa-cash-register text-green-600"></i>
+              BILLETAGE
+            </h2>
+            <button
+              onClick={closeBilletage}
+              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2 transition"
+            >
+              <i className="fas fa-times text-xl"></i>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Colonne Fanatitra (tsy Ambalopy) */}
+            <div className="border rounded-lg p-4 bg-blue-50/50">
+              <h3 className="text-lg font-bold text-blue-700 mb-3 text-center border-b pb-2">
+                <i className="fas fa-hand-holding-heart mr-2"></i>
+                FANATITRA (tsy Ambalopy)
+              </h3>
+              <div className="text-center mb-4">
+                <span className="text-sm text-gray-600">Total Fanatitra :</span>
+                <span className="text-xl font-bold text-blue-700 ml-2">
+                  {formatNumber(billetageData.fanatitraTotal)} Ar
+                </span>
+              </div>
+              
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="p-2 text-left">Billet</th>
+                    <th className="p-2 text-right">Quantité</th>
+                    <th className="p-2 text-right">Montant</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {BILLET_VALUES.map((valeur, idx) => {
+                    const count = billetageData.fanatitraBillets[valeur] || 0;
+                    const montant = valeur * count;
+                    return (
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="p-2 font-medium">{BILLET_LABELS[idx]} Ar</td>
+                        <td className="p-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={count}
+                            onChange={(e) => updateFanatitraBillet(valeur, e.target.value)}
+                            className="w-20 text-right border rounded px-2 py-1 focus:ring-2 focus:ring-blue-400"
+                          />
+                        </td>
+                        <td className="p-2 text-right font-mono">{formatNumber(montant)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-blue-100 font-bold">
+                  <tr>
+                    <td className="p-2">TOTAL</td>
+                    <td className="p-2 text-right">-</td>
+                    <td className="p-2 text-right text-blue-700">{formatNumber(fanatitraBilletTotal)} Ar</td>
+                  </tr>
+                  <tr className="bg-yellow-50">
+                    <td className="p-2">BALANCE</td>
+                    <td className="p-2 text-right">-</td>
+                    <td className={`p-2 text-right font-bold ${fanatitraBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {fanatitraBalance === 0 ? '✅ OK' : formatNumber(fanatitraBalance) + ' Ar'}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Colonne Reste (Ambalopy) */}
+            <div className="border rounded-lg p-4 bg-green-50/50">
+              <h3 className="text-lg font-bold text-green-700 mb-3 text-center border-b pb-2">
+                <i className="fas fa-coins mr-2"></i>
+                RESTE (Ambalopy)
+              </h3>
+              <div className="text-center mb-4">
+                <span className="text-sm text-gray-600">Total Reste :</span>
+                <span className="text-xl font-bold text-green-700 ml-2">
+                  {formatNumber(billetageData.resteTotal)} Ar
+                </span>
+              </div>
+              
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-green-100">
+                    <th className="p-2 text-left">Billet</th>
+                    <th className="p-2 text-right">Quantité</th>
+                    <th className="p-2 text-right">Montant</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {BILLET_VALUES.map((valeur, idx) => {
+                    const count = billetageData.resteBillets[valeur] || 0;
+                    const montant = valeur * count;
+                    return (
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="p-2 font-medium">{BILLET_LABELS[idx]} Ar</td>
+                        <td className="p-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={count}
+                            onChange={(e) => updateResteBillet(valeur, e.target.value)}
+                            className="w-20 text-right border rounded px-2 py-1 focus:ring-2 focus:ring-green-400"
+                          />
+                        </td>
+                        <td className="p-2 text-right font-mono">{formatNumber(montant)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-green-100 font-bold">
+                  <tr>
+                    <td className="p-2">TOTAL</td>
+                    <td className="p-2 text-right">-</td>
+                    <td className="p-2 text-right text-green-700">{formatNumber(resteBilletTotal)} Ar</td>
+                  </tr>
+                  <tr className="bg-yellow-50">
+                    <td className="p-2">BALANCE</td>
+                    <td className="p-2 text-right">-</td>
+                    <td className={`p-2 text-right font-bold ${resteBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {resteBalance === 0 ? '✅ OK' : formatNumber(resteBalance) + ' Ar'}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Pied du modal */}
+          <div className="mt-6 flex justify-end border-t pt-4">
+            <button
+              onClick={closeBilletage}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition"
+            >
+              <i className="fas fa-times mr-2"></i> Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -580,6 +819,16 @@ export default function Formulaire({
             <option value="4">Sabata Faha-4</option>
             <option value="5">Sabata Faha-5</option>
           </select>
+          {/* 🔥 BOUTON BILLETAGE */}
+          {sabbathIndex && entries.length > 0 && (
+            <button
+              onClick={openBilletage}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+            >
+              <i className="fas fa-cash-register"></i>
+              Billetage
+            </button>
+          )}
         </div>
         <div className="text-xs text-gray-500 flex items-center gap-1">
           <span>Sabata (daty) :</span>
@@ -694,6 +943,19 @@ export default function Formulaire({
           </div>
         )}
       </div>
+
+      {/* 🔥 MODAL BILLETAGE */}
+      {renderBilletageModal()}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
