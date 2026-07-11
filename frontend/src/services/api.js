@@ -1,4 +1,5 @@
 // frontend/src/services/api.js
+// ⚠️ URL forcée pour la production (Render)
 const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
@@ -127,6 +128,7 @@ class ApiService {
 
   async uploadPhoto(id, formData) {
     const url = `${API_URL}/users/${id}/photo`;
+    console.log(`📤 Upload photo vers ${url}`);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -171,19 +173,12 @@ class ApiService {
   }
 
   // ============================================================
-  // ✅ MÉTHODES OPTIMISÉES
+  // ✅ MÉTHODES POUR VOLA SISA TEO ALOHA
   // ============================================================
 
-  async getYearlyData(year, eglise = null, district = null, federation = null) {
-    let url = `/gl/yearly/${year}`;
-    const params = new URLSearchParams();
-    if (eglise) params.append('eglise', eglise);
-    if (district) params.append('district', district);
-    if (federation) params.append('federation', federation);
-    if (params.toString()) url += '?' + params.toString();
-    return this.request(url);
-  }
-
+  /**
+   * Récupère la valeur de volaSisaTeoAloha pour un mois et une église
+   */
   async getVolaSisa(month, eglise) {
     try {
       const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
@@ -194,6 +189,9 @@ class ApiService {
     }
   }
 
+  /**
+   * Sauvegarde la valeur de volaSisaTeoAloha pour un mois et une église
+   */
   async saveVolaSisa(month, eglise, amount) {
     return this.request('/reports/volaSisa', {
       method: 'POST',
@@ -322,6 +320,24 @@ class ApiService {
     return this.request(url);
   }
 
+  // ============================================================
+  // ✅ MÉTHODES POUR VOLA SISA TEO ALOHA (alias)
+  // ============================================================
+
+  /**
+   * Alias pour getVolaSisa - Récupère la valeur de volaSisaTeoAloha
+   */
+  async getVolaSisaTeoAloha(month, eglise) {
+    return this.getVolaSisa(month, eglise);
+  }
+
+  /**
+   * Alias pour saveVolaSisa - Sauvegarde la valeur de volaSisaTeoAloha
+   */
+  async saveVolaSisaTeoAloha(month, eglise, amount) {
+    return this.saveVolaSisa(month, eglise, amount);
+  }
+
   // ===== FRAIS =====
   async getFrais(month, eglise) {
     return this.request(`/frais/${month}/${eglise}`);
@@ -371,6 +387,24 @@ class ApiService {
 
   async getEglisesByFederation(federation) {
     return this.request(`/eglises/federation/${federation}`);
+  }
+
+  // ============================================================
+  // ✅ MÉTHODES OPTIMISÉES (pour l'avenir)
+  // ============================================================
+
+  /**
+   * Récupère toutes les données d'une année pour une église en 1 appel
+   * ⚠️ Nécessite que le backend ait les fonctions getYearlyGLData etc.
+   */
+  async getYearlyData(year, eglise = null, district = null, federation = null) {
+    let url = `/gl/yearly/${year}`;
+    const params = new URLSearchParams();
+    if (eglise) params.append('eglise', eglise);
+    if (district) params.append('district', district);
+    if (federation) params.append('federation', federation);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
   }
 }
 
