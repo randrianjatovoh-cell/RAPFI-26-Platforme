@@ -1,5 +1,5 @@
 // frontend/src/components/RapportMensuel.js
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
@@ -33,6 +33,16 @@ function formatMontant(value) {
   const num = Number(value);
   if (isNaN(num) || num === 0) return '';
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+// Fonctions manquantes
+function renderDateField(value) {
+  return formatDateInput(value);
+}
+
+function handleTextBlur(field, value) {
+  // Cette fonction sera redéfinie dans le composant
+  return { field, value };
 }
 
 export default function RapportMensuel({ currentMonth, selectedEglise, readOnly = false }) {
@@ -87,7 +97,7 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   const hasLoadedRef = useRef(false);
 
   // ============================================================
-  // FONCTIONS DE PERMISSION STABILISÉES
+  // FONCTIONS DE PERMISSION
   // ============================================================
   const canViewEgliseStable = useCallback(
     (egliseName, district, federation) => canViewEglise(egliseName, district, federation),
@@ -118,7 +128,98 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   }, []);
 
   // ============================================================
-  // FONCTION DE CHARGEMENT DES DONNÉES - SANS getVolaSisa
+  // FONCTIONS DE SAUVEGARDE
+  // ============================================================
+  const updateField = useCallback(async (field, value) => {
+    if (isReadOnlyMode()) return;
+    try {
+      await api.updateReportField(currentMonth, eglise, field, value);
+      showMessage(`Champ "${field}" mis à jour avec succès`, 'success');
+    } catch (err) {
+      console.error(`❌ Erreur sauvegarde ${field}:`, err);
+      showMessage(`Erreur lors de la sauvegarde du champ "${field}" : ${err.message}`, 'error');
+    }
+  }, [currentMonth, eglise, isReadOnlyMode, showMessage]);
+
+  // ============================================================
+  // GESTIONNAIRES D'ÉVÉNEMENTS
+  // ============================================================
+  const handleTextBlur = (field, value) => {
+    if (isReadOnlyMode()) return;
+    updateField(field, value);
+  };
+
+  const handleMontantChange = (val) => {
+    if (isReadOnlyMode()) return;
+    const num = parseFloat(val) || 0;
+    setSoraBolaMontant(num);
+    const lettres = nombreEnLettresCapitalized(num);
+    setSoraBolaLettres(lettres);
+  };
+
+  const handleMontantBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateField('soraBolaMontant', soraBolaMontant);
+    await updateField('soraBolaLettres', soraBolaLettres);
+  };
+
+  const handleVolamPiangonanaChange = (val) => {
+    if (isReadOnlyMode()) return;
+    const num = parseFloat(val) || 0;
+    setVolamPiangonanaApetraka(num);
+  };
+
+  const handleVolamPiangonanaBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateField('volamPiangonanaApetraka', volamPiangonanaApetraka);
+  };
+
+  const handleVolaSisaChange = (val) => {
+    if (isReadOnlyMode()) return;
+    const num = parseFloat(val) || 0;
+    setVolaSisaTeoAloha(num);
+    setBalanceChurch(num + totalB - totalExpenses);
+    localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, num.toString());
+  };
+
+  const handleVolaSisaBlur = async () => {
+    if (isReadOnlyMode()) return;
+    await updateField('volaSisaTeoAloha', volaSisaTeoAloha);
+  };
+
+  const handleChequeChange = (idx, value) => {
+    if (isReadOnlyMode()) return;
+    const newLines = [...chequeLines];
+    newLines[idx] = value;
+    setChequeLines(newLines);
+  };
+
+  const handleChequeBlur = async () => {
+    if (isReadOnlyMode()) return;
+    const data = { cheque: chequeLines, soraBola: soraBolaLines };
+    await updateField('soraBolaLinesJson', JSON.stringify(data));
+  };
+
+  const handleSoraBolaChange = (idx, rawValue) => {
+    if (isReadOnlyMode()) return;
+    const numeric = rawValue.replace(/[^\d.-]/g, '');
+    const num = parseFloat(numeric);
+    const newValue = isNaN(num) ? '' : num.toString();
+    const newLines = [...soraBolaLines];
+    newLines[idx] = newValue;
+    setSoraBolaLines(newLines);
+    const sum = newLines.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+    setTotalChequeSora(sum);
+  };
+
+  const handleSoraBolaBlur = async () => {
+    if (isReadOnlyMode()) return;
+    const data = { cheque: chequeLines, soraBola: soraBolaLines };
+    await updateField('soraBolaLinesJson', JSON.stringify(data));
+  };
+
+  // ============================================================
+  // FONCTION DE CHARGEMENT
   // ============================================================
   const loadData = useCallback(async () => {
     if (loadDataRef.current) return;
@@ -192,21 +293,16 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
         const volamValue = getField(r, 'volamPiangonanaApetraka');
         setVolamPiangonanaApetraka(volamValue !== undefined ? Number(volamValue) : 0);
 
-        // 🔥 RÉCUPÉRATION DE volaSisaTeoAloha - SANS getVolaSisa
-        // 1. Depuis le rapport mensuel
+        // Récupération de volaSisaTeoAloha
         const sisaFromReport = getField(r, 'volaSisaTeoAloha');
         let sisaValue = sisaFromReport !== undefined ? Number(sisaFromReport) : 0;
-        console.log(`✅ volaSisaTeoAloha récupéré du rapport: ${sisaValue}`);
         
-        // 2. Fallback localStorage
         if (sisaValue === 0) {
           const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
           if (saved) {
             sisaValue = parseFloat(saved) || 0;
-            console.log(`✅ volaSisaTeoAloha récupéré de localStorage: ${sisaValue}`);
           }
         }
-        
         setVolaSisaTeoAloha(sisaValue);
 
         const soraJson = getField(r, 'soraBolaLinesJson');
@@ -239,7 +335,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
 
       setSaramPandefasana(fraisData);
 
-      // Traiter les données du grand livre
       const gl = glData || {};
       const perSabbathA = [0, 0, 0, 0, 0];
       const perSabbathB = [0, 0, 0, 0, 0];
@@ -268,21 +363,17 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       setTotalB(perSabbathB.reduce((a, b) => a + b, 0));
       setCategorySums(catSums);
 
-      // Traiter les dépenses avec répartition par Sabata
       const depenses = depensesData || [];
       const totalExp = depenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       setTotalExpenses(totalExp);
 
       const expensesByWeek = [0, 0, 0, 0, 0];
-      
       for (let exp of depenses) {
         const amount = Number(exp.amount) || 0;
-        
         if (exp.sabata && exp.sabata >= 1 && exp.sabata <= 5) {
           expensesByWeek[exp.sabata - 1] += amount;
           continue;
         }
-        
         if (exp.date && sabbathDates[0]) {
           const expDate = new Date(exp.date);
           if (!isNaN(expDate)) {
@@ -290,12 +381,10 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
             for (let i = 0; i < sabbathDates.length; i++) {
               const sabDate = new Date(sabbathDates[i]);
               if (isNaN(sabDate)) continue;
-              
               const startOfWeek = new Date(sabDate);
               startOfWeek.setDate(sabDate.getDate() - 6);
               const endOfWeek = new Date(sabDate);
               endOfWeek.setHours(23, 59, 59, 999);
-              
               if (expDate >= startOfWeek && expDate <= endOfWeek) {
                 expensesByWeek[i] += amount;
                 assigned = true;
@@ -310,10 +399,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
           expensesByWeek[0] += amount;
         }
       }
-      
       setExpensesBySabbath(expensesByWeek);
 
-      // Calcul de VOLA SISA tamin'ny faran'ny volana
       const currentSisa = volaSisaTeoAloha || 0;
       const balance = Number(currentSisa) + totalB - totalExp;
       setBalanceChurch(balance);
@@ -334,12 +421,11 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   }, [currentMonth, eglise, user, canViewEgliseStable, canEditEgliseStable]);
 
   // ============================================================
-  // CHARGEMENT INITIAL
+  // HOOKS
   // ============================================================
   useEffect(() => {
     hasLoadedRef.current = false;
     loadDataRef.current = false;
-    
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {
@@ -348,33 +434,23 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
     };
   }, []);
 
-  // ============================================================
-  // CHARGEMENT DES DONNÉES
-  // ============================================================
   useEffect(() => {
     if (!currentMonth || !eglise || !isMountedRef.current) {
       setLoading(false);
       return;
     }
-
     if (hasLoadedRef.current && loadDataRef.current) {
       return;
     }
-
     hasLoadedRef.current = true;
     loadData();
-
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMonth, eglise]);
+  }, [currentMonth, eglise, loadData]);
 
-  // ============================================================
-  // ÉCOUTEUR DES ÉVÉNEMENTS DE MISE À JOUR EXTERNE
-  // ============================================================
   useEffect(() => {
     const handleDataUpdate = () => {
       console.log('🔄 data-updated détecté, rechargement du rapport...');
@@ -382,7 +458,6 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
       loadDataRef.current = false;
       loadData();
     };
-    
     window.addEventListener('data-updated', handleDataUpdate);
     return () => {
       window.removeEventListener('data-updated', handleDataUpdate);
@@ -390,41 +465,8 @@ export default function RapportMensuel({ currentMonth, selectedEglise, readOnly 
   }, [loadData]);
 
   // ============================================================
-  // FONCTIONS DE SAUVEGARDE
+  // RENDU
   // ============================================================
-  const updateField = useCallback(async (field, value) => {
-    if (isReadOnlyMode()) return;
-    try {
-      await api.updateReportField(currentMonth, eglise, field, value);
-      showMessage(`Champ "${field}" mis à jour avec succès`, 'success');
-    } catch (err) {
-      console.error(`❌ Erreur sauvegarde ${field}:`, err);
-      showMessage(`Erreur lors de la sauvegarde du champ "${field}" : ${err.message}`, 'error');
-    }
-  }, [currentMonth, eglise, isReadOnlyMode, showMessage]);
-
-  // ============================================================
-  // SAUVEGARDE DE volaSisaTeoAloha - SANS setVolaSisa
-  // ============================================================
-  const handleVolaSisaChange = (val) => {
-    if (isReadOnlyMode()) return;
-    const num = parseFloat(val) || 0;
-    setVolaSisaTeoAloha(num);
-    setBalanceChurch(num + totalB - totalExpenses);
-    
-    // Sauvegarder dans localStorage immédiatement
-    localStorage.setItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`, num.toString());
-  };
-
-  const handleVolaSisaBlur = async () => {
-    if (isReadOnlyMode()) return;
-    // Sauvegarder via updateReportField
-    await updateField('volaSisaTeoAloha', volaSisaTeoAloha);
-  };
-
-  // ... (le reste du composant - la partie rendu - reste inchangée)
-  // Pour ne pas alourdir, je garde la même structure de rendu que l'original
-  
   if (!currentMonth) return <div className="text-center p-4">Sélectionnez un mois.</div>;
   if (!eglise) return <div className="text-center p-4">Aucune église sélectionnée.</div>;
   if (error) return <div className="text-center p-4 text-red-600">Erreur : {error}</div>;
