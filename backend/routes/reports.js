@@ -6,6 +6,7 @@ const {
   upsertMonthlyReport, 
   getAllUsers,
   computeAndSaveMonthlyReports,
+  // ✅ AJOUTER CES IMPORTATIONS MANQUANTES
   getVolaSisa,
   setVolaSisa
 } = require('../models');
@@ -190,11 +191,12 @@ router.get('/federation/:federation', async (req, res) => {
 });
 
 // ============================================================
-// ✅ ROUTES POUR VOLA SISA TEO ALOHA
+// ✅ ROUTES POUR VOLA SISA TEO ALOHA - CORRIGÉES
 // ============================================================
 
 /**
  * Récupère la valeur de volaSisaTeoAloha
+ * GET /api/reports/volaSisa/:month/:eglise
  */
 router.get('/volaSisa/:month/:eglise', checkAccess, async (req, res) => {
   try {
@@ -212,6 +214,7 @@ router.get('/volaSisa/:month/:eglise', checkAccess, async (req, res) => {
       }
     }
     
+    // ✅ Maintenant getVolaSisa est importée
     const value = await getVolaSisa(month, eglise);
     res.json({ value });
   } catch (err) {
@@ -222,6 +225,7 @@ router.get('/volaSisa/:month/:eglise', checkAccess, async (req, res) => {
 
 /**
  * Sauvegarde la valeur de volaSisaTeoAloha
+ * POST /api/reports/volaSisa
  */
 router.post('/volaSisa', checkAccess, async (req, res) => {
   try {
@@ -239,6 +243,7 @@ router.post('/volaSisa', checkAccess, async (req, res) => {
       }
     }
     
+    // ✅ Maintenant setVolaSisa est importée
     await setVolaSisa(month, eglise, amount);
     res.json({ success: true, value: amount });
   } catch (err) {
