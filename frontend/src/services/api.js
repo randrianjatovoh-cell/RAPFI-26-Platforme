@@ -1,5 +1,4 @@
 // frontend/src/services/api.js
-// ⚠️ URL forcée pour la production (Render)
 const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
@@ -37,7 +36,6 @@ class ApiService {
         localStorage.removeItem('token');
       }
     } catch (e) {
-      // 🔥 Fallback en mémoire si localStorage est bloqué
       this.memoryToken = token;
       console.warn('⚠️ localStorage bloqué, sauvegarde en mémoire');
     }
@@ -129,7 +127,6 @@ class ApiService {
 
   async uploadPhoto(id, formData) {
     const url = `${API_URL}/users/${id}/photo`;
-    console.log(`📤 Upload photo vers ${url}`);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -174,17 +171,9 @@ class ApiService {
   }
 
   // ============================================================
-  // ✅ NOUVELLES MÉTHODES OPTIMISÉES
+  // ✅ MÉTHODES OPTIMISÉES
   // ============================================================
 
-  /**
-   * Récupère toutes les données d'une année pour une église en 1 appel
-   * @param {string} year - Année (ex: "2026")
-   * @param {string} eglise - Nom de l'église
-   * @param {string} district - District (optionnel)
-   * @param {string} federation - Fédération (optionnel)
-   * @returns {Promise<Object>} { glData, depenses, frais, reports }
-   */
   async getYearlyData(year, eglise = null, district = null, federation = null) {
     let url = `/gl/yearly/${year}`;
     const params = new URLSearchParams();
@@ -195,9 +184,6 @@ class ApiService {
     return this.request(url);
   }
 
-  /**
-   * Récupère le volaSisaTeoAloha via la table dédiée
-   */
   async getVolaSisa(month, eglise) {
     try {
       const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
@@ -208,9 +194,6 @@ class ApiService {
     }
   }
 
-  /**
-   * Sauvegarde le volaSisaTeoAloha via la table dédiée
-   */
   async saveVolaSisa(month, eglise, amount) {
     return this.request('/reports/volaSisa', {
       method: 'POST',
