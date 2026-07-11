@@ -23,6 +23,21 @@ function normalizeEglise(name) {
 
 const COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
+function getField(obj, name) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  if (obj[name] !== undefined) return obj[name];
+  const lowerName = name.toLowerCase();
+  for (const key of Object.keys(obj)) {
+    if (key.toLowerCase() === lowerName) return obj[key];
+  }
+  return undefined;
+}
+
+const MONTHS_LIST = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+];
+
 export default function Dashboard({ pasteurMode, mode, user: propUser, selectedEglise: propEglise }) {
   const { user: contextUser } = useUser();
   const user = propUser || contextUser;
@@ -51,18 +66,9 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const [districtData, setDistrictData] = useState([]);
   const [federationData, setFederationData] = useState([]);
 
-  // Helper pour récupérer une valeur quel que soit la casse
-  function getField(obj, name) {
-    if (!obj || typeof obj !== 'object') return undefined;
-    if (obj[name] !== undefined) return obj[name];
-    const lowerName = name.toLowerCase();
-    for (const key of Object.keys(obj)) {
-      if (key.toLowerCase() === lowerName) return obj[key];
-    }
-    return undefined;
-  }
-
-  // ---- Chargement des données ----
+  // ============================================================
+  // 🔥 FONCTION DE CHARGEMENT OPTIMISÉE - 1 SEUL APPEL API
+  // ============================================================
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -78,120 +84,77 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           return;
         }
 
-        const months = [
-          'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-        ];
-
-        const monthPromises = months.map(async (month, idx) => {
+        // 🔥 UN SEUL APPEL API pour toute l'année
+        const yearlyData = await api.getYearlyData(yearStr, egliseNom);
+        
+        const monthlyData = MONTHS_LIST.map((month, idx) => {
           const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
-          const glData = await api.getGL(monthId, null, null, egliseNom);
-          let monthTotalA = 0;
+          const glMonth = yearlyData.glData[monthId] || {};
+          
           let monthDime = 0;
           let monthOther = 0;
-          let monthTotalB = 0;
+          let monthTotalA = 0;
           let monthIncome = 0;
-
-          if (glData) {
-            for (let s = 1; s <= 5; s++) {
-              const entries = glData[s] || [];
-              for (const entry of entries) {
-                const f1 = entry.f1 || 0;
-                const f2 = entry.f2 || 0;
-                const f3 = entry.f3 || 0;
-                const f4 = entry.f4 || 0;
-                const f5 = entry.f5 || 0;
-                const f6 = entry.f6 || 0;
-                const f7 = entry.f7 || 0;
-                const f8 = entry.f8 || 0;
-                const b9 = entry.b9 || 0;
-                const b10 = entry.b10 || 0;
-
-                monthDime += f1;
-                monthOther += f2 + f3 + f4 + f5 + f6 + f7 + f8;
-                monthTotalA += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
-                monthTotalB += b9 + b10;
-                monthIncome += b9 + b10;
-              }
+          let monthTotalB = 0;
+          
+          for (let s = 1; s <= 5; s++) {
+            const entries = glMonth[s] || [];
+            for (const entry of entries) {
+              const f1 = entry.f1 || 0;
+              const f2 = entry.f2 || 0;
+              const f3 = entry.f3 || 0;
+              const f4 = entry.f4 || 0;
+              const f5 = entry.f5 || 0;
+              const f6 = entry.f6 || 0;
+              const f7 = entry.f7 || 0;
+              const f8 = entry.f8 || 0;
+              const b9 = entry.b9 || 0;
+              const b10 = entry.b10 || 0;
+              
+              monthDime += f1;
+              monthOther += f2 + f3 + f4 + f5 + f6 + f7 + f8;
+              monthTotalA += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
+              monthTotalB += b9 + b10;
+              monthIncome += b9 + b10;
             }
           }
-
-          const fraisVal = await api.getFrais(monthId, egliseNom);
-          monthTotalA = Math.max(0, monthTotalA - fraisVal);
-          monthOther = Math.max(0, monthOther - fraisVal);
-
-          const expensesList = await api.getDepenses(monthId, null, null, egliseNom);
-          const monthExpenses = expensesList.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-
+          
+          const monthFrais = yearlyData.frais[monthId] || 0;
+          monthTotalA = Math.max(0, monthTotalA - monthFrais);
+          monthOther = Math.max(0, monthOther - monthFrais);
+          
+          const monthExpenses = (yearlyData.depenses[monthId] || []).reduce((sum, e) => {
+            const amount = typeof e === 'object' ? (e.amount || 0) : e;
+            return sum + Number(amount);
+          }, 0);
+          
           return {
             month,
-            monthTotalA,
-            monthDime,
-            monthOther,
-            monthTotalB,
-            monthExpenses,
-            monthIncome,
-            idx
+            totalA: monthTotalA,
+            dime: monthDime,
+            other: monthOther,
+            totalB: monthTotalB,
+            totalExpenses: monthExpenses,
+            income: monthIncome
           };
         });
 
-        const results = await Promise.all(monthPromises);
-
-        const monthlyData = months.map((month, idx) => ({
-          month,
-          totalA: 0,
-          dime: 0,
-          other: 0,
-          totalB: 0,
-          totalExpenses: 0,
-          income: 0
-        }));
-
-        let totalA = 0;
-        let totalB = 0;
-        let totalIncome = 0;
-        let totalExpenses = 0;
-
-        results.forEach((res) => {
-          const idx = res.idx;
-          monthlyData[idx].totalA = res.monthTotalA;
-          monthlyData[idx].dime = res.monthDime;
-          monthlyData[idx].other = res.monthOther;
-          monthlyData[idx].totalB = res.monthTotalB;
-          monthlyData[idx].totalExpenses = res.monthExpenses;
-          monthlyData[idx].income = res.monthIncome;
-
-          totalA += res.monthTotalA;
-          totalB += res.monthTotalB;
-          totalIncome += res.monthIncome;
-          totalExpenses += res.monthExpenses;
+        let totalA = 0, totalB = 0, totalIncome = 0, totalExpenses = 0;
+        monthlyData.forEach(m => {
+          totalA += m.totalA;
+          totalB += m.totalB;
+          totalIncome += m.income;
+          totalExpenses += m.totalExpenses;
         });
 
         let volaSisaTeoAloha = 0;
-        try {
-          const janMonthId = `${yearStr}-01`;
-          const janReport = await api.getMonthlyReport(janMonthId, egliseNom);
-          
-          if (janReport) {
-            const eoyRaw = getField(janReport, 'endOfYear');
-            if (eoyRaw) {
-              try {
-                const eoy = typeof eoyRaw === 'string' ? JSON.parse(eoyRaw) : eoyRaw;
-                if (eoy && typeof eoy.previousBalance === 'number') {
-                  volaSisaTeoAloha = eoy.previousBalance;
-                }
-              } catch(e) { /* ignore */ }
-            }
-            
-            if (volaSisaTeoAloha === 0) {
-              const sisaValue = getField(janReport, 'volaSisaTeoAloha');
-              if (sisaValue !== undefined && sisaValue !== null) {
-                volaSisaTeoAloha = Number(sisaValue);
-              }
-            }
+        const janReports = yearlyData.reports[`${yearStr}-01`] || [];
+        if (janReports.length > 0) {
+          const report = janReports[0];
+          const sisaValue = getField(report, 'volaSisaTeoAloha');
+          if (sisaValue !== undefined && sisaValue !== null) {
+            volaSisaTeoAloha = Number(sisaValue);
           }
-        } catch (err) {
-          console.warn('Erreur récupération solde initial:', err);
         }
 
         if (volaSisaTeoAloha === 0) {
@@ -199,31 +162,7 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           const stored = localStorage.getItem(storageKey);
           if (stored) {
             const parsed = parseFloat(stored);
-            if (!isNaN(parsed)) {
-              volaSisaTeoAloha = parsed;
-            }
-          }
-        }
-
-        if (volaSisaTeoAloha === 0) {
-          try {
-            const prevYear = (selectedYear - 1).toString();
-            const decMonthId = `${prevYear}-12`;
-            const decGL = await api.getGL(decMonthId, null, null, egliseNom);
-            let decTotalB = 0;
-            if (decGL) {
-              for (let s = 1; s <= 5; s++) {
-                const entries = decGL[s] || [];
-                for (const entry of entries) {
-                  decTotalB += (entry.b9 || 0) + (entry.b10 || 0);
-                }
-              }
-            }
-            const decExpenses = await api.getDepenses(decMonthId, null, null, egliseNom);
-            const decTotalExpenses = decExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-            volaSisaTeoAloha = decTotalB - decTotalExpenses;
-          } catch (err) {
-            console.warn('Erreur calcul solde initial depuis décembre précédent:', err);
+            if (!isNaN(parsed)) volaSisaTeoAloha = parsed;
           }
         }
 
@@ -247,70 +186,74 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           setLoading(false);
           return;
         }
-        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+        const eglisesList = await api.getEglisesByDistrict(district);
+        
+        if (eglisesList.length === 0) {
+          setDistrictData([]);
+          setLoading(false);
+          return;
+        }
 
         if (eglise) {
-          const monthPromises = months.map(async (month, idx) => {
+          const yearlyData = await api.getYearlyData(yearStr, eglise);
+          const monthly = MONTHS_LIST.map((month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
-            const glData = await api.getGL(monthId, null, null, eglise);
+            const glMonth = yearlyData.glData[monthId] || {};
             let dime = 0, totalA = 0;
-            if (glData) {
+            for (let s = 1; s <= 5; s++) {
+              const entries = glMonth[s] || [];
+              for (const entry of entries) {
+                dime += entry.f1 || 0;
+                totalA += (entry.f1||0) + (entry.f2||0) + (entry.f3||0) + (entry.f4||0) +
+                          (entry.f5||0) + (entry.f6||0) + (entry.f7||0) + (entry.f8||0);
+              }
+            }
+            const monthFrais = yearlyData.frais[monthId] || 0;
+            totalA = Math.max(0, totalA - monthFrais);
+            return { month, dime, totalA };
+          });
+          
+          const totalDime = monthly.reduce((acc, m) => acc + m.dime, 0);
+          const totalA = monthly.reduce((acc, m) => acc + m.totalA, 0);
+          
+          setDistrictData([{
+            eglise,
+            monthly: monthly.reduce((acc, m) => ({ ...acc, [m.month]: { dime: m.dime, totalA: m.totalA } }), {}),
+            totalDime,
+            totalA
+          }]);
+        } else {
+          const districtPromises = eglisesList.map(async (egliseNom) => {
+            const yearlyData = await api.getYearlyData(yearStr, egliseNom);
+            const monthly = MONTHS_LIST.map((month, idx) => {
+              const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
+              const glMonth = yearlyData.glData[monthId] || {};
+              let dime = 0, totalA = 0;
               for (let s = 1; s <= 5; s++) {
-                const entries = glData[s] || [];
+                const entries = glMonth[s] || [];
                 for (const entry of entries) {
                   dime += entry.f1 || 0;
                   totalA += (entry.f1||0) + (entry.f2||0) + (entry.f3||0) + (entry.f4||0) +
                             (entry.f5||0) + (entry.f6||0) + (entry.f7||0) + (entry.f8||0);
                 }
               }
-            }
-            const fraisVal = await api.getFrais(monthId, eglise);
-            totalA = Math.max(0, totalA - fraisVal);
-            return { month, dime, totalA };
-          });
-          const results = await Promise.all(monthPromises);
-          const egliseData = { eglise, monthly: {}, totalDime: 0, totalA: 0 };
-          results.forEach(({ month, dime, totalA }) => {
-            egliseData.monthly[month] = { dime, totalA };
-            egliseData.totalDime += dime;
-            egliseData.totalA += totalA;
-          });
-          setDistrictData([egliseData]);
-        } else {
-          const eglisesList = await api.getEglisesByDistrict(district);
-          if (eglisesList.length === 0) {
-            setError("Aucune église trouvée pour ce district.");
-            setLoading(false);
-            return;
-          }
-          const districtPromises = eglisesList.map(async (egliseNom) => {
-            const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
-            const monthPromises = months.map(async (month, idx) => {
-              const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
-              const glData = await api.getGL(monthId, null, null, egliseNom);
-              let dime = 0, totalA = 0;
-              if (glData) {
-                for (let s = 1; s <= 5; s++) {
-                  const entries = glData[s] || [];
-                  for (const entry of entries) {
-                    dime += entry.f1 || 0;
-                    totalA += (entry.f1||0) + (entry.f2||0) + (entry.f3||0) + (entry.f4||0) +
-                              (entry.f5||0) + (entry.f6||0) + (entry.f7||0) + (entry.f8||0);
-                  }
-                }
-              }
-              const fraisVal = await api.getFrais(monthId, egliseNom);
-              totalA = Math.max(0, totalA - fraisVal);
+              const monthFrais = yearlyData.frais[monthId] || 0;
+              totalA = Math.max(0, totalA - monthFrais);
               return { month, dime, totalA };
             });
-            const results = await Promise.all(monthPromises);
-            results.forEach(({ month, dime, totalA }) => {
-              egliseData.monthly[month] = { dime, totalA };
-              egliseData.totalDime += dime;
-              egliseData.totalA += totalA;
-            });
-            return egliseData;
+            
+            const totalDime = monthly.reduce((acc, m) => acc + m.dime, 0);
+            const totalA = monthly.reduce((acc, m) => acc + m.totalA, 0);
+            
+            return {
+              eglise: egliseNom,
+              monthly: monthly.reduce((acc, m) => ({ ...acc, [m.month]: { dime: m.dime, totalA: m.totalA } }), {}),
+              totalDime,
+              totalA
+            };
           });
+          
           const districtDataTemp = await Promise.all(districtPromises);
           setDistrictData(districtDataTemp);
         }
@@ -322,41 +265,45 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
           setLoading(false);
           return;
         }
+
         const fedEglisesList = await api.getEglisesByFederation(federation);
+        
         if (fedEglisesList.length === 0) {
-          setError("Aucune église trouvée pour cette fédération.");
+          setFederationData([]);
           setLoading(false);
           return;
         }
-        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
         const fedPromises = fedEglisesList.map(async (egliseNom) => {
-          const egliseData = { eglise: egliseNom, monthly: {}, totalDime: 0, totalA: 0 };
-          const monthPromises = months.map(async (month, idx) => {
+          const yearlyData = await api.getYearlyData(yearStr, egliseNom);
+          const monthly = MONTHS_LIST.map((month, idx) => {
             const monthId = `${yearStr}-${String(idx + 1).padStart(2, '0')}`;
-            const glData = await api.getGL(monthId);
+            const glMonth = yearlyData.glData[monthId] || {};
             let dime = 0, totalA = 0;
-            if (glData) {
-              for (let s = 1; s <= 5; s++) {
-                const entries = glData[s] || [];
-                for (const entry of entries) {
-                  dime += entry.f1 || 0;
-                  totalA += (entry.f1||0) + (entry.f2||0) + (entry.f3||0) + (entry.f4||0) +
-                            (entry.f5||0) + (entry.f6||0) + (entry.f7||0) + (entry.f8||0);
-                }
+            for (let s = 1; s <= 5; s++) {
+              const entries = glMonth[s] || [];
+              for (const entry of entries) {
+                dime += entry.f1 || 0;
+                totalA += (entry.f1||0) + (entry.f2||0) + (entry.f3||0) + (entry.f4||0) +
+                          (entry.f5||0) + (entry.f6||0) + (entry.f7||0) + (entry.f8||0);
               }
             }
-            const fraisVal = await api.getFrais(monthId, egliseNom);
-            totalA = Math.max(0, totalA - fraisVal);
+            const monthFrais = yearlyData.frais[monthId] || 0;
+            totalA = Math.max(0, totalA - monthFrais);
             return { month, dime, totalA };
           });
-          const results = await Promise.all(monthPromises);
-          results.forEach(({ month, dime, totalA }) => {
-            egliseData.monthly[month] = { dime, totalA };
-            egliseData.totalDime += dime;
-            egliseData.totalA += totalA;
-          });
-          return egliseData;
+          
+          const totalDime = monthly.reduce((acc, m) => acc + m.dime, 0);
+          const totalA = monthly.reduce((acc, m) => acc + m.totalA, 0);
+          
+          return {
+            eglise: egliseNom,
+            monthly: monthly.reduce((acc, m) => ({ ...acc, [m.month]: { dime: m.dime, totalA: m.totalA } }), {}),
+            totalDime,
+            totalA
+          };
         });
+        
         const federationDataTemp = await Promise.all(fedPromises);
         setFederationData(federationDataTemp);
       }
@@ -456,7 +403,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
   const renderAncienDashboard = () => {
     const { monthlyData } = annualData;
 
-    // Calculer les pourcentages pour le graphique en secteurs
     const total = annualData.volaSisaTeoAloha + annualData.volaNiditra + annualData.volaNivoaka;
     const pieData = [
       { 
@@ -486,7 +432,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* Graphique FEDERATION */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">FEDERATION</div>
@@ -597,7 +542,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </div>
           </div>
 
-          {/* Graphique EGLISE LOCALE - uniquement les % */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <div className="text-center mb-3">
               <div className="font-bold text-base text-indigo-700 uppercase tracking-wide">EGLISE LOCALE</div>
@@ -731,7 +675,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* Graphique 1 */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <div
@@ -803,7 +746,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </div>
           </div>
 
-          {/* Graphique 2 - uniquement les % */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition Dîme / Offrandes (Total A)</p>
             <div
@@ -908,7 +850,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
     const totalA = federationData.reduce((acc, e) => acc + e.totalA, 0);
     const totalOff = totalA - totalDime;
 
-    // Calculer les pourcentages pour chaque église
     const pieData = federationData.map(eg => ({
       name: eg.eglise,
       value: eg.totalDime || 0.001,
@@ -928,7 +869,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 no-print">
-          {/* Graphique 1 */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Évolution du Total A par église</p>
             <div
@@ -1000,7 +940,6 @@ export default function Dashboard({ pasteurMode, mode, user: propUser, selectedE
             </div>
           </div>
 
-          {/* Graphique 2 - uniquement les % */}
           <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative animate-fadeInUp" style={{ animationDelay: '400ms' }}>
             <p className="text-center font-semibold text-gray-700 mb-2">Répartition des Dîmes par église</p>
             <div

@@ -34,12 +34,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-// Middleware pour logger les requêtes entrantes
-app.use((req, res, next) => {
-  console.log(`📥 ${req.method} ${req.url}`);
-  next();
-});
-
 // ---------- Rate Limiting ----------
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -83,8 +77,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------- Routes de test ----------
+// ============================================================
+// 🔥 ROUTE DE SANTÉ OPTIMISÉE - Moins de logs en production
+// ============================================================
 app.get('/healthz', (req, res) => {
+  // Ne log pas les health checks en production pour réduire les logs
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('📥 GET /healthz');
+  }
   res.status(200).send('OK');
 });
 
@@ -94,6 +94,16 @@ app.get('/', (req, res) => {
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend OK' });
+});
+
+// ---------- Middleware pour logger les requêtes (filtré en prod) ----------
+app.use((req, res, next) => {
+  // Filtrer les health checks en production
+  if (req.path === '/healthz' && process.env.NODE_ENV === 'production') {
+    return next();
+  }
+  console.log(`📥 ${req.method} ${req.url}`);
+  next();
 });
 
 // ---------- Routes API ----------
@@ -107,7 +117,7 @@ app.use('/api/config', require('./routes/config'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/frais', require('./routes/frais'));
 app.use('/api/stats', require('./routes/stats'));
-app.use('/api/logs', require('./routes/logs'));  // ✅ Route des logs
+app.use('/api/logs', require('./routes/logs'));
 app.use('/api/eglises', require('./routes/eglises'));
 
 // ---------- Middleware de gestion d'erreurs ----------
@@ -127,7 +137,6 @@ app.use((err, req, res, next) => {
 const start = async () => {
   try {
     const db = await initDb();
-    // La colonne volamPiangonanaApetraka est déjà assurée dans initDb via ensureColumn
     await createAdminIfNotExists();
     const port = process.env.PORT || 5000;
     app.listen(port, '0.0.0.0', () => {

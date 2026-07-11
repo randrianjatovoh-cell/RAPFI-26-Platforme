@@ -6,7 +6,13 @@ console.log('🚀 API_URL =', API_URL);
 
 class ApiService {
   constructor() {
-    this.token = localStorage.getItem('token');
+    try {
+      this.token = localStorage.getItem('token');
+    } catch (e) {
+      console.warn('⚠️ localStorage inaccessible, utilisation mémoire');
+      this.token = null;
+    }
+    this.memoryToken = null;
     this.onUnauthorized = null;
   }
 
@@ -15,15 +21,25 @@ class ApiService {
   }
 
   getAuthToken() {
-    return this.token || null;
+    try {
+      return this.token || localStorage.getItem('token') || this.memoryToken;
+    } catch (e) {
+      return this.memoryToken || this.token;
+    }
   }
 
   setAuthToken(token) {
     this.token = token;
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
+    try {
+      if (token) {
+        localStorage.setItem('token', token);
+      } else {
+        localStorage.removeItem('token');
+      }
+    } catch (e) {
+      // 🔥 Fallback en mémoire si localStorage est bloqué
+      this.memoryToken = token;
+      console.warn('⚠️ localStorage bloqué, sauvegarde en mémoire');
     }
   }
 
@@ -35,8 +51,9 @@ class ApiService {
       'Content-Type': 'application/json',
       ...options.headers,
     };
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    const token = this.getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const config = {
@@ -116,7 +133,7 @@ class ApiService {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.token}`,
+        'Authorization': `Bearer ${this.getAuthToken()}`,
       },
       body: formData,
     });
@@ -153,6 +170,51 @@ class ApiService {
     return this.request('/gl/save', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  // ============================================================
+  // ✅ NOUVELLES MÉTHODES OPTIMISÉES
+  // ============================================================
+
+  /**
+   * Récupère toutes les données d'une année pour une église en 1 appel
+   * @param {string} year - Année (ex: "2026")
+   * @param {string} eglise - Nom de l'église
+   * @param {string} district - District (optionnel)
+   * @param {string} federation - Fédération (optionnel)
+   * @returns {Promise<Object>} { glData, depenses, frais, reports }
+   */
+  async getYearlyData(year, eglise = null, district = null, federation = null) {
+    let url = `/gl/yearly/${year}`;
+    const params = new URLSearchParams();
+    if (eglise) params.append('eglise', eglise);
+    if (district) params.append('district', district);
+    if (federation) params.append('federation', federation);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
+  }
+
+  /**
+   * Récupère le volaSisaTeoAloha via la table dédiée
+   */
+  async getVolaSisa(month, eglise) {
+    try {
+      const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
+      return data.value || 0;
+    } catch (err) {
+      console.warn('⚠️ Erreur getVolaSisa:', err);
+      return 0;
+    }
+  }
+
+  /**
+   * Sauvegarde le volaSisaTeoAloha via la table dédiée
+   */
+  async saveVolaSisa(month, eglise, amount) {
+    return this.request('/reports/volaSisa', {
+      method: 'POST',
+      body: JSON.stringify({ month, eglise, amount })
     });
   }
 
@@ -306,14 +368,13 @@ class ApiService {
     return this.request(`/logs?limit=${limit}&offset=${offset}`);
   }
 
-  // ✅ Méthodes ajoutées pour les statistiques
   async getUserLogs() {
     return this.getLogs(10000);
   }
 
   async getUniqueVisitorsCount() {
     const data = await this.request('/logs/unique');
-    return data; // { count: ... }
+    return data;
   }
 
   async getVisitsPerUser() {

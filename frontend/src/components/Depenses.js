@@ -1,4 +1,4 @@
-// frontend/src/components/Depenses.js
+// frontend/src/components/Depenses.js - VERSION OPTIMISÉE COMPLÈTE
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -44,6 +44,16 @@ const SABATA_OPTIONS = [
   { value: 4, label: 'Sabata 4' },
   { value: 5, label: 'Sabata 5' }
 ];
+
+function getField(obj, name) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  if (obj[name] !== undefined) return obj[name];
+  const lowerName = name.toLowerCase();
+  for (const key of Object.keys(obj)) {
+    if (key.toLowerCase() === lowerName) return obj[key];
+  }
+  return undefined;
+}
 
 export default function Depenses({ currentMonth, refreshAll, user: propUser, selectedEglise, readOnly = false }) {
   const { user: contextUser } = useUser();
@@ -96,6 +106,9 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     }
   }, [currentMonth, eglise]);
 
+  // ============================================================
+  // 🔥 FUNCTION DE CHARGEMENT OPTIMISÉE AVEC getVolaSisa
+  // ============================================================
   async function loadData() {
     setLoading(true);
     setError(null);
@@ -152,28 +165,33 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       setVolaNihiditra(totalB);
 
       // ============================================================
-      // 🔥 RÉCUPÉRATION DE volaSisaTeoAloha - Version corrigée
+      // 🔥 RÉCUPÉRATION DE volaSisaTeoAloha - Utilisation de l'API dédiée
       // ============================================================
       let volaSisaValue = 0;
       try {
-        // 1. Essayer de récupérer depuis le rapport mensuel
-        const report = await api.getMonthlyReport(currentMonth, eglise);
-        if (report && report.volaSisaTeoAloha !== undefined && report.volaSisaTeoAloha !== null) {
-          volaSisaValue = Number(report.volaSisaTeoAloha);
-          console.log(`✅ volaSisaTeoAloha récupéré du rapport: ${volaSisaValue}`);
-        } else {
-          // 2. Fallback: localStorage
-          const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-          if (saved) {
-            volaSisaValue = parseFloat(saved) || 0;
-            console.log(`✅ volaSisaTeoAloha récupéré de localStorage: ${volaSisaValue}`);
-          }
-        }
+        // 🔥 Utiliser la nouvelle API getVolaSisa
+        volaSisaValue = await api.getVolaSisa(currentMonth, eglise);
+        console.log(`✅ volaSisaTeoAloha récupéré via API: ${volaSisaValue}`);
       } catch (err) {
         console.warn('⚠️ Erreur récupération volaSisaTeoAloha:', err);
+        // Fallback: essayer depuis le rapport
+        try {
+          const report = await api.getMonthlyReport(currentMonth, eglise);
+          if (report && report.volaSisaTeoAloha !== undefined && report.volaSisaTeoAloha !== null) {
+            volaSisaValue = Number(report.volaSisaTeoAloha);
+            console.log(`✅ volaSisaTeoAloha récupéré du rapport: ${volaSisaValue}`);
+          }
+        } catch (err2) {
+          console.warn('⚠️ Fallback échoué:', err2);
+        }
+      }
+
+      // Fallback localStorage si toujours 0
+      if (volaSisaValue === 0) {
         const saved = localStorage.getItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
         if (saved) {
           volaSisaValue = parseFloat(saved) || 0;
+          console.log(`✅ volaSisaTeoAloha récupéré de localStorage: ${volaSisaValue}`);
         }
       }
 
@@ -390,7 +408,9 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     setOpenMenuId(openMenuId === id ? null : id);
   }
 
-  // 🔥 SAUVEGARDE SUR onBlur - Utilisation de updateReportField
+  // ============================================================
+  // 🔥 SAUVEGARDE DE volaSisaTeoAloha - Utilisation de l'API dédiée
+  // ============================================================
   const handleSisaInputChange = (e) => {
     if (readOnly) return;
     const raw = e.target.value;
@@ -420,10 +440,10 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
     
     setIsSavingSisa(true);
     try {
-      // 🔥 Utiliser updateReportField pour sauvegarder
-      await api.updateReportField(currentMonth, eglise, 'volaSisaTeoAloha', finalValue);
+      // 🔥 Utiliser la nouvelle API saveVolaSisa
+      await api.saveVolaSisa(currentMonth, eglise, finalValue);
       localStorage.removeItem(`volaSisaTeoAloha_${currentMonth}_${eglise}`);
-      console.log(`✅ volaSisaTeoAloha sauvegardé: ${finalValue} pour ${currentMonth} - ${eglise}`);
+      console.log(`✅ volaSisaTeoAloha sauvegardé via API: ${finalValue} pour ${currentMonth} - ${eglise}`);
       
       window.dispatchEvent(new Event('sisa-updated'));
       window.dispatchEvent(new Event('data-updated'));
@@ -441,11 +461,10 @@ export default function Depenses({ currentMonth, refreshAll, user: propUser, sel
       alert(`Erreur lors de la sauvegarde : ${err.message}`);
       // Recharger la valeur depuis le backend
       try {
-        const report = await api.getMonthlyReport(currentMonth, eglise);
-        const val = report?.volaSisaTeoAloha || 0;
-        setVolaSisaTeoAloha(val);
-        setVolaSisaTeoAlohaDisplay(formatMontant(val) || '0');
-        setSisaInputValue(formatMontant(val) || '0');
+        const value = await api.getVolaSisa(currentMonth, eglise);
+        setVolaSisaTeoAloha(value);
+        setVolaSisaTeoAlohaDisplay(formatMontant(value) || '0');
+        setSisaInputValue(formatMontant(value) || '0');
       } catch (err2) {
         console.warn('⚠️ Erreur rechargement:', err2);
       }
