@@ -368,12 +368,6 @@ export default function Formulaire({
     return total;
   };
 
-  // Calculer la balance (Fanatitra total - total des billets)
-  const calculateBalance = (total, billets) => {
-    const billetTotal = calculateBilletTotal(billets);
-    return total - billetTotal;
-  };
-
   // ===== SAUVEGARDE =====
   async function handleSave() {
     if (isSaving || isGlobalReadOnly() || lockEntries) return;
@@ -545,54 +539,92 @@ export default function Formulaire({
   const showReceiptsButton = entries.length > 0;
 
   // ============================================================
-  // 🔥 RENDU DU MODAL BILLETAGE
+  // 🔥 RENDU DU MODAL BILLETAGE - VERSION AMÉLIORÉE COMPLÈTE
   // ============================================================
   const renderBilletageModal = () => {
     if (!showBilletage) return null;
 
+    // Calcul des totaux Fanatitra (f2 à f8) et Reste (b9 + b10)
+    let fanatitraTotal = 0;
+    let resteTotal = 0;
+    let totalAGeneral = 0;
+    let totalBGeneral = 0;
+    
+    for (const entry of entries) {
+      const f1 = entry.f1 || 0;
+      const f2 = entry.f2 || 0;
+      const f3 = entry.f3 || 0;
+      const f4 = entry.f4 || 0;
+      const f5 = entry.f5 || 0;
+      const f6 = entry.f6 || 0;
+      const f7 = entry.f7 || 0;
+      const f8 = entry.f8 || 0;
+      const b9 = entry.b9 || 0;
+      const b10 = entry.b10 || 0;
+      
+      fanatitraTotal += f2 + f3 + f4 + f5 + f6 + f7 + f8;
+      resteTotal += b9 + b10;
+      totalAGeneral += f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8;
+      totalBGeneral += b9 + b10;
+    }
+    
+    const totalAB = totalAGeneral + totalBGeneral;
+
     const fanatitraBilletTotal = calculateBilletTotal(billetageData.fanatitraBillets);
-    const fanatitraBalance = billetageData.fanatitraTotal - fanatitraBilletTotal;
+    const fanatitraBalance = fanatitraTotal - fanatitraBilletTotal;
     
     const resteBilletTotal = calculateBilletTotal(billetageData.resteBillets);
-    const resteBalance = billetageData.resteTotal - resteBilletTotal;
+    const resteBalance = resteTotal - resteBilletTotal;
 
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-          {/* En-tête */}
-          <div className="flex justify-between items-center mb-4 border-b pb-3">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <i className="fas fa-cash-register text-green-600"></i>
-              BILLETAGE
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 animate-fadeIn">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-4" style={{ maxHeight: '98vh' }}>
+          
+          {/* ============================================================
+              EN-TÊTE AVEC TITRE CENTRÉ ET MONTANTS A+B
+              ============================================================ */}
+          <div className="text-center border-b pb-2 mb-3">
+            <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-wider">
+              VERIFICATION BILLETAGE
             </h2>
-            <button
-              onClick={closeBilletage}
-              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2 transition"
-            >
-              <i className="fas fa-times text-xl"></i>
-            </button>
+            <div className="flex justify-center items-center gap-6 mt-1 text-sm">
+              <span className="font-semibold text-blue-700">
+                Total A : {formatNumber(totalAGeneral)} Ar
+              </span>
+              <span className="font-semibold text-green-700">
+                Total B : {formatNumber(totalBGeneral)} Ar
+              </span>
+              <span className="font-semibold text-purple-700 bg-purple-50 px-3 py-0.5 rounded-full">
+                A+B : {formatNumber(totalAB)} Ar
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Colonne Fanatitra (tsy Ambalopy) */}
-            <div className="border rounded-lg p-4 bg-blue-50/50">
-              <h3 className="text-lg font-bold text-blue-700 mb-3 text-center border-b pb-2">
-                <i className="fas fa-hand-holding-heart mr-2"></i>
-                FANATITRA (tsy Ambalopy)
-              </h3>
-              <div className="text-center mb-4">
-                <span className="text-sm text-gray-600">Total Fanatitra :</span>
-                <span className="text-xl font-bold text-blue-700 ml-2">
-                  {formatNumber(billetageData.fanatitraTotal)} Ar
+          {/* ============================================================
+              CONTENU - 2 COLONNES AVEC DONNÉES À CÔTÉ DES SOUS-TITRES
+              ============================================================ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* ============================================================
+                COLONNE FANATITRA (tsy Ambalopy)
+                ============================================================ */}
+            <div className="border rounded-lg p-3 bg-blue-50/50">
+              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                <h3 className="text-base font-bold text-blue-700 flex items-center gap-2">
+                  <i className="fas fa-hand-holding-heart"></i>
+                  tsy Ambalopy
+                </h3>
+                <span className="text-sm font-bold text-blue-700 bg-white px-3 py-0.5 rounded-full shadow">
+                  {formatNumber(fanatitraTotal)} Ar
                 </span>
               </div>
               
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-blue-100">
-                    <th className="p-2 text-left">Billet</th>
-                    <th className="p-2 text-right">Quantité</th>
-                    <th className="p-2 text-right">Montant</th>
+                    <th className="p-1.5 text-left text-xs">Billet</th>
+                    <th className="p-1.5 text-right text-xs">Qté</th>
+                    <th className="p-1.5 text-right text-xs">Montant</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -601,31 +633,31 @@ export default function Formulaire({
                     const montant = valeur * count;
                     return (
                       <tr key={idx} className="border-b border-gray-100">
-                        <td className="p-2 font-medium">{BILLET_LABELS[idx]} Ar</td>
-                        <td className="p-2">
+                        <td className="p-1.5 text-xs font-medium">{BILLET_LABELS[idx]} Ar</td>
+                        <td className="p-1.5">
                           <input
                             type="number"
                             min="0"
                             value={count}
                             onChange={(e) => updateFanatitraBillet(valeur, e.target.value)}
-                            className="w-20 text-right border rounded px-2 py-1 focus:ring-2 focus:ring-blue-400"
+                            className="w-16 text-right border rounded px-1 py-0.5 text-xs focus:ring-2 focus:ring-blue-400"
                           />
                         </td>
-                        <td className="p-2 text-right font-mono">{formatNumber(montant)}</td>
+                        <td className="p-1.5 text-right font-mono text-xs">{formatNumber(montant)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
-                <tfoot className="bg-blue-100 font-bold">
+                <tfoot className="bg-blue-100 font-bold text-xs">
                   <tr>
-                    <td className="p-2">TOTAL</td>
-                    <td className="p-2 text-right">-</td>
-                    <td className="p-2 text-right text-blue-700">{formatNumber(fanatitraBilletTotal)} Ar</td>
+                    <td className="p-1.5">TOTAL</td>
+                    <td className="p-1.5 text-right">-</td>
+                    <td className="p-1.5 text-right text-blue-700">{formatNumber(fanatitraBilletTotal)} Ar</td>
                   </tr>
                   <tr className="bg-yellow-50">
-                    <td className="p-2">BALANCE</td>
-                    <td className="p-2 text-right">-</td>
-                    <td className={`p-2 text-right font-bold ${fanatitraBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <td className="p-1.5">BALANCE</td>
+                    <td className="p-1.5 text-right">-</td>
+                    <td className={`p-1.5 text-right font-bold ${fanatitraBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {fanatitraBalance === 0 ? '✅ OK' : formatNumber(fanatitraBalance) + ' Ar'}
                     </td>
                   </tr>
@@ -633,25 +665,26 @@ export default function Formulaire({
               </table>
             </div>
 
-            {/* Colonne Reste (Ambalopy) */}
-            <div className="border rounded-lg p-4 bg-green-50/50">
-              <h3 className="text-lg font-bold text-green-700 mb-3 text-center border-b pb-2">
-                <i className="fas fa-coins mr-2"></i>
-                RESTE (Ambalopy)
-              </h3>
-              <div className="text-center mb-4">
-                <span className="text-sm text-gray-600">Total Reste :</span>
-                <span className="text-xl font-bold text-green-700 ml-2">
-                  {formatNumber(billetageData.resteTotal)} Ar
+            {/* ============================================================
+                COLONNE RESTE (Ambalopy)
+                ============================================================ */}
+            <div className="border rounded-lg p-3 bg-green-50/50">
+              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                <h3 className="text-base font-bold text-green-700 flex items-center gap-2">
+                  <i className="fas fa-coins"></i>
+                  Ambalopy
+                </h3>
+                <span className="text-sm font-bold text-green-700 bg-white px-3 py-0.5 rounded-full shadow">
+                  {formatNumber(resteTotal)} Ar
                 </span>
               </div>
               
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-green-100">
-                    <th className="p-2 text-left">Billet</th>
-                    <th className="p-2 text-right">Quantité</th>
-                    <th className="p-2 text-right">Montant</th>
+                    <th className="p-1.5 text-left text-xs">Billet</th>
+                    <th className="p-1.5 text-right text-xs">Qté</th>
+                    <th className="p-1.5 text-right text-xs">Montant</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -660,31 +693,31 @@ export default function Formulaire({
                     const montant = valeur * count;
                     return (
                       <tr key={idx} className="border-b border-gray-100">
-                        <td className="p-2 font-medium">{BILLET_LABELS[idx]} Ar</td>
-                        <td className="p-2">
+                        <td className="p-1.5 text-xs font-medium">{BILLET_LABELS[idx]} Ar</td>
+                        <td className="p-1.5">
                           <input
                             type="number"
                             min="0"
                             value={count}
                             onChange={(e) => updateResteBillet(valeur, e.target.value)}
-                            className="w-20 text-right border rounded px-2 py-1 focus:ring-2 focus:ring-green-400"
+                            className="w-16 text-right border rounded px-1 py-0.5 text-xs focus:ring-2 focus:ring-green-400"
                           />
                         </td>
-                        <td className="p-2 text-right font-mono">{formatNumber(montant)}</td>
+                        <td className="p-1.5 text-right font-mono text-xs">{formatNumber(montant)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
-                <tfoot className="bg-green-100 font-bold">
+                <tfoot className="bg-green-100 font-bold text-xs">
                   <tr>
-                    <td className="p-2">TOTAL</td>
-                    <td className="p-2 text-right">-</td>
-                    <td className="p-2 text-right text-green-700">{formatNumber(resteBilletTotal)} Ar</td>
+                    <td className="p-1.5">TOTAL</td>
+                    <td className="p-1.5 text-right">-</td>
+                    <td className="p-1.5 text-right text-green-700">{formatNumber(resteBilletTotal)} Ar</td>
                   </tr>
                   <tr className="bg-yellow-50">
-                    <td className="p-2">BALANCE</td>
-                    <td className="p-2 text-right">-</td>
-                    <td className={`p-2 text-right font-bold ${resteBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <td className="p-1.5">BALANCE</td>
+                    <td className="p-1.5 text-right">-</td>
+                    <td className={`p-1.5 text-right font-bold ${resteBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {resteBalance === 0 ? '✅ OK' : formatNumber(resteBalance) + ' Ar'}
                     </td>
                   </tr>
@@ -693,11 +726,13 @@ export default function Formulaire({
             </div>
           </div>
 
-          {/* Pied du modal */}
-          <div className="mt-6 flex justify-end border-t pt-4">
+          {/* ============================================================
+              PIED - BOUTON FERMER
+              ============================================================ */}
+          <div className="mt-3 flex justify-end border-t pt-2">
             <button
               onClick={closeBilletage}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-5 py-1.5 rounded-lg text-sm transition"
             >
               <i className="fas fa-times mr-2"></i> Fermer
             </button>
