@@ -160,7 +160,7 @@ class ApiService {
   }
 
   // ============================================================
-  // GL - GRAND LIVRE (VERSION AMÉLIORÉE)
+  // GL - GRAND LIVRE
   // ============================================================
 
   async getGL(month, federation = null, district = null, eglise = null) {
@@ -407,7 +407,7 @@ class ApiService {
   }
 
   // ============================================================
-  // ÉGLISES (VERSION AMÉLIORÉE)
+  // ÉGLISES
   // ============================================================
 
   async getEglisesByDistrict(district) {
