@@ -308,7 +308,7 @@ async function getEglisesByFederation(federation) {
 }
 
 // ============================================================
-// ✅ SAUVEGARDE GL - AVEC VÉRIFICATION D'EXISTENCE
+// ✅ SAUVEGARDE GL - AVEC VÉRIFICATION D'EXISTENCE AMÉLIORÉE
 // ============================================================
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
@@ -336,13 +336,11 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
       sabbathIndex: parseInt(sabbathIndex)
     }));
 
-    // Vérification : Les données existent-elles déjà ?
-    const existing = await db.get(
-      'SELECT id FROM gl_data WHERE month = ? AND eglise = ? AND sabbath_index = ?',
-      month, cleanEglise, parseInt(sabbathIndex)
-    );
+    // 🔥 VÉRIFICATION AMÉLIORÉE : Les données existent-elles déjà ?
+    // Utilisation de hasGLDataForEglise qui est maintenant bien exportée
+    const exists = await hasGLDataForEglise(month, cleanEglise, parseInt(sabbathIndex));
     
-    if (existing) {
+    if (exists) {
       // Mise à jour des données existantes
       console.log(`📝 Mise à jour des données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
@@ -1247,7 +1245,7 @@ module.exports = {
   getGLDataByDistrict,
   getGLDataByFederation,
   getGLDataForAdmin,
-  hasGLDataForEglise,           // ✅ CORRECTION : AJOUT DE LA FONCTION MANQUANTE
+  hasGLDataForEglise,           // ✅ FONCTION CORRECTEMENT EXPORTÉE
   saveGLDataWithEgliseCreation,
   
   // Dépenses
