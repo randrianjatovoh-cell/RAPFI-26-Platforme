@@ -1,4 +1,5 @@
-// backend/db.js
+// backend/db.js - VERSION COMPLÈTE AVEC LA CORRECTION
+
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const fs = require('fs');
@@ -96,9 +97,12 @@ async function openDb() {
   }
 }
 
+// ============================================================
+// ✅ FONCTION POUR VÉRIFIER ET AJOUTER UNE COLONNE
+// ============================================================
 async function ensureColumn(db, tableName, columnName, columnType) {
   let columnExists = false;
-  if (isProduction) {
+  if (db.isPostgres) {
     const result = await db.get(
       `SELECT column_name FROM information_schema.columns 
        WHERE table_name = $1 AND column_name = $2`,
@@ -118,6 +122,9 @@ async function ensureColumn(db, tableName, columnName, columnType) {
   }
 }
 
+// ============================================================
+// ✅ INITIALISATION DE LA BASE DE DONNÉES AVEC LA COLONNE
+// ============================================================
 async function initDb() {
   const db = await openDb();
 
@@ -141,13 +148,17 @@ async function initDb() {
       plain_password TEXT
     );
     CREATE TABLE IF NOT EXISTS gl_data (
+      id SERIAL PRIMARY KEY,
       user_id INTEGER,
-      month TEXT,
-      data TEXT,
-      eglise TEXT,
+      month TEXT NOT NULL,
+      eglise TEXT NOT NULL,
       district TEXT,
       federation TEXT,
-      PRIMARY KEY (user_id, month)
+      sabbath_index INTEGER NOT NULL DEFAULT 1,
+      data TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(month, eglise, sabbath_index)
     );
     CREATE TABLE IF NOT EXISTS depenses (
       id SERIAL PRIMARY KEY,
@@ -252,7 +263,19 @@ async function initDb() {
       contact TEXT,
       plain_password TEXT
     );
-    CREATE TABLE IF NOT EXISTS gl_data (user_id INTEGER, month TEXT, data TEXT, eglise TEXT, district TEXT, federation TEXT, PRIMARY KEY (user_id, month));
+    CREATE TABLE IF NOT EXISTS gl_data (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      month TEXT NOT NULL,
+      eglise TEXT NOT NULL,
+      district TEXT,
+      federation TEXT,
+      sabbath_index INTEGER NOT NULL DEFAULT 1,
+      data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(month, eglise, sabbath_index)
+    );
     CREATE TABLE IF NOT EXISTS depenses (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, month TEXT, data TEXT, eglise TEXT, district TEXT, federation TEXT);
     CREATE TABLE IF NOT EXISTS membres (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, nom TEXT, prenom TEXT, dateEntree TEXT, typeEntree TEXT, dateSortie TEXT, typeSortie TEXT, raisonSortie TEXT, actif INTEGER, sexe TEXT, age INTEGER);
     CREATE TABLE IF NOT EXISTS months (id TEXT PRIMARY KEY, name TEXT);
@@ -307,10 +330,15 @@ async function initDb() {
 
   await db.exec(schemaSQL);
 
-  // ---------- Migrations : ajout des colonnes manquantes ----------
+  // ============================================================
+  // 🔥 AJOUT DES COLONNES MANQUANTES (MIGRATION)
+  // ============================================================
   await ensureColumn(db, 'monthly_reports', 'soraBolaLinesJson', 'TEXT');
   await ensureColumn(db, 'monthly_reports', 'volamPiangonanaApetraka', 'INTEGER');
   await ensureColumn(db, 'monthly_reports', 'volaSisaTeoAloha', 'INTEGER');
+  
+  // 🔥 AJOUT DE LA COLONNE sabbath_index DANS gl_data (SI MANQUANTE)
+  await ensureColumn(db, 'gl_data', 'sabbath_index', 'INTEGER DEFAULT 1');
 
   // ---------- Insertion des mois 2026 ----------
   const months2026 = [
