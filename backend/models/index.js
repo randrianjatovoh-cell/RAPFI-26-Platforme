@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { openDb } = require('./db');
 
 // ============================================================
-// ✅ FONCTION POUR NETTOYER LE NOM DE L'ÉGLISE ET GÉNÉRER L'EMAIL
+// ✅ FONCTION POUR NETTOYER LE NOM DE L'ÉGLISE
 // ============================================================
 function sanitizeEgliseName(eglise) {
   if (!eglise) return '';
@@ -27,7 +27,7 @@ function sanitizeEgliseName(eglise) {
 // ============================================================
 function generateEgliseEmail(eglise) {
   const prefix = sanitizeEgliseName(eglise);
-  return `${prefix}@rapfi.eg.com`;  // 🔥 NOUVEAU FORMAT AVEC .com
+  return `${prefix}@rapfi.eg.com`;
 }
 
 // ---------- Users ----------
@@ -114,9 +114,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
     return;
   }
 
-  // ============================================================
-  // 🔥 NOUVEAU : Générer l'email au format nom_eglise@rapfi.eg.com
-  // ============================================================
+  // Générer l'email au format nom_eglise@rapfi.eg.com
   const email = generateEgliseEmail(eglise);
   
   // Vérifier si l'email existe déjà (au cas où)
@@ -200,9 +198,7 @@ async function createEgliseWithDetails(eglise, district, federation, pasteurId) 
     };
   }
 
-  // ============================================================
-  // 🔥 NOUVEAU : Générer l'email au format nom_eglise@rapfi.eg.com
-  // ============================================================
+  // Générer l'email au format nom_eglise@rapfi.eg.com
   const email = generateEgliseEmail(cleanEglise);
   
   // Vérifier si l'email existe déjà
@@ -347,7 +343,7 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
     );
     
     if (existing) {
-      // ✅ Mise à jour des données existantes
+      // Mise à jour des données existantes
       console.log(`📝 Mise à jour des données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
       if (db.isPostgres) {
@@ -368,7 +364,7 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
         );
       }
     } else {
-      // ✅ Insertion de nouvelles données
+      // Insertion de nouvelles données
       console.log(`📝 Insertion de nouvelles données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
       if (db.isPostgres) {
@@ -1235,7 +1231,7 @@ module.exports = {
   createAdminIfNotExists,
   createEgliseIfNotExists,
   sanitizeEgliseName,
-  generateEgliseEmail,  // 🔥 NOUVEAU : Export de la fonction de génération d'email
+  generateEgliseEmail,
   
   // Églises
   getEglisesByDistrict,
@@ -1251,7 +1247,7 @@ module.exports = {
   getGLDataByDistrict,
   getGLDataByFederation,
   getGLDataForAdmin,
-  hasGLDataForEglise,
+  hasGLDataForEglise,           // ✅ CORRECTION : AJOUT DE LA FONCTION MANQUANTE
   saveGLDataWithEgliseCreation,
   
   // Dépenses
@@ -1285,7 +1281,7 @@ module.exports = {
   getFrais,
   setFrais,
   
-  // ✅ FONCTIONS VOLA SISA
+  // VOLA SISA
   getVolaSisa,
   setVolaSisa,
   
