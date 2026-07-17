@@ -1,6 +1,5 @@
 // frontend/src/services/api.js
-// ⚠️ URL forcée pour la production (Render)
-const API_URL = 'https://rapfi-backend.onrender.com/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 
@@ -81,7 +80,10 @@ class ApiService {
     }
   }
 
-  // ===== AUTH =====
+  // ============================================================
+  // AUTH
+  // ============================================================
+
   async login(email, password) {
     const data = await this.request('/auth/login', {
       method: 'POST',
@@ -108,7 +110,10 @@ class ApiService {
     return this.request('/auth/users');
   }
 
-  // ===== USERS =====
+  // ============================================================
+  // USERS
+  // ============================================================
+
   async getAllUsers() {
     return this.request('/users');
   }
@@ -154,7 +159,10 @@ class ApiService {
     });
   }
 
-  // ===== GL =====
+  // ============================================================
+  // GL - GRAND LIVRE (VERSION AMÉLIORÉE)
+  // ============================================================
+
   async getGL(month, federation = null, district = null, eglise = null) {
     let url = `/gl/${month}`;
     const params = new URLSearchParams();
@@ -166,19 +174,34 @@ class ApiService {
   }
 
   async saveGL(data) {
-    return this.request('/gl/save', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    try {
+      const response = await this.request('/gl/save', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      if (error.message && error.message.includes('existe déjà')) {
+        throw new Error('⚠️ Des données existent déjà pour ce mois et cette église.');
+      }
+      throw error;
+    }
+  }
+
+  async checkGLDataExists(month, eglise) {
+    try {
+      const response = await this.request(`/gl/check/${month}/${eglise}`);
+      return response.exists || false;
+    } catch (err) {
+      console.warn('⚠️ Erreur checkGLDataExists:', err);
+      return false;
+    }
   }
 
   // ============================================================
-  // ✅ MÉTHODES POUR VOLA SISA TEO ALOHA
+  // VOLA SISA TEO ALOHA
   // ============================================================
 
-  /**
-   * Récupère la valeur de volaSisaTeoAloha pour un mois et une église
-   */
   async getVolaSisa(month, eglise) {
     try {
       const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
@@ -189,9 +212,6 @@ class ApiService {
     }
   }
 
-  /**
-   * Sauvegarde la valeur de volaSisaTeoAloha pour un mois et une église
-   */
   async saveVolaSisa(month, eglise, amount) {
     return this.request('/reports/volaSisa', {
       method: 'POST',
@@ -199,7 +219,10 @@ class ApiService {
     });
   }
 
-  // ===== DÉPENSES =====
+  // ============================================================
+  // DÉPENSES
+  // ============================================================
+
   async getDepenses(month, federation = null, district = null, eglise = null) {
     let url = `/depenses/${month}`;
     const params = new URLSearchParams();
@@ -217,7 +240,10 @@ class ApiService {
     });
   }
 
-  // ===== MEMBRES =====
+  // ============================================================
+  // MEMBRES
+  // ============================================================
+
   async getMembres() {
     return this.request('/membres');
   }
@@ -242,7 +268,10 @@ class ApiService {
     });
   }
 
-  // ===== MOIS =====
+  // ============================================================
+  // MOIS
+  // ============================================================
+
   async getMonths() {
     return this.request('/months');
   }
@@ -260,7 +289,10 @@ class ApiService {
     });
   }
 
-  // ===== CONFIG =====
+  // ============================================================
+  // CONFIG
+  // ============================================================
+
   async getChurchConfig() {
     return this.request('/config');
   }
@@ -272,7 +304,10 @@ class ApiService {
     });
   }
 
-  // ===== REPORTS =====
+  // ============================================================
+  // REPORTS
+  // ============================================================
+
   async getMonthlyReport(month, eglise) {
     return this.request(`/reports/monthly/${month}/${eglise}`);
   }
@@ -321,24 +356,9 @@ class ApiService {
   }
 
   // ============================================================
-  // ✅ MÉTHODES POUR VOLA SISA TEO ALOHA (alias)
+  // FRAIS
   // ============================================================
 
-  /**
-   * Alias pour getVolaSisa - Récupère la valeur de volaSisaTeoAloha
-   */
-  async getVolaSisaTeoAloha(month, eglise) {
-    return this.getVolaSisa(month, eglise);
-  }
-
-  /**
-   * Alias pour saveVolaSisa - Sauvegarde la valeur de volaSisaTeoAloha
-   */
-  async saveVolaSisaTeoAloha(month, eglise, amount) {
-    return this.saveVolaSisa(month, eglise, amount);
-  }
-
-  // ===== FRAIS =====
   async getFrais(month, eglise) {
     return this.request(`/frais/${month}/${eglise}`);
   }
@@ -350,12 +370,18 @@ class ApiService {
     });
   }
 
-  // ===== STATS =====
+  // ============================================================
+  // STATS
+  // ============================================================
+
   async getMembersStats() {
     return this.request('/stats/members');
   }
 
-  // ===== LOGS =====
+  // ============================================================
+  // LOGS
+  // ============================================================
+
   async addLog(userId, userName, userFonction) {
     return this.request('/logs', {
       method: 'POST',
@@ -380,7 +406,10 @@ class ApiService {
     return this.request('/logs/visits');
   }
 
-  // ===== EGLISES =====
+  // ============================================================
+  // ÉGLISES (VERSION AMÉLIORÉE)
+  // ============================================================
+
   async getEglisesByDistrict(district) {
     return this.request(`/eglises/district/${district}`);
   }
@@ -389,22 +418,25 @@ class ApiService {
     return this.request(`/eglises/federation/${federation}`);
   }
 
-  // ============================================================
-  // ✅ MÉTHODES OPTIMISÉES (pour l'avenir)
-  // ============================================================
+  async createEglise(eglise, district, federation) {
+    return this.request('/eglises', {
+      method: 'POST',
+      body: JSON.stringify({ eglise, district, federation })
+    });
+  }
 
-  /**
-   * Récupère toutes les données d'une année pour une église en 1 appel
-   * ⚠️ Nécessite que le backend ait les fonctions getYearlyGLData etc.
-   */
-  async getYearlyData(year, eglise = null, district = null, federation = null) {
-    let url = `/gl/yearly/${year}`;
-    const params = new URLSearchParams();
-    if (eglise) params.append('eglise', eglise);
-    if (district) params.append('district', district);
-    if (federation) params.append('federation', federation);
-    if (params.toString()) url += '?' + params.toString();
-    return this.request(url);
+  async getEgliseInfo(eglise) {
+    return this.request(`/eglises/${eglise}`);
+  }
+
+  async egliseExists(eglise) {
+    try {
+      const users = await this.getAllUsers();
+      return users.some(u => u.eglise === eglise);
+    } catch (err) {
+      console.warn('⚠️ Erreur egliseExists:', err);
+      return false;
+    }
   }
 }
 

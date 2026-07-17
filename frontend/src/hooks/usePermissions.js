@@ -1,4 +1,4 @@
-// src/hooks/usePermissions.js
+// frontend/src/hooks/usePermissions.js
 import { useUser } from '../context/UserContext';
 
 export function usePermissions() {
