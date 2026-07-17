@@ -1,626 +1,699 @@
-// frontend/src/components/Formulaire.js
-import React, { useState, useEffect, useCallback } from 'react';
+// src/components/Formulaire.js
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '../context/UserContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { api } from '../services/api';
+import { formatMonthYear, capitalizeFirstLetter, formatNumber } from '../services/helpers';
+import { useReceipts } from '../context/ReceiptsContext';
 
-// ============================================================
-// COMPOSANT DE LIGNE DE SAISIE
-// ============================================================
-function LigneSaisie({ entry, index, onUpdate, onRemove, readOnly }) {
-  const handleChange = (field, value) => {
-    const numValue = parseFloat(value) || 0;
-    onUpdate(index, { ...entry, [field]: numValue });
-  };
-
-  const totalMiakatra = (entry.f1 || 0) + (entry.f2 || 0) + (entry.f3 || 0) + (entry.f4 || 0) +
-                        (entry.f5 || 0) + (entry.f6 || 0) + (entry.f7 || 0) + (entry.f8 || 0);
-  
-  const totalMijanona = (entry.b9 || 0) + (entry.b10 || 0);
-  const total = totalMiakatra + totalMijanona;
-
-  return (
-    <div className="border-b border-gray-200 py-3 hover:bg-gray-50 transition-colors">
-      <div className="grid grid-cols-12 gap-2 items-center">
-        {/* Nom du membre */}
-        <div className="col-span-2">
-          <input
-            type="text"
-            value={entry.memberName || ''}
-            onChange={(e) => handleChange('memberName', e.target.value)}
-            placeholder="Nom du membre"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={readOnly}
-          />
-        </div>
-
-        {/* Rosia */}
-        <div className="col-span-1">
-          <input
-            type="text"
-            value={entry.rosia || ''}
-            onChange={(e) => handleChange('rosia', e.target.value)}
-            placeholder="Rosia"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={readOnly}
-          />
-        </div>
-
-        {/* Champs f1 à f8 (Miakatra) */}
-        {['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'].map((field, idx) => (
-          <div key={field} className="col-span-1">
-            <input
-              type="number"
-              value={entry[field] || ''}
-              onChange={(e) => handleChange(field, e.target.value)}
-              placeholder={field.toUpperCase()}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={readOnly}
-              min="0"
-              step="100"
-            />
-          </div>
-        ))}
-
-        {/* Champs b9, b10 (Mijanona) */}
-        <div className="col-span-1">
-          <input
-            type="number"
-            value={entry.b9 || ''}
-            onChange={(e) => handleChange('b9', e.target.value)}
-            placeholder="B9"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={readOnly}
-            min="0"
-            step="100"
-          />
-        </div>
-        <div className="col-span-1">
-          <input
-            type="number"
-            value={entry.b10 || ''}
-            onChange={(e) => handleChange('b10', e.target.value)}
-            placeholder="B10"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={readOnly}
-            min="0"
-            step="100"
-          />
-        </div>
-
-        {/* Total */}
-        <div className="col-span-1 text-center font-bold text-sm text-blue-600">
-          {total > 0 ? total.toLocaleString() : '-'}
-        </div>
-
-        {/* Bouton Supprimer */}
-        {!readOnly && (
-          <div className="col-span-1 text-center">
-            <button
-              onClick={() => onRemove(index)}
-              className="text-red-500 hover:text-red-700 transition-colors"
-              title="Supprimer cette ligne"
-            >
-              <i className="fas fa-trash-alt"></i>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// COMPOSANT PRINCIPAL FORMULAIRE
-// ============================================================
-export default function Formulaire({ 
-  currentMonth, 
-  setCurrentMonth, 
-  months, 
-  setMonths, 
+export default function Formulaire({
+  user: propUser,
+  currentMonth,
+  setCurrentMonth,
+  months,
+  setMonths,
   refreshAll,
   onDataSaved,
   selectedSabbath,
   onSabbathChange,
   selectedEglise,
   onEgliseChange,
+  selectedDistrict,
+  onDistrictChange,
+  selectedFederation,
+  onFederationChange,
   readOnly = false,
-  onOpenReceipts
+  onOpenReceipts = null
 }) {
-  const { user } = useUser();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
+  const { user: contextUser } = useUser();
+  const { canViewEglise, canEditEglise, isReadOnly: isGlobalReadOnly } = usePermissions();
+  const user = propUser || contextUser;
+  const { updateReceipts } = useReceipts();
+
+  const [churchConfig, setChurchConfig] = useState({ district: "ANTSAHATANTERAKA", church: "", code: "" });
+  const [sabbathIndex, setSabbathIndex] = useState(selectedSabbath || '');
+  const [sabbathDate, setSabbathDate] = useState("");
   const [entries, setEntries] = useState([]);
-  const [glData, setGlData] = useState({});
-  const [hasExistingData, setHasExistingData] = useState(false);
-  const [isNewEglise, setIsNewEglise] = useState(false);
-  const [totalGeneral, setTotalGeneral] = useState(0);
-  
-  const isPasteur = user?.fonction === 'Pasteur';
+  const [totals, setTotals] = useState({ f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0,b9:0,b10:0 });
+  const [loading, setLoading] = useState(false);
+  const [loadingDate, setLoadingDate] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [eglises, setEglises] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [federations, setFederations] = useState([]);
+  const [lockedRows, setLockedRows] = useState([]);
+  const [hasData, setHasData] = useState(false);
+
   const isAdmin = user?.fonction === 'Admin';
+  const isPasteur = user?.fonction === 'Pasteur';
   const isVerificateur = user?.fonction === 'Vérificateur';
+  const isTresorier = user?.fonction === 'Trésorier';
+  const isAncien = user?.fonction === 'Ancien';
+  const canAddMonth = (isAdmin || isPasteur || isTresorier || isAncien) && !readOnly && !isGlobalReadOnly();
+  const hasFixedChurch = !isPasteur && !isVerificateur && !isAdmin;
 
-  // ============================================================
-  // AJOUTER UNE NOUVELLE LIGNE
-  // ============================================================
-  const addEntry = () => {
-    const newEntry = {
-      memberName: '',
-      rosia: '',
-      f1: 0,
-      f2: 0,
-      f3: 0,
-      f4: 0,
-      f5: 0,
-      f6: 0,
-      f7: 0,
-      f8: 0,
-      b9: 0,
-      b10: 0
+  // Seul le Pasteur est verrouillé si des données existent
+  const lockEntries = (isPasteur && hasData) || readOnly;
+
+  const isSelectorDisabled = isGlobalReadOnly() || 
+    (!isAdmin && selectedEglise && !canEditEglise(selectedEglise, user?.district, user?.federation));
+
+  const loadingRef = useRef(false);
+  const currentKeyRef = useRef('');
+
+  // ===== CHARGEMENT DES LISTES =====
+  useEffect(() => {
+    if (isAdmin) {
+      api.getAllUsers().then(users => {
+        const feds = [...new Set(users.map(u => u.federation).filter(f => f))];
+        setFederations(feds);
+        if (feds.length > 0 && !selectedFederation && typeof onFederationChange === 'function') {
+          onFederationChange(feds[0]);
+        }
+      });
+    } else if (user?.federation) {
+      setFederations([user.federation]);
+      if (!selectedFederation && typeof onFederationChange === 'function') {
+        onFederationChange(user.federation);
+      }
+    }
+  }, [isAdmin, user, selectedFederation, onFederationChange]);
+
+  useEffect(() => {
+    if (isAdmin && selectedFederation) {
+      api.getAllUsers().then(users => {
+        const dists = [...new Set(users.filter(u => u.federation === selectedFederation && u.district).map(u => u.district))];
+        setDistricts(dists);
+        if (dists.length > 0 && !selectedDistrict && typeof onDistrictChange === 'function') {
+          onDistrictChange(dists[0]);
+        }
+      });
+    } else if (isPasteur && user?.district) {
+      setDistricts([user.district]);
+      if (!selectedDistrict && typeof onDistrictChange === 'function') {
+        onDistrictChange(user.district);
+      }
+    } else if (isVerificateur && user?.district) {
+      setDistricts([user.district]);
+      if (!selectedDistrict && typeof onDistrictChange === 'function') {
+        onDistrictChange(user.district);
+      }
+    }
+  }, [isAdmin, selectedFederation, user, selectedDistrict, onDistrictChange]);
+
+  useEffect(() => {
+    const loadEglises = async () => {
+      try {
+        let eglisesList = [];
+        if (isAdmin && selectedDistrict) {
+          eglisesList = await api.getEglisesByDistrict(selectedDistrict);
+        } else if (isPasteur && user?.district) {
+          eglisesList = await api.getEglisesByDistrict(user.district);
+        } else if (isVerificateur && user?.federation) {
+          eglisesList = await api.getEglisesByFederation(user.federation);
+        } else if (isAncien || isTresorier) {
+          if (user?.eglise) eglisesList = [user.eglise];
+        }
+        setEglises(eglisesList);
+        if (eglisesList.length > 0 && !selectedEglise && typeof onEgliseChange === 'function') {
+          onEgliseChange(eglisesList[0]);
+        }
+      } catch (err) {
+        console.warn('Erreur chargement églises :', err);
+      }
     };
-    setEntries([...entries, newEntry]);
-  };
+    loadEglises();
+  }, [isAdmin, isPasteur, isVerificateur, isAncien, isTresorier, selectedDistrict, user, selectedEglise, onEgliseChange]);
 
-  // ============================================================
-  // METTRE À JOUR UNE LIGNE
-  // ============================================================
-  const updateEntry = (index, updatedEntry) => {
-    const newEntries = [...entries];
-    newEntries[index] = updatedEntry;
-    setEntries(newEntries);
-  };
-
-  // ============================================================
-  // SUPPRIMER UNE LIGNE
-  // ============================================================
-  const removeEntry = (index) => {
-    if (window.confirm('Supprimer cette ligne ?')) {
-      const newEntries = entries.filter((_, i) => i !== index);
-      setEntries(newEntries);
+  // ==== Gestion des lignes verrouillées ====
+  useEffect(() => {
+    if (entries.length !== lockedRows.length) {
+      setLockedRows(prev => {
+        if (entries.length > prev.length) return [...prev, ...Array(entries.length - prev.length).fill(false)];
+        else return prev.slice(0, entries.length);
+      });
     }
-  };
-
-  // ============================================================
-  // CALCULER LE TOTAL GÉNÉRAL
-  // ============================================================
-  const calculateTotal = useCallback(() => {
-    let total = 0;
-    for (const entry of entries) {
-      const miakatra = (entry.f1 || 0) + (entry.f2 || 0) + (entry.f3 || 0) + (entry.f4 || 0) +
-                       (entry.f5 || 0) + (entry.f6 || 0) + (entry.f7 || 0) + (entry.f8 || 0);
-      const mijanona = (entry.b9 || 0) + (entry.b10 || 0);
-      total += miakatra + mijanona;
-    }
-    setTotalGeneral(total);
-  }, [entries]);
+  }, [entries, lockedRows.length]);
 
   useEffect(() => {
-    calculateTotal();
-  }, [calculateTotal]);
+    api.getChurchConfig().then(config => setChurchConfig(config || { district: "ANTSAHATANTERAKA", church: "", code: "" }));
+  }, []);
 
-  // ============================================================
-  // VÉRIFICATION DES DONNÉES EXISTANTES
-  // ============================================================
   useEffect(() => {
-    async function checkExistingData() {
-      if (!currentMonth || !selectedEglise) {
-        setHasExistingData(false);
-        return;
-      }
+    if (onSabbathChange && sabbathIndex) onSabbathChange(parseInt(sabbathIndex));
+    else if (onSabbathChange && !sabbathIndex) onSabbathChange(null);
+  }, [sabbathIndex, onSabbathChange]);
 
+  useEffect(() => {
+    async function loadMonths() {
       try {
-        const response = await api.getGL(currentMonth, null, null, selectedEglise);
-        let hasData = false;
-        if (selectedSabbath) {
-          hasData = response[selectedSabbath] && response[selectedSabbath].length > 0;
+        const mois = await api.getMonths();
+        if (setMonths) setMonths(mois);
+        if (mois.length > 0 && !currentMonth && setCurrentMonth) setCurrentMonth(mois[0].id);
+      } catch (err) {
+        if (err.message === "SESSION_EXPIRED") {
+          console.warn("Session expirée, redirection en cours...");
         } else {
-          for (let s = 1; s <= 5; s++) {
-            if (response[s] && response[s].length > 0) {
-              hasData = true;
-              break;
-            }
-          }
+          console.error("Erreur chargement des mois :", err);
         }
-        setHasExistingData(hasData);
-        
-        if (isPasteur && hasData) {
-          setMessage({
-            type: 'info',
-            text: `📌 Des données existent déjà pour cette église (Sabbat ${selectedSabbath || ''}). La sauvegarde mettra à jour les données existantes.`
-          });
-        } else if (!hasData && isPasteur && selectedSabbath) {
-          setMessage(null);
-        }
-      } catch (err) {
-        console.error('Erreur vérification données:', err);
       }
     }
-    checkExistingData();
-  }, [currentMonth, selectedEglise, selectedSabbath, isPasteur]);
+    loadMonths();
+  }, [setMonths, setCurrentMonth, currentMonth]);
 
-  // ============================================================
-  // VÉRIFICATION SI L'ÉGLISE EST NOUVELLE (Pasteur)
-  // ============================================================
-  useEffect(() => {
-    async function checkEgliseExists() {
-      if (!selectedEglise || !isPasteur) {
-        setIsNewEglise(false);
-        return;
-      }
-
-      try {
-        const users = await api.getAllUsers();
-        const exists = users.some(u => u.eglise === selectedEglise);
-        setIsNewEglise(!exists);
-        
-        if (!exists && isPasteur) {
-          setMessage({
-            type: 'success',
-            text: `🆕 Nouvelle église "${selectedEglise}". Elle sera automatiquement créée avec l'email ${selectedEglise.toLowerCase().replace(/\s+/g, '_')}@rapfi.eg lors de la sauvegarde.`
-          });
-        } else if (exists && !hasExistingData) {
-          setMessage({
-            type: 'info',
-            text: `📝 Église "${selectedEglise}" existante. Vous pouvez saisir les données.`
-          });
-        }
-      } catch (err) {
-        console.error('Erreur vérification église:', err);
-      }
-    }
-    checkEgliseExists();
-  }, [selectedEglise, isPasteur, hasExistingData]);
-
-  // ============================================================
-  // CHARGER LES DONNÉES EXISTANTES
-  // ============================================================
-  useEffect(() => {
-    async function loadData() {
-      if (!currentMonth || !selectedEglise) {
-        setEntries([]);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const data = await api.getGL(currentMonth, null, null, selectedEglise);
-        setGlData(data);
-        
-        if (selectedSabbath && data[selectedSabbath]) {
-          setEntries(data[selectedSabbath]);
-        } else {
-          setEntries([]);
-        }
-      } catch (err) {
-        console.error('Erreur chargement données:', err);
-        setMessage({ type: 'error', text: 'Erreur lors du chargement des données' });
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [currentMonth, selectedEglise, selectedSabbath]);
-
-  // ============================================================
-  // SAUVEGARDE DES DONNÉES
-  // ============================================================
-  const handleSave = async () => {
-    if (!selectedEglise) {
-      setMessage({ type: 'error', text: 'Veuillez sélectionner une église' });
-      return;
-    }
-
-    if (!selectedSabbath) {
-      setMessage({ type: 'error', text: 'Veuillez sélectionner un sabbat' });
-      return;
-    }
-
-    if (!currentMonth) {
-      setMessage({ type: 'error', text: 'Veuillez sélectionner un mois' });
-      return;
-    }
-
-    // Filtrer les lignes vides
-    const validEntries = entries.filter(e => e.memberName && e.memberName.trim() !== '');
-    if (validEntries.length === 0) {
-      setMessage({ type: 'warning', text: 'Veuillez ajouter au moins un membre avec des données' });
-      return;
-    }
-
-    setSaving(true);
-    setMessage(null);
-
+  const refreshMonths = async () => {
     try {
-      const dataToSave = {};
-      dataToSave[selectedSabbath] = validEntries;
+      const mois = await api.getMonths();
+      if (setMonths) setMonths(mois);
+    } catch (err) {
+      if (err.message === "SESSION_EXPIRED") {
+        console.warn("Session expirée lors du refresh");
+      } else {
+        console.error("Erreur refreshMonths :", err);
+      }
+    }
+  };
 
-      const saveData = {
+  const loadSabbathDate = useCallback(async () => {
+    if (!currentMonth || !selectedEglise || !sabbathIndex) return;
+    const key = `${currentMonth}-${selectedEglise}-${sabbathIndex}`;
+    if (currentKeyRef.current === key || loadingRef.current) return;
+    loadingRef.current = true;
+    setLoadingDate(true);
+    try {
+      const report = await api.getMonthlyReport(currentMonth, selectedEglise);
+      const index = parseInt(sabbathIndex) - 1;
+      let dateValue = "";
+      if (report && report.sabbath_dates) {
+        try {
+          const dates = JSON.parse(report.sabbath_dates);
+          if (dates && dates[index]) dateValue = dates[index];
+        } catch (e) { console.warn("Erreur parsing sabbath_dates", e); }
+      }
+      setSabbathDate(dateValue);
+      currentKeyRef.current = key;
+    } catch (err) {
+      console.error("Erreur chargement date:", err);
+    } finally {
+      setLoadingDate(false);
+      loadingRef.current = false;
+    }
+  }, [currentMonth, selectedEglise, sabbathIndex]);
+
+  const loadEntries = useCallback(async () => {
+    if (!currentMonth || !selectedEglise || !sabbathIndex) {
+      setEntries([]);
+      setLockedRows([]);
+      setTotals({ f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0,b9:0,b10:0 });
+      setHasData(false);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const glData = await api.getGL(currentMonth, null, null, selectedEglise);
+      const sabbathNum = parseInt(sabbathIndex);
+      const data = glData && glData[sabbathNum] ? glData[sabbathNum] : [];
+      if (data.length === 0) {
+        setEntries([createEmptyEntry()]);
+        setLockedRows([false]);
+        setHasData(false);
+      } else {
+        setEntries(data);
+        setLockedRows(data.map(() => true));
+        setHasData(true);
+      }
+      computeTotals(data);
+    } catch (err) { 
+      console.error(err);
+      setEntries([createEmptyEntry()]);
+      setLockedRows([false]);
+      setHasData(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentMonth, selectedEglise, sabbathIndex]);
+
+  useEffect(() => {
+    if (currentMonth && selectedEglise && sabbathIndex) {
+      loadEntries();
+      loadSabbathDate();
+    } else {
+      setEntries([]);
+      setLockedRows([]);
+      setTotals({ f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0,b9:0,b10:0 });
+      setHasData(false);
+    }
+  }, [currentMonth, sabbathIndex, selectedEglise, loadEntries, loadSabbathDate]);
+
+  function createEmptyEntry() {
+    return { id: Date.now() + Math.random() * 10000, memberName: "", rosia: "", f1: 0, f2: 0, f3: 0, f4: 0, f5: 0, f6: 0, f7: 0, f8: 0, b9: 0, b10: 0 };
+  }
+
+  function computeTotals(entriesList) {
+    const newTotals = { f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0,b9:0,b10:0 };
+    for (let e of entriesList) {
+      newTotals.f1 += e.f1 || 0; newTotals.f2 += e.f2 || 0; newTotals.f3 += e.f3 || 0;
+      newTotals.f4 += e.f4 || 0; newTotals.f5 += e.f5 || 0; newTotals.f6 += e.f6 || 0;
+      newTotals.f7 += e.f7 || 0; newTotals.f8 += e.f8 || 0;
+      newTotals.b9 += e.b9 || 0; newTotals.b10 += e.b10 || 0;
+    }
+    setTotals(newTotals);
+  }
+
+  function addRow() {
+    if (isSaving || isGlobalReadOnly() || lockEntries) return;
+    setLockedRows(prev => [...prev.map(() => true), false]);
+    setEntries(prev => [...prev, createEmptyEntry()]);
+  }
+
+  function removeRow(id) {
+    if (isSaving || isGlobalReadOnly() || lockEntries) return;
+    const index = entries.findIndex(e => e.id === id);
+    if (index === -1) return;
+    const newEntries = entries.filter(e => e.id !== id);
+    const newLocked = lockedRows.filter((_, i) => i !== index);
+    setEntries(newEntries);
+    setLockedRows(newLocked);
+    computeTotals(newEntries);
+  }
+
+  function unlockRow(index) {
+    if (isSaving || isGlobalReadOnly() || lockEntries) return;
+    setLockedRows(prev => prev.map((locked, i) => i === index ? false : locked));
+  }
+
+  function updateEntry(id, field, value) {
+    if (isSaving || isGlobalReadOnly() || lockEntries) return;
+    const index = entries.findIndex(e => e.id === id);
+    if (index === -1 || lockedRows[index]) return;
+    const newEntries = entries.map(e => e.id === id ? { ...e, [field]: value } : e);
+    setEntries(newEntries);
+    computeTotals(newEntries);
+  }
+
+  function normalizeEntry(entry) {
+    return { ...entry, f1: Number(entry.f1)||0, f2: Number(entry.f2)||0, f3: Number(entry.f3)||0, f4: Number(entry.f4)||0, f5: Number(entry.f5)||0, f6: Number(entry.f6)||0, f7: Number(entry.f7)||0, f8: Number(entry.f8)||0, b9: Number(entry.b9)||0, b10: Number(entry.b10)||0 };
+  }
+
+  // ===== SAUVEGARDE =====
+  async function handleSave() {
+    if (isSaving || isGlobalReadOnly() || lockEntries) return;
+    if (!currentMonth) return alert("Sélectionnez un mois.");
+    if (!sabbathIndex) return alert("Sélectionnez un Sabata.");
+    if (!sabbathDate) return alert("Renseignez la date du Sabata.");
+    if (!selectedEglise) return alert("Sélectionnez une église.");
+    if (entries.length === 0) return alert("Aucune ligne à sauvegarder.");
+
+    if (!isAdmin && !canEditEglise(selectedEglise, user?.district, user?.federation)) {
+      alert("Vous n'avez pas les droits pour modifier cette église.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await api.saveChurchConfig(churchConfig);
+
+      let glData = await api.getGL(currentMonth, null, null, selectedEglise) || {};
+      const sabbathNum = parseInt(sabbathIndex);
+      glData[sabbathNum] = entries.map(e => ({ ...normalizeEntry(e), monthId: currentMonth, sabbathIndex: sabbathNum, eglise: selectedEglise }));
+
+      const payload = {
         month: currentMonth,
-        data: dataToSave,
+        data: glData,
         eglise: selectedEglise,
-        district: user.district || '',
-        federation: user.federation || ''
       };
 
-      const response = await api.saveGL(saveData);
-      
-      setMessage({
-        type: 'success',
-        text: response.message || `✅ Données sauvegardées pour ${selectedEglise}`
-      });
-
-      // Recharger les données
-      const refreshedData = await api.getGL(currentMonth, null, null, selectedEglise);
-      setGlData(refreshedData);
-      if (selectedSabbath && refreshedData[selectedSabbath]) {
-        setEntries(refreshedData[selectedSabbath]);
-      }
-      setHasExistingData(true);
-      
-      if (onDataSaved) onDataSaved();
-      if (refreshAll) refreshAll();
-
-    } catch (err) {
-      console.error('❌ Erreur sauvegarde:', err);
-      
-      let errorMsg = 'Erreur lors de la sauvegarde';
-      if (err.message.includes('existe déjà')) {
-        errorMsg = '⚠️ Ces données existent déjà. La mise à jour a été effectuée.';
-      } else if (err.message.includes('église n\'existe pas')) {
-        errorMsg = '❌ Cette église n\'existe pas. Veuillez contacter votre administrateur.';
+      if (isAdmin) {
+        payload.district = selectedDistrict;
+        payload.federation = selectedFederation;
       } else {
-        errorMsg = err.message || 'Erreur lors de la sauvegarde';
+        payload.district = user.district;
+        payload.federation = user.federation;
       }
-      
-      setMessage({ type: 'error', text: errorMsg });
+
+      await api.saveGL(payload);
+      await api.updateSabbathDate(currentMonth, selectedEglise, sabbathNum, sabbathDate);
+
+      alert(`Sabata ${sabbathIndex} sauvegardé pour ${selectedEglise}!`);
+      window.dispatchEvent(new Event('data-updated'));
+      if (refreshAll) await refreshAll();
+      if (onDataSaved) onDataSaved();
+      setLockedRows(entries.map(() => true));
+      setHasData(true);
+
+      await loadEntries();
+    } catch (err) {
+      console.error(err);
+      alert(`Erreur : ${err.message}`);
     } finally {
-      setSaving(false);
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteMonth() {
+    if (isGlobalReadOnly() || lockEntries) {
+      alert("Vous n'avez pas les droits pour supprimer des données.");
+      return;
+    }
+    if (!currentMonth || !selectedEglise) {
+      alert("Sélectionnez un mois et une église.");
+      return;
+    }
+
+    if (!isAdmin && !canEditEglise(selectedEglise, user?.district, user?.federation)) {
+      alert("Vous n'avez pas les droits pour supprimer les données de cette église.");
+      return;
+    }
+
+    if (!window.confirm(`⚠️ Supprimer TOUTES les données du mois ${formatMonthYear(currentMonth)} pour l'église ${selectedEglise} ?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await api.deleteMonthData(currentMonth, selectedEglise);
+      alert(`Toutes les données du mois ${formatMonthYear(currentMonth)} ont été supprimées.`);
+      setEntries([]);
+      setLockedRows([]);
+      setSabbathDate("");
+      setTotals({ f1:0,f2:0,f3:0,f4:0,f5:0,f6:0,f7:0,f8:0,b9:0,b10:0 });
+      setSabbathIndex('');
+      setHasData(false);
+      if (onSabbathChange) onSabbathChange(null);
+      window.dispatchEvent(new Event('data-updated'));
+      if (refreshAll) await refreshAll();
+    } catch (err) {
+      console.error(err);
+      let msg = err.message || 'Erreur inconnue';
+      if (msg.includes('403') || msg.includes('Accès refusé')) {
+        msg = "Vous n'avez pas l'autorisation de supprimer les données de cette église. Contactez un administrateur.";
+      } else if (msg.includes('SESSION_EXPIRED')) {
+        msg = "Votre session a expiré. Veuillez vous reconnecter.";
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        msg = "Impossible de contacter le serveur. Vérifiez votre connexion.";
+      }
+      alert(`Erreur : ${msg}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  const handleSabbathDateChange = (e) => {
+    setSabbathDate(e.target.value);
+  };
+
+  const goToPreviousMonth = () => {
+    if (!months || months.length === 0) return;
+    const idx = months.findIndex(m => m.id === currentMonth);
+    if (idx > 0) setCurrentMonth(months[idx-1].id);
+  };
+  const goToNextMonth = () => {
+    if (!months || months.length === 0) return;
+    const idx = months.findIndex(m => m.id === currentMonth);
+    if (idx < months.length-1) setCurrentMonth(months[idx+1].id);
+  };
+  const handleMonthChange = (e) => setCurrentMonth(e.target.value);
+
+  const addNewMonth = async () => {
+    if (!canAddMonth) return alert("Non autorisé.");
+    const newMonthId = prompt("Nouveau mois (AAAA-MM) :");
+    if (!newMonthId || !/^\d{4}-\d{2}$/.test(newMonthId)) return alert("Format invalide.");
+    try {
+      await api.addMonth(newMonthId);
+      await refreshMonths();
+      setCurrentMonth(newMonthId);
+      alert(`Mois ${newMonthId} ajouté.`);
+    } catch (err) {
+      if (err.message.includes('exists')) alert("Ce mois existe déjà.");
+      else alert(`Erreur : ${err.message}`);
     }
   };
 
-  // ============================================================
-  // RENDU
-  // ============================================================
-  const isReadOnly = readOnly || isVerificateur || (isPasteur && hasExistingData);
+  const totalAGeneral = totals.f1+totals.f2+totals.f3+totals.f4+totals.f5+totals.f6+totals.f7+totals.f8;
+  const totalBGeneral = totals.b9+totals.b10;
+
+  if (selectedEglise && !isAdmin && !canViewEglise(selectedEglise, user?.district, user?.federation)) {
+    return (
+      <div className="text-center p-8 bg-red-50 rounded-lg">
+        <i className="fas fa-lock text-red-500 text-4xl mb-4"></i>
+        <p className="text-red-600 font-semibold">Accès non autorisé</p>
+        <p className="text-gray-600 text-sm mt-2">Vous n'avez pas les droits pour accéder à cette église.</p>
+      </div>
+    );
+  }
+
+  const isInputDisabled = isSelectorDisabled || lockEntries;
+
+  const handleOpenReceipts = () => {
+    if (entries.length === 0) {
+      alert("Aucune ligne à afficher en reçu.");
+      return;
+    }
+    updateReceipts({
+      entries,
+      eglise: selectedEglise || user?.eglise || '',
+      district: user?.district || '',
+      federation: user?.federation || '',
+      sabbathDate,
+      monthId: currentMonth,
+      sabbathIndex
+    });
+    if (onOpenReceipts) {
+      onOpenReceipts();
+    }
+  };
+
+  // 🔥 Correction : le bouton est actif si entries.length > 0, sans condition sur lockedRows
+  const showReceiptsButton = entries.length > 0;
 
   return (
-    <div className="p-4">
-      {/* Message */}
-      {message && (
-        <div className={`p-4 mb-4 rounded-lg flex items-start ${
-          message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-          message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-          message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
-          'bg-blue-50 text-blue-700 border border-blue-200'
-        }`}>
-          <i className={`fas fa-${
-            message.type === 'error' ? 'exclamation-circle' :
-            message.type === 'success' ? 'check-circle' :
-            message.type === 'warning' ? 'exclamation-triangle' :
-            'info-circle'
-          } text-xl mr-3 mt-0.5`}></i>
-          <div className="flex-1">
-            <p>{message.text}</p>
+    <div>
+      {isAdmin && (
+        <div className="flex flex-wrap gap-4 mb-4 p-3 bg-gray-100 rounded">
+          <div>
+            <label className="block text-sm font-medium">Fédération</label>
+            <select
+              value={selectedFederation || ''}
+              onChange={e => onFederationChange && onFederationChange(e.target.value)}
+              className="border rounded px-2 py-1 bg-white"
+              disabled={isSelectorDisabled}
+            >
+              <option value="">-- Sélectionner --</option>
+              {federations.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
           </div>
-          <button
-            onClick={() => setMessage(null)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <i className="fas fa-times"></i>
-          </button>
+          <div>
+            <label className="block text-sm font-medium">District</label>
+            <select
+              value={selectedDistrict || ''}
+              onChange={e => onDistrictChange && onDistrictChange(e.target.value)}
+              className="border rounded px-2 py-1 bg-white"
+              disabled={isSelectorDisabled || !selectedFederation}
+            >
+              <option value="">-- Sélectionner --</option>
+              {districts.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Église</label>
+            <select
+              value={selectedEglise || ''}
+              onChange={e => onEgliseChange && onEgliseChange(e.target.value)}
+              className="border rounded px-2 py-1 bg-white"
+              disabled={isSelectorDisabled || !selectedDistrict}
+            >
+              <option value="">-- Sélectionner --</option>
+              {eglises.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
         </div>
       )}
 
-      {/* Sélecteurs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Mois */}
-        <div>
-          <label className="block font-medium text-gray-700 mb-1">Mois</label>
-          <select
-            value={currentMonth || ''}
-            onChange={(e) => setCurrentMonth(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={isReadOnly || saving}
-          >
-            <option value="">Sélectionner un mois</option>
-            {months.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
+      <div className="flex flex-wrap justify-between items-center gap-2 mb-4 p-3 bg-gray-50 rounded-lg no-print">
+        <div className="flex flex-col">
+          <div><strong>Fédération :</strong> {isAdmin ? (selectedFederation || 'Non sélectionnée') : (user?.federation || 'Non renseignée')}</div>
+          <div className="mt-1"><strong>District :</strong> {isAdmin ? (selectedDistrict || 'Non sélectionné') : (user?.district || 'Non renseigné')}</div>
         </div>
-
-        {/* Église */}
-        <div>
-          <label className="block font-medium text-gray-700 mb-1">Église</label>
-          <input
-            type="text"
-            value={selectedEglise || ''}
-            onChange={(e) => onEgliseChange(e.target.value)}
-            className={`w-full border rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              isNewEglise && isPasteur ? 'border-amber-400 bg-amber-50' : 'border-gray-300'
-            }`}
-            placeholder={isPasteur ? "Nom de l'église (nouvelle ou existante)" : "Église"}
-            disabled={isReadOnly || saving || (!isPasteur && !isAdmin)}
-          />
-          {isNewEglise && isPasteur && (
-            <div className="text-xs text-amber-600 mt-1 flex items-center">
-              <i className="fas fa-plus-circle mr-1"></i>
-              Nouvelle église - sera créée avec l'email <strong>{selectedEglise?.toLowerCase().replace(/\s+/g, '_')}@rapfi.eg</strong>
-            </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Mois :</label>
+          <select value={currentMonth || ''} onChange={handleMonthChange} className="border rounded px-2 py-1 bg-white" disabled={isSelectorDisabled}>
+            {months && months.map(m => <option key={m.id} value={m.id}>{formatMonthYear(m.id)}</option>)}
+          </select>
+          <button onClick={goToPreviousMonth} className="bg-gray-500 text-white px-2 py-1 rounded text-sm" disabled={isSelectorDisabled}>◀</button>
+          <button onClick={goToNextMonth} className="bg-gray-500 text-white px-2 py-1 rounded text-sm" disabled={isSelectorDisabled}>▶</button>
+          {canAddMonth && (
+            <button onClick={addNewMonth} className="bg-green-600 text-white px-3 py-1 rounded text-sm">+ Ajouter mois</button>
+          )}
+          {!isSelectorDisabled && currentMonth && selectedEglise && (
+            <button onClick={handleDeleteMonth} className="bg-red-600 text-white px-3 py-1 rounded text-sm" disabled={isDeleting}>
+              {isDeleting ? 'Suppression...' : '🗑️ Supprimer ce mois'}
+            </button>
           )}
         </div>
-
-        {/* Sabbat */}
-        <div>
-          <label className="block font-medium text-gray-700 mb-1">Sabbat</label>
-          <select
-            value={selectedSabbath || ''}
-            onChange={(e) => onSabbathChange(parseInt(e.target.value))}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={isReadOnly || saving}
-          >
-            <option value="">Sélectionner un sabbat</option>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <option key={s} value={s}>Sabbat {s}</option>
-            ))}
-          </select>
+        <div className="text-center">
+          <label className="block text-sm font-medium">Code :</label>
+          <input type="text" value={churchConfig.code || ''} onChange={e => setChurchConfig({...churchConfig, code: e.target.value})} className="border rounded px-2 py-1 w-32 text-center" placeholder="Code" disabled={isInputDisabled} />
         </div>
-      </div>
-
-      {/* Info données existantes */}
-      {hasExistingData && selectedSabbath && (
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-center">
-          <i className="fas fa-info-circle text-blue-600 mr-2"></i>
-          <span className="text-blue-800">
-            Des données existent déjà pour ce sabbat. La sauvegarde mettra à jour les données.
-          </span>
-        </div>
-      )}
-
-      {/* Tableau de saisie */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        {/* En-tête du tableau */}
-        <div className="bg-gray-100 border-b border-gray-200">
-          <div className="grid grid-cols-12 gap-2 p-3 font-medium text-gray-700 text-sm">
-            <div className="col-span-2">Membre</div>
-            <div className="col-span-1">Rosia</div>
-            <div className="col-span-1 text-center">F1</div>
-            <div className="col-span-1 text-center">F2</div>
-            <div className="col-span-1 text-center">F3</div>
-            <div className="col-span-1 text-center">F4</div>
-            <div className="col-span-1 text-center">F5</div>
-            <div className="col-span-1 text-center">F6</div>
-            <div className="col-span-1 text-center">F7</div>
-            <div className="col-span-1 text-center">F8</div>
-            <div className="col-span-1 text-center">B9</div>
-            <div className="col-span-1 text-center">B10</div>
-            <div className="col-span-1 text-center font-bold">Total</div>
-            {!isReadOnly && <div className="col-span-1 text-center">Action</div>}
-          </div>
-        </div>
-
-        {/* Corps du tableau */}
-        <div className="max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="text-center py-8">
-              <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
-              <p className="mt-2 text-gray-500">Chargement des données...</p>
+        <div className="text-right">
+          <div><strong>Eglise :</strong></div>
+          {hasFixedChurch || isAdmin ? (
+            <div className="border rounded px-2 py-1 bg-gray-100 min-w-[150px] text-center">
+              {selectedEglise || user?.eglise || "Non définie"}
             </div>
-          ) : entries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <i className="fas fa-table text-4xl text-gray-300 mb-2 block"></i>
-              <p>Aucune donnée pour ce sabbat</p>
-              {!isReadOnly && (
-                <button
-                  onClick={addEntry}
-                  className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Ajouter une ligne
-                </button>
-              )}
+          ) : isPasteur ? (
+            <div>
+              <input
+                type="text"
+                list="eglises-list-pasteur"
+                value={selectedEglise || ''}
+                onChange={e => onEgliseChange && onEgliseChange(e.target.value)}
+                className="border rounded px-2 py-1 bg-white w-full"
+                disabled={isSelectorDisabled}
+                placeholder="Nom de l'église"
+              />
+              <datalist id="eglises-list-pasteur">
+                {eglises.map(eg => <option key={eg} value={eg} />)}
+              </datalist>
             </div>
           ) : (
-            entries.map((entry, index) => (
-              <LigneSaisie
-                key={index}
-                entry={entry}
-                index={index}
-                onUpdate={updateEntry}
-                onRemove={removeEntry}
-                readOnly={isReadOnly}
-              />
-            ))
+            <select
+              value={selectedEglise || ''}
+              onChange={e => onEgliseChange && onEgliseChange(e.target.value)}
+              className="border rounded px-2 py-1 bg-white"
+              disabled={isSelectorDisabled}
+            >
+              {eglises.map(eg => <option key={eg} value={eg}>{eg}</option>)}
+            </select>
           )}
         </div>
-
-        {/* Pied du tableau */}
-        {entries.length > 0 && (
-          <div className="bg-gray-50 border-t border-gray-200 p-3">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">{entries.length}</span> ligne{entries.length > 1 ? 's' : ''}
-              </div>
-              <div className="text-right">
-                <span className="text-sm text-gray-600">Total général :</span>
-                <span className="ml-2 text-lg font-bold text-blue-600">
-                  {totalGeneral.toLocaleString()} Ar
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Boutons d'action */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {!isReadOnly && (
-          <>
-            <button
-              onClick={addEntry}
-              className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-all duration-300 flex items-center gap-2"
-            >
-              <i className="fas fa-plus"></i>
-              Ajouter une ligne
-            </button>
-            
-            <button
-              onClick={handleSave}
-              disabled={saving || !selectedEglise || !selectedSabbath || entries.length === 0}
-              className={`px-6 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                hasExistingData
-                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {saving ? (
-                <>
-                  <i className="fas fa-spinner fa-spin"></i>
-                  Sauvegarde...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-save"></i>
-                  {hasExistingData ? 'Mettre à jour' : 'Sauvegarder'}
-                </>
-              )}
-            </button>
-          </>
-        )}
-
-        {onOpenReceipts && entries.length > 0 && selectedSabbath && (
-          <button
-            onClick={() => onOpenReceipts({
-              entries: entries,
-              eglise: selectedEglise,
-              district: user?.district,
-              federation: user?.federation,
-              monthId: currentMonth,
-              sabbathIndex: selectedSabbath
-            })}
-            className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-all duration-300 flex items-center gap-2"
-          >
-            <i className="fas fa-receipt"></i>
-            Voir les reçus
-          </button>
-        )}
-
-        {isReadOnly && (
-          <div className="ml-auto text-sm text-gray-500 flex items-center">
-            <i className="fas fa-lock mr-1"></i>
-            Mode lecture seule
-          </div>
-        )}
+      <div className="flex justify-between items-center mb-3 no-print">
+        <div className="flex gap-2">
+          <select value={sabbathIndex} onChange={e => setSabbathIndex(e.target.value)} className="border rounded-lg p-2 bg-gray-50" disabled={isSelectorDisabled}>
+            <option value="">-- Sélectionner un Sabata --</option>
+            <option value="1">Sabata Faha-1</option>
+            <option value="2">Sabata Faha-2</option>
+            <option value="3">Sabata Faha-3</option>
+            <option value="4">Sabata Faha-4</option>
+            <option value="5">Sabata Faha-5</option>
+          </select>
+        </div>
+        <div className="text-xs text-gray-500 flex items-center gap-1">
+          <span>Sabata (daty) :</span>
+          <input type="date" value={sabbathDate} onChange={handleSabbathDateChange} className="border rounded px-2 py-1" disabled={isInputDisabled} />
+          {loadingDate && <span className="text-blue-500 animate-pulse">⏳</span>}
+        </div>
       </div>
 
-      {/* Info supplémentaire pour le Pasteur */}
-      {isPasteur && !isReadOnly && (
-        <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-700">
-          <i className="fas fa-info-circle mr-2"></i>
-          En tant que Pasteur, vous pouvez saisir les données de toutes les églises de votre district.
-          {!hasExistingData && selectedSabbath && ' Les nouvelles églises seront créées automatiquement.'}
+      {!sabbathIndex && (
+        <div className="bg-yellow-100 p-3 rounded mb-3 text-center">Veuillez sélectionner un Sabata pour commencer.</div>
+      )}
+
+      {sabbathIndex && (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1500px] text-sm border-collapse border border-black">
+            <thead className="bg-gray-100">
+              <tr className="text-center">
+                <th rowSpan="2" className="bg-gray-200 border p-1">N°</th>
+                <th rowSpan="2" className="bg-gray-200 border p-1">Anarana na SABATA</th>
+                <th rowSpan="2" className="bg-gray-200 border p-1">Rosia n°</th>
+                <th colSpan="8" className="bg-blue-100 border p-1">AROTSAKA ANY AMIN'NY FEDERASIONA (A)</th>
+                <th colSpan="2" className="bg-green-100 border p-1">MIJANONA HO AN'NY FIANGONANA (B)</th>
+                <th rowSpan="2" className="bg-gray-200 border p-1">Tontalin'ny A</th>
+                <th rowSpan="2" className="bg-gray-200 border p-1">Tontalin'ny B</th>
+                <th rowSpan="2" className="bg-gray-200 border p-1">Action</th>
+              </tr>
+              <tr className="text-xs">
+                <th className="bg-blue-50 border p-1 text-center">(1) Ampahafolony</th>
+                <th className="bg-blue-50 border p-1 text-center">(2) Sekoly Sabata faha-13</th>
+                <th className="bg-blue-50 border p-1 text-center">(3) Fanambinana</th>
+                <th className="bg-blue-50 border p-1 text-center">(4) Tsingerin-taona</th>
+                <th className="bg-blue-50 border p-1 text-center">(5) Fanompoam-pivavahana 50%</th>
+                <th className="bg-blue-50 border p-1 text-center">(6) Federasiona</th>
+                <th className="bg-blue-50 border p-1 text-center">(7) Maneran-tany</th>
+                <th className="bg-blue-50 border p-1 text-center">(8) Manokana</th>
+                <th className="bg-green-50 border p-1 text-center">(9) Fiangonana</th>
+                <th className="bg-green-50 border p-1 text-center">(10) Manokana</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry, idx) => {
+                const sumA = (entry.f1||0)+(entry.f2||0)+(entry.f3||0)+(entry.f4||0)+(entry.f5||0)+(entry.f6||0)+(entry.f7||0)+(entry.f8||0);
+                const sumB = (entry.b9||0)+(entry.b10||0);
+                const isLocked = lockedRows[idx] || false;
+                const isInputDisabledRow = isInputDisabled || isLocked || isSaving;
+                return (
+                  <tr key={entry.id}>
+                    <td className="border p-1 text-center">{idx+1}</td>
+                    <td className="border p-1"><input type="text" value={entry.memberName || ''} onChange={e => updateEntry(entry.id, 'memberName', e.target.value)} className="w-32 border px-1" placeholder="Anarana" disabled={isInputDisabledRow} /></td>
+                    <td className="border p-1"><input type="text" value={entry.rosia || ''} onChange={e => updateEntry(entry.id, 'rosia', e.target.value)} className="w-24 border px-1" placeholder="Rosia n°" disabled={isInputDisabledRow} /></td>
+                    {['f1','f2','f3','f4','f5','f6','f7','f8'].map(f => (
+                      <td key={f} className="border p-1 bg-blue-50"><input type="number" value={entry[f] || 0} onChange={e => updateEntry(entry.id, f, parseFloat(e.target.value)||0)} className="w-24 border text-right px-1" step="any" disabled={isInputDisabledRow} /></td>
+                    ))}
+                    <td className="border p-1 bg-green-50"><input type="number" value={entry.b9 || 0} onChange={e => updateEntry(entry.id, 'b9', parseFloat(e.target.value)||0)} className="w-24 border text-right" step="any" disabled={isInputDisabledRow} /></td>
+                    <td className="border p-1 bg-green-50"><input type="number" value={entry.b10 || 0} onChange={e => updateEntry(entry.id, 'b10', parseFloat(e.target.value)||0)} className="w-24 border text-right" step="any" disabled={isInputDisabledRow} /></td>
+                    <td className="border p-1 text-right bg-blue-100">{formatNumber(sumA)}</td>
+                    <td className="border p-1 text-right bg-green-100">{formatNumber(sumB)}</td>
+                    <td className="border p-1 text-center">
+                      {!isLocked ? (
+                        <button onClick={() => removeRow(entry.id)} className="text-red-500" disabled={isInputDisabledRow}><i className="fas fa-trash"></i></button>
+                      ) : (
+                        <button onClick={() => unlockRow(idx)} className="text-green-600" title="Modifier cette ligne" disabled={isSaving}><i className="fas fa-edit"></i></button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="bg-gray-50 font-semibold">
+              <tr>
+                <td colSpan="3" className="border text-right">TOTAL</td>
+                <td className="border text-right">{formatNumber(totals.f1)}</td>
+                <td className="border text-right">{formatNumber(totals.f2)}</td>
+                <td className="border text-right">{formatNumber(totals.f3)}</td>
+                <td className="border text-right">{formatNumber(totals.f4)}</td>
+                <td className="border text-right">{formatNumber(totals.f5)}</td>
+                <td className="border text-right">{formatNumber(totals.f6)}</td>
+                <td className="border text-right">{formatNumber(totals.f7)}</td>
+                <td className="border text-right">{formatNumber(totals.f8)}</td>
+                <td className="border text-right">{formatNumber(totals.b9)}</td>
+                <td className="border text-right">{formatNumber(totals.b10)}</td>
+                <td className="border text-right bg-blue-200">{formatNumber(totalAGeneral)}</td>
+                <td className="border text-right bg-green-200">{formatNumber(totalBGeneral)}</td>
+                <td className="border"></td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       )}
+
+      <div className="flex flex-wrap justify-between mt-4 no-print gap-2">
+        <div className="flex gap-2">
+          <button onClick={addRow} className="bg-emerald-600 text-white px-4 py-2 rounded-lg" disabled={isInputDisabled || isSaving}>
+            <i className="fas fa-plus-circle"></i> Ajouter ligne
+          </button>
+          {showReceiptsButton && (
+            <button onClick={handleOpenReceipts} className="bg-indigo-600 text-white px-4 py-2 rounded-lg" disabled={isSaving}>
+              <i className="fas fa-file-invoice"></i> Reçus personnels
+            </button>
+          )}
+        </div>
+        <button onClick={handleSave} className="bg-indigo-700 text-white px-6 py-2 rounded-lg" disabled={isInputDisabled || isSaving}>
+          {isSaving ? 'Sauvegarde...' : <><i className="fas fa-save"></i> Sauvegarder ce Sabata</>}
+        </button>
+      </div>
+
+      <div className="mt-4 p-2 bg-blue-50 rounded text-sm no-print">
+        Les données sauvegardées mettent à jour automatiquement le Grand Livre, les rapports et le carnet de dîme.
+        {lockEntries && (
+          <div className="mt-1 text-amber-600 font-semibold">
+            <i className="fas fa-lock mr-1"></i> Modifications verrouillées (données existantes pour ce sabbat ou mode lecture seule).
+          </div>
+        )}
+      </div>
     </div>
   );
 }
