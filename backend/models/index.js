@@ -10,16 +10,9 @@ const { openDb } = require('./db');
 function sanitizeEgliseName(eglise) {
   if (!eglise) return '';
   
-  // 1. Supprimer les accents
   const sansAccents = eglise.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  // 2. Remplacer les espaces par des underscores
   const sansEspaces = sansAccents.replace(/\s+/g, '_');
-  
-  // 3. Supprimer les caractères spéciaux (garder lettres, chiffres, underscore)
   const sanitized = sansEspaces.replace(/[^a-zA-Z0-9_]/g, '');
-  
-  // 4. Mettre en minuscules
   return sanitized.toLowerCase();
 }
 
@@ -98,24 +91,21 @@ async function createAdminIfNotExists() {
 }
 
 // ============================================================
-// ✅ CRÉATION D'ÉGLISE - VERSION CORRIGÉE AVEC @rapfi.eg
+// CRÉATION D'ÉGLISE - AVEC EMAIL @rapfi.eg
 // ============================================================
 
 async function createEgliseIfNotExists(eglise, district, federation) {
   const db = await openDb();
   
-  // Vérifier si l'église existe déjà
   const existing = await db.get('SELECT 1 FROM users WHERE eglise = ?', eglise);
   if (existing) {
     console.log(`ℹ️ L'église "${eglise}" existe déjà`);
     return { exists: true };
   }
 
-  // ✅ Générer l'email au format nom_eglise@rapfi.eg
   const emailPrefix = sanitizeEgliseName(eglise);
   let email = `${emailPrefix}@rapfi.eg`;
   
-  // Vérifier si l'email existe déjà
   const emailExists = await db.get('SELECT 1 FROM users WHERE email = ?', email);
   if (emailExists) {
     const timestamp = Date.now();
@@ -123,30 +113,16 @@ async function createEgliseIfNotExists(eglise, district, federation) {
     console.log(`⚠️ Email ${emailPrefix}@rapfi.eg déjà utilisé, utilisation de ${email}`);
   }
   
-  // Générer un mot de passe aléatoire
   const plainPassword = crypto.randomBytes(8).toString('hex');
   const hashed = await bcrypt.hash(plainPassword, 10);
 
-  // ✅ Créer l'utilisateur avec le nom de l'église comme nom
   const result = await db.run(
     `INSERT INTO users (
       nom, prenom, eglise, district, federation, responsable, 
       email, password, fonction, niveau, photo, adresse, contact, plain_password
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    eglise,                    // nom = nom de l'église
-    '',                        // prenom
-    eglise,                    // eglise
-    district || '',           // district
-    federation || '',         // federation
-    '',                       // responsable
-    email,                    // ✅ email = eglise@rapfi.eg
-    hashed,                   // password
-    'Ancien',                 // fonction (par défaut Ancien)
-    3,                        // niveau
-    '',                       // photo
-    '',                       // adresse
-    '',                       // contact
-    plainPassword             // plain_password
+    eglise, '', eglise, district || '', federation || '', '',
+    email, hashed, 'Ancien', 3, '', '', '', plainPassword
   );
 
   console.log(`✅ Église "${eglise}" créée avec succès`);
@@ -398,7 +374,7 @@ async function getGLDataForAdmin(month, federation, district, eglise) {
 }
 
 // ============================================================
-// ✅ VÉRIFICATION DES DONNÉES EXISTANTES
+// VÉRIFICATION DES DONNÉES EXISTANTES
 // ============================================================
 
 async function hasGLDataForEglise(month, eglise, sabbathIndex = null) {
@@ -986,7 +962,7 @@ async function getMembersStats() {
 }
 
 // ============================================================
-// ✅ EXPORTATIONS - CORRIGÉES
+// EXPORTATIONS
 // ============================================================
 
 module.exports = {
@@ -1012,7 +988,7 @@ module.exports = {
   getGLDataByDistrict,
   getGLDataByFederation,
   getGLDataForAdmin,
-  hasGLDataForEglise,  // ✅ BIEN EXPORTÉE
+  hasGLDataForEglise,
   
   // Dépenses
   saveDepenses,

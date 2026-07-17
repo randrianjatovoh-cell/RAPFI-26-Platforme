@@ -8,7 +8,7 @@ const {
   getGLDataForAdmin, 
   computeAndSaveMonthlyReports,
   createEgliseIfNotExists,
-  hasGLDataForEglise,  // ✅ BIEN IMPORTÉE
+  hasGLDataForEglise,
   getAllUsers
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
@@ -53,7 +53,7 @@ router.post('/save', checkAccess, async (req, res) => {
       }
     }
 
-    // Vérifier si des données existent déjà
+    // Vérifier si des données existent déjà pour chaque sabbat
     let existingData = false;
     const sabbathIndices = Object.keys(data).filter(key => !isNaN(key));
     
