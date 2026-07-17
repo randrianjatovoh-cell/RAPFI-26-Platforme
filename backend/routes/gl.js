@@ -8,7 +8,8 @@ const {
   getGLDataForAdmin, 
   computeAndSaveMonthlyReports,
   createEgliseIfNotExists,
-  hasGLDataForEglise,
+  // 🔥 SUPPRESSION TEMPORAIRE DE hasGLDataForEglise
+  // hasGLDataForEglise,
   getAllUsers
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
@@ -17,7 +18,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // ============================================================
-// ✅ SAUVEGARDE GL - AVEC GESTION DES CONFLITS
+// ✅ SAUVEGARDE GL - AVEC GESTION DES CONFLITS (VERSION CORRIGÉE)
 // ============================================================
 router.post('/save', checkAccess, async (req, res) => {
   try {
@@ -55,13 +56,24 @@ router.post('/save', checkAccess, async (req, res) => {
       }
     }
 
-    // VÉRIFICATION : Les données existent-elles déjà ?
+    // ============================================================
+    // 🔥 CORRECTION : VÉRIFICATION DES DONNÉES EXISTANTES
+    // Remplacé par une vérification directe en base de données
+    // ============================================================
     let existingData = false;
     const sabbathIndices = Object.keys(data).filter(key => !isNaN(key));
     
+    // Importer db pour la vérification directe
+    const { openDb } = require('../db');
+    const db = await openDb();
+    
     for (const sabbathIndex of sabbathIndices) {
-      const exists = await hasGLDataForEglise(month, cleanEglise, parseInt(sabbathIndex));
-      if (exists) {
+      // Vérification directe sans utiliser hasGLDataForEglise
+      const checkResult = await db.get(
+        'SELECT COUNT(*) as count FROM gl_data WHERE month = ? AND eglise = ? AND sabbath_index = ?',
+        month, cleanEglise, parseInt(sabbathIndex)
+      );
+      if (checkResult.count > 0) {
         existingData = true;
         break;
       }
@@ -166,7 +178,7 @@ router.get('/:month', async (req, res) => {
 });
 
 // ============================================================
-// ✅ VÉRIFICATION DES DONNÉES EXISTANTES
+// ✅ VÉRIFICATION DES DONNÉES EXISTANTES (VERSION CORRIGÉE)
 // ============================================================
 router.get('/check/:month/:eglise', async (req, res) => {
   try {
@@ -179,7 +191,16 @@ router.get('/check/:month/:eglise', async (req, res) => {
     }
     
     const cleanEglise = eglise ? eglise.trim() : '';
-    const exists = await hasGLDataForEglise(month, cleanEglise);
+    
+    // Vérification directe sans utiliser hasGLDataForEglise
+    const { openDb } = require('../db');
+    const db = await openDb();
+    const checkResult = await db.get(
+      'SELECT COUNT(*) as count FROM gl_data WHERE month = ? AND eglise = ?',
+      month, cleanEglise
+    );
+    const exists = checkResult.count > 0;
+    
     res.json({ exists });
   } catch (err) {
     console.error('❌ Erreur /gl/check:', err);
