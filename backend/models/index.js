@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { openDb } = require('./db');
 
 // ============================================================
-// ✅ FONCTION POUR NETTOYER LE NOM DE L'ÉGLISE
+// ✅ FONCTION POUR NETTOYER LE NOM DE L'ÉGLISE ET GÉNÉRER L'EMAIL
 // ============================================================
 function sanitizeEgliseName(eglise) {
   if (!eglise) return '';
@@ -20,6 +20,14 @@ function sanitizeEgliseName(eglise) {
   
   // 4. Mettre en minuscules
   return sanitized.toLowerCase();
+}
+
+// ============================================================
+// ✅ FONCTION POUR GÉNÉRER L'EMAIL COMPLET
+// ============================================================
+function generateEgliseEmail(eglise) {
+  const prefix = sanitizeEgliseName(eglise);
+  return `${prefix}@rapfi.eg.com`;  // 🔥 NOUVEAU FORMAT AVEC .com
 }
 
 // ---------- Users ----------
@@ -94,7 +102,7 @@ async function createAdminIfNotExists() {
 }
 
 // ============================================================
-// ✅ CRÉER UNE NOUVELLE ÉGLISE (VERSION CORRIGÉE)
+// ✅ CRÉER UNE NOUVELLE ÉGLISE (VERSION AVEC EMAIL @rapfi.eg.com)
 // ============================================================
 async function createEgliseIfNotExists(eglise, district, federation) {
   const db = await openDb();
@@ -106,9 +114,10 @@ async function createEgliseIfNotExists(eglise, district, federation) {
     return;
   }
 
-  // Générer l'email au format nom_eglise@rapfi.eg
-  const emailPrefix = sanitizeEgliseName(eglise);
-  const email = `${emailPrefix}@rapfi.eg`;
+  // ============================================================
+  // 🔥 NOUVEAU : Générer l'email au format nom_eglise@rapfi.eg.com
+  // ============================================================
+  const email = generateEgliseEmail(eglise);
   
   // Vérifier si l'email existe déjà (au cas où)
   const emailExists = await db.get('SELECT 1 FROM users WHERE email = ?', email);
@@ -116,7 +125,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
   if (emailExists) {
     // Si l'email existe, ajouter un timestamp pour le rendre unique
     const timestamp = Date.now();
-    finalEmail = `${emailPrefix}_${timestamp}@rapfi.eg`;
+    finalEmail = `${sanitizeEgliseName(eglise)}_${timestamp}@rapfi.eg.com`;
     console.log(`⚠️ Email ${email} déjà utilisé, utilisation de ${finalEmail}`);
   }
   
@@ -136,7 +145,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
     district || '',           // district
     federation || '',         // federation
     '',                       // responsable
-    finalEmail,               // ✅ email = eglise@rapfi.eg
+    finalEmail,               // ✅ email = eglise@rapfi.eg.com
     hashed,                   // password
     'Ancien',                 // fonction (par défaut Ancien)
     3,                        // niveau
@@ -151,6 +160,112 @@ async function createEgliseIfNotExists(eglise, district, federation) {
   console.log(`   🔑 Mot de passe: ${plainPassword}`);
   
   return { id: result.lastID, email: finalEmail, plainPassword };
+}
+
+// ============================================================
+// ✅ VÉRIFIER SI UNE ÉGLISE EXISTE DÉJÀ (PAR NOM)
+// ============================================================
+async function egliseExistsByName(nom) {
+  const db = await openDb();
+  const cleanNom = nom ? nom.trim() : '';
+  if (!cleanNom) return false;
+  
+  const result = await db.get(
+    'SELECT id, email, plain_password FROM users WHERE eglise = ?',
+    cleanNom
+  );
+  return result || null;
+}
+
+// ============================================================
+// ✅ CRÉER UNE ÉGLISE AVEC RETOUR COMPLET
+// ============================================================
+async function createEgliseWithDetails(eglise, district, federation, pasteurId) {
+  const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  
+  if (!cleanEglise) {
+    throw new Error('Le nom de l\'église est requis');
+  }
+
+  // Vérifier si l'église existe déjà
+  const existing = await egliseExistsByName(cleanEglise);
+  if (existing) {
+    return {
+      success: false,
+      exists: true,
+      message: `L'église "${cleanEglise}" existe déjà`,
+      email: existing.email,
+      plainPassword: existing.plain_password
+    };
+  }
+
+  // ============================================================
+  // 🔥 NOUVEAU : Générer l'email au format nom_eglise@rapfi.eg.com
+  // ============================================================
+  const email = generateEgliseEmail(cleanEglise);
+  
+  // Vérifier si l'email existe déjà
+  const emailExists = await db.get('SELECT 1 FROM users WHERE email = ?', email);
+  let finalEmail = email;
+  if (emailExists) {
+    const timestamp = Date.now();
+    finalEmail = `${sanitizeEgliseName(cleanEglise)}_${timestamp}@rapfi.eg.com`;
+    console.log(`⚠️ Email ${email} déjà utilisé, utilisation de ${finalEmail}`);
+  }
+  
+  // Générer un mot de passe aléatoire
+  const plainPassword = crypto.randomBytes(8).toString('hex');
+  const hashed = await bcrypt.hash(plainPassword, 10);
+
+  try {
+    // Démarrer une transaction
+    await db.run('BEGIN TRANSACTION');
+
+    // Créer l'utilisateur
+    const result = await db.run(
+      `INSERT INTO users (
+        nom, prenom, eglise, district, federation, responsable, 
+        email, password, fonction, niveau, photo, adresse, contact, plain_password
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      cleanEglise,          // nom
+      '',                   // prenom
+      cleanEglise,          // eglise
+      district || '',       // district
+      federation || '',     // federation
+      pasteurId || '',      // responsable (le Pasteur qui crée)
+      finalEmail,           // ✅ email = eglise@rapfi.eg.com
+      hashed,               // password
+      'Ancien',             // fonction
+      3,                    // niveau
+      '',                   // photo
+      '',                   // adresse
+      '',                   // contact
+      plainPassword         // plain_password
+    );
+
+    // Commit de la transaction
+    await db.run('COMMIT');
+
+    console.log(`✅ Église "${cleanEglise}" créée avec succès par le Pasteur ${pasteurId}`);
+    console.log(`   📧 Email: ${finalEmail}`);
+    console.log(`   🔑 Mot de passe: ${plainPassword}`);
+    
+    return {
+      success: true,
+      exists: false,
+      id: result.lastID,
+      email: finalEmail,
+      plainPassword: plainPassword,
+      message: `Église "${cleanEglise}" créée avec succès`
+    };
+    
+  } catch (err) {
+    // Rollback en cas d'erreur
+    await db.run('ROLLBACK');
+    console.error('❌ Erreur création église:', err);
+    throw err;
+  }
 }
 
 // ---------- Récupération des églises par district/fédération ----------
@@ -197,7 +312,7 @@ async function getEglisesByFederation(federation) {
 }
 
 // ============================================================
-// ✅ SAUVEGARDE GL - AVEC VÉRIFICATION D'EXISTENCE (VERSION CORRIGÉE)
+// ✅ SAUVEGARDE GL - AVEC VÉRIFICATION D'EXISTENCE
 // ============================================================
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
@@ -403,6 +518,98 @@ async function hasGLDataForEglise(month, eglise, sabbathIndex = null) {
   
   const result = await db.get(sql, ...params);
   return result.count > 0;
+}
+
+// ============================================================
+// ✅ SAUVEGARDE GL AVEC CRÉATION D'ÉGLISE (TRANSACTION)
+// ============================================================
+async function saveGLDataWithEgliseCreation({ 
+  userId, month, data, eglise, district, federation, pasteurId 
+}) {
+  const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  
+  if (!cleanEglise) {
+    throw new Error('Le nom de l\'église est requis');
+  }
+
+  // Vérifier si l'église existe
+  let church = await egliseExistsByName(cleanEglise);
+  let isNew = false;
+  
+  if (!church) {
+    // Créer l'église si elle n'existe pas
+    const result = await createEgliseWithDetails(cleanEglise, district, federation, pasteurId);
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+    church = { id: result.id, email: result.email, plainPassword: result.plainPassword };
+    isNew = true;
+  }
+
+  // Sauvegarder les données GL
+  await saveGLData({
+    userId: userId,
+    month: month,
+    data: data,
+    eglise: cleanEglise,
+    district: district,
+    federation: federation
+  });
+
+  return {
+    success: true,
+    isNew: isNew,
+    churchId: church.id,
+    email: church.email,
+    plainPassword: church.plainPassword,
+    message: isNew ? 
+      `Église "${cleanEglise}" créée et données sauvegardées` : 
+      `Données sauvegardées pour "${cleanEglise}"`
+  };
+}
+
+// ============================================================
+// ✅ RÉCUPÉRER LES ÉGLISES D'UN DISTRICT (AVEC STATUT)
+// ============================================================
+async function getEglisesWithStatus(district) {
+  const db = await openDb();
+  const cleanDistrict = district ? district.trim() : '';
+  if (!cleanDistrict) return [];
+
+  // Récupérer toutes les églises du district
+  const eglises = await db.all(
+    `SELECT id, nom, eglise, email, plain_password, created_at 
+     FROM users 
+     WHERE district = ? AND eglise IS NOT NULL AND eglise != ''
+     ORDER BY eglise`,
+    cleanDistrict
+  );
+
+  // Récupérer le statut de chaque église
+  const result = [];
+  for (const eg of eglises) {
+    // Compter les données GL
+    const glCount = await db.get(
+      'SELECT COUNT(*) as count FROM gl_data WHERE eglise = ?',
+      eg.eglise
+    );
+    
+    // Compter les dépenses
+    const depCount = await db.get(
+      'SELECT COUNT(*) as count FROM depenses WHERE eglise = ?',
+      eg.eglise
+    );
+    
+    result.push({
+      ...eg,
+      hasData: (glCount.count > 0 || depCount.count > 0),
+      glCount: glCount.count,
+      depCount: depCount.count
+    });
+  }
+
+  return result;
 }
 
 // ============================================================
@@ -1028,11 +1235,15 @@ module.exports = {
   createAdminIfNotExists,
   createEgliseIfNotExists,
   sanitizeEgliseName,
+  generateEgliseEmail,  // 🔥 NOUVEAU : Export de la fonction de génération d'email
   
   // Églises
   getEglisesByDistrict,
   getEglisesByFederation,
   getEgliseInfo,
+  egliseExistsByName,
+  createEgliseWithDetails,
+  getEglisesWithStatus,
   
   // GL
   saveGLData,
@@ -1041,6 +1252,7 @@ module.exports = {
   getGLDataByFederation,
   getGLDataForAdmin,
   hasGLDataForEglise,
+  saveGLDataWithEgliseCreation,
   
   // Dépenses
   saveDepenses,
