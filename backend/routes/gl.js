@@ -8,7 +8,7 @@ const {
   getGLDataForAdmin, 
   computeAndSaveMonthlyReports,
   createEgliseIfNotExists,
-  hasGLDataForEglise,
+  hasGLDataForEglise,  // ✅ BIEN IMPORTÉE
   getAllUsers
 } = require('../models');
 const { authenticateToken, checkAccess } = require('../middleware/auth');
@@ -187,8 +187,6 @@ router.get('/yearly/:year', async (req, res) => {
     const user = req.user;
     const { eglise, district, federation } = req.query;
     
-    // Cette fonctionnalité nécessite des fonctions getYearly*Data
-    // qui ne sont pas encore implémentées dans le modèle
     res.json({ 
       glData: {}, 
       depenses: {}, 

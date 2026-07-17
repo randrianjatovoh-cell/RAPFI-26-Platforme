@@ -98,7 +98,7 @@ async function createAdminIfNotExists() {
 }
 
 // ============================================================
-// CRÉATION D'ÉGLISE (VERSION CORRIGÉE AVEC EMAIL PERSONNALISÉ)
+// ✅ CRÉATION D'ÉGLISE - VERSION CORRIGÉE AVEC @rapfi.eg
 // ============================================================
 
 async function createEgliseIfNotExists(eglise, district, federation) {
@@ -111,7 +111,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
     return { exists: true };
   }
 
-  // Générer l'email au format nom_eglise@rapfi.eg
+  // ✅ Générer l'email au format nom_eglise@rapfi.eg
   const emailPrefix = sanitizeEgliseName(eglise);
   let email = `${emailPrefix}@rapfi.eg`;
   
@@ -127,19 +127,19 @@ async function createEgliseIfNotExists(eglise, district, federation) {
   const plainPassword = crypto.randomBytes(8).toString('hex');
   const hashed = await bcrypt.hash(plainPassword, 10);
 
-  // Créer l'utilisateur représentant l'église
+  // ✅ Créer l'utilisateur avec le nom de l'église comme nom
   const result = await db.run(
     `INSERT INTO users (
       nom, prenom, eglise, district, federation, responsable, 
       email, password, fonction, niveau, photo, adresse, contact, plain_password
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    eglise,                    // nom
+    eglise,                    // nom = nom de l'église
     '',                        // prenom
     eglise,                    // eglise
     district || '',           // district
     federation || '',         // federation
     '',                       // responsable
-    email,                    // email = eglise@rapfi.eg
+    email,                    // ✅ email = eglise@rapfi.eg
     hashed,                   // password
     'Ancien',                 // fonction (par défaut Ancien)
     3,                        // niveau
@@ -162,7 +162,7 @@ async function createEgliseIfNotExists(eglise, district, federation) {
 }
 
 // ============================================================
-// RÉCUPÉRATION DES ÉGLISES PAR DISTRICT/FÉDÉRATION
+// RÉCUPÉRATION DES ÉGLISES
 // ============================================================
 
 async function getEglisesByDistrict(district) {
@@ -207,8 +207,15 @@ async function getEglisesByFederation(federation) {
   return Array.from(allEglises);
 }
 
+async function getEgliseInfo(eglise) {
+  const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  const row = await db.get('SELECT district, federation, email FROM users WHERE eglise = ? LIMIT 1', cleanEglise);
+  return row;
+}
+
 // ============================================================
-// GRAND LIVRE (GL) - VERSION CORRIGÉE AVEC CLÉ UNIQUE
+// GRAND LIVRE (GL)
 // ============================================================
 
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
@@ -219,7 +226,7 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
     throw new Error('Le nom de l\'église est requis');
   }
 
-  console.log(`📝 saveGLData: Mois=${month}, Église=${cleanEglise}, Sabbats=${Object.keys(data).filter(k => !isNaN(k)).length}`);
+  console.log(`📝 saveGLData: Mois=${month}, Église=${cleanEglise}`);
 
   const sabbathIndices = Object.keys(data).filter(key => !isNaN(key));
   
@@ -234,20 +241,18 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
       sabbathIndex: parseInt(sabbathIndex)
     }));
 
-    // Vérifier si les données existent déjà
     const existing = await db.get(
       'SELECT id FROM gl_data WHERE month = ? AND eglise = ? AND sabbath_index = ?',
       month, cleanEglise, parseInt(sabbathIndex)
     );
     
     if (existing) {
-      // Mise à jour des données existantes
       console.log(`📝 Mise à jour des données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
       if (db.isPostgres) {
         await db.run(
           `UPDATE gl_data 
-           SET data = $1, district = $2, federation = $3, user_id = $4, updated_at = CURRENT_TIMESTAMP
+           SET data = $1, district = $2, federation = $3, user_id = $4
            WHERE month = $5 AND eglise = $6 AND sabbath_index = $7`,
           JSON.stringify(enrichedEntries), district, federation, userId,
           month, cleanEglise, parseInt(sabbathIndex)
@@ -262,7 +267,6 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
         );
       }
     } else {
-      // Insertion de nouvelles données
       console.log(`📝 Insertion de nouvelles données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
       if (db.isPostgres) {
@@ -281,7 +285,7 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
     }
   }
   
-  console.log(`✅ GL sauvegardé pour ${cleanEglise} - ${month} (${sabbathIndices.length} sabbats)`);
+  console.log(`✅ GL sauvegardé pour ${cleanEglise} - ${month}`);
 }
 
 async function getGLDataByEglise(month, eglise) {
@@ -394,7 +398,7 @@ async function getGLDataForAdmin(month, federation, district, eglise) {
 }
 
 // ============================================================
-// VÉRIFICATION DES DONNÉES EXISTANTES
+// ✅ VÉRIFICATION DES DONNÉES EXISTANTES
 // ============================================================
 
 async function hasGLDataForEglise(month, eglise, sabbathIndex = null) {
@@ -435,7 +439,7 @@ async function saveDepenses({ userId, month, data, eglise, district, federation 
     );
   }
   
-  console.log(`✅ Dépenses sauvegardées pour ${cleanEglise} - ${month} (${data.length} dépenses)`);
+  console.log(`✅ Dépenses sauvegardées pour ${cleanEglise} - ${month}`);
 }
 
 async function getDepensesByEglise(month, eglise) {
@@ -982,18 +986,7 @@ async function getMembersStats() {
 }
 
 // ============================================================
-// RÉCUPÉRER LES INFOS D'UNE ÉGLISE
-// ============================================================
-
-async function getEgliseInfo(eglise) {
-  const db = await openDb();
-  const cleanEglise = eglise ? eglise.trim() : '';
-  const row = await db.get('SELECT district, federation, email FROM users WHERE eglise = ? LIMIT 1', cleanEglise);
-  return row;
-}
-
-// ============================================================
-// EXPORTATIONS
+// ✅ EXPORTATIONS - CORRIGÉES
 // ============================================================
 
 module.exports = {
@@ -1019,7 +1012,7 @@ module.exports = {
   getGLDataByDistrict,
   getGLDataByFederation,
   getGLDataForAdmin,
-  hasGLDataForEglise,
+  hasGLDataForEglise,  // ✅ BIEN EXPORTÉE
   
   // Dépenses
   saveDepenses,
