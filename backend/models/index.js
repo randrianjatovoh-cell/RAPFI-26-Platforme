@@ -4,22 +4,25 @@ const crypto = require('crypto');
 const { openDb } = require('./db');
 
 // ============================================================
-// UTILITAIRES
+// ✅ FONCTION POUR NETTOYER LE NOM DE L'ÉGLISE
 // ============================================================
-
 function sanitizeEgliseName(eglise) {
   if (!eglise) return '';
   
+  // 1. Supprimer les accents
   const sansAccents = eglise.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  // 2. Remplacer les espaces par des underscores
   const sansEspaces = sansAccents.replace(/\s+/g, '_');
+  
+  // 3. Supprimer les caractères spéciaux (garder lettres, chiffres, underscore)
   const sanitized = sansEspaces.replace(/[^a-zA-Z0-9_]/g, '');
+  
+  // 4. Mettre en minuscules
   return sanitized.toLowerCase();
 }
 
-// ============================================================
-// USERS
-// ============================================================
-
+// ---------- Users ----------
 async function getUserByEmail(email) {
   const db = await openDb();
   return db.get('SELECT * FROM users WHERE email = ?', email);
@@ -66,7 +69,7 @@ async function deleteUser(id) {
 async function createAdminIfNotExists() {
   const admin = await getUserByEmail('plateformerapfi@gmail.com');
   if (!admin) {
-    console.log('👑 Création de l\'administrateur...');
+    console.log('👑 Création de l’administrateur...');
     const hashed = await bcrypt.hash('RH André', 10);
     await createUser({
       nom: 'ADMIN',
@@ -86,61 +89,71 @@ async function createAdminIfNotExists() {
     });
     console.log('✅ Admin créé avec succès');
   } else {
-    console.log('ℹ️ L\'administrateur existe déjà');
+    console.log('ℹ️ L’administrateur existe déjà');
   }
 }
 
 // ============================================================
-// CRÉATION D'ÉGLISE - AVEC EMAIL @rapfi.eg
+// ✅ CRÉER UNE NOUVELLE ÉGLISE (VERSION CORRIGÉE)
 // ============================================================
-
 async function createEgliseIfNotExists(eglise, district, federation) {
   const db = await openDb();
   
+  // Vérifier si l'église existe déjà
   const existing = await db.get('SELECT 1 FROM users WHERE eglise = ?', eglise);
   if (existing) {
     console.log(`ℹ️ L'église "${eglise}" existe déjà`);
-    return { exists: true };
+    return;
   }
 
+  // Générer l'email au format nom_eglise@rapfi.eg
   const emailPrefix = sanitizeEgliseName(eglise);
-  let email = `${emailPrefix}@rapfi.eg`;
+  const email = `${emailPrefix}@rapfi.eg`;
   
+  // Vérifier si l'email existe déjà (au cas où)
   const emailExists = await db.get('SELECT 1 FROM users WHERE email = ?', email);
+  let finalEmail = email;
   if (emailExists) {
+    // Si l'email existe, ajouter un timestamp pour le rendre unique
     const timestamp = Date.now();
-    email = `${emailPrefix}_${timestamp}@rapfi.eg`;
-    console.log(`⚠️ Email ${emailPrefix}@rapfi.eg déjà utilisé, utilisation de ${email}`);
+    finalEmail = `${emailPrefix}_${timestamp}@rapfi.eg`;
+    console.log(`⚠️ Email ${email} déjà utilisé, utilisation de ${finalEmail}`);
   }
   
+  // Générer un mot de passe aléatoire
   const plainPassword = crypto.randomBytes(8).toString('hex');
   const hashed = await bcrypt.hash(plainPassword, 10);
 
+  // Créer l'utilisateur représentant l'église
   const result = await db.run(
     `INSERT INTO users (
       nom, prenom, eglise, district, federation, responsable, 
       email, password, fonction, niveau, photo, adresse, contact, plain_password
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    eglise, '', eglise, district || '', federation || '', '',
-    email, hashed, 'Ancien', 3, '', '', '', plainPassword
+    eglise,                    // nom
+    '',                        // prenom
+    eglise,                    // eglise
+    district || '',           // district
+    federation || '',         // federation
+    '',                       // responsable
+    finalEmail,               // ✅ email = eglise@rapfi.eg
+    hashed,                   // password
+    'Ancien',                 // fonction (par défaut Ancien)
+    3,                        // niveau
+    '',                       // photo
+    '',                       // adresse
+    '',                       // contact
+    plainPassword             // plain_password
   );
 
   console.log(`✅ Église "${eglise}" créée avec succès`);
-  console.log(`   📧 Email: ${email}`);
+  console.log(`   📧 Email: ${finalEmail}`);
   console.log(`   🔑 Mot de passe: ${plainPassword}`);
   
-  return { 
-    id: result.lastID, 
-    email, 
-    plainPassword,
-    exists: false 
-  };
+  return { id: result.lastID, email: finalEmail, plainPassword };
 }
 
-// ============================================================
-// RÉCUPÉRATION DES ÉGLISES
-// ============================================================
-
+// ---------- Récupération des églises par district/fédération ----------
 async function getEglisesByDistrict(district) {
   const db = await openDb();
   const users = await db.all(
@@ -183,33 +196,28 @@ async function getEglisesByFederation(federation) {
   return Array.from(allEglises);
 }
 
-async function getEgliseInfo(eglise) {
-  const db = await openDb();
-  const cleanEglise = eglise ? eglise.trim() : '';
-  const row = await db.get('SELECT district, federation, email FROM users WHERE eglise = ? LIMIT 1', cleanEglise);
-  return row;
-}
-
 // ============================================================
-// GRAND LIVRE (GL)
+// ✅ SAUVEGARDE GL - AVEC VÉRIFICATION D'EXISTENCE (VERSION CORRIGÉE)
 // ============================================================
-
 async function saveGLData({ userId, month, data, eglise, district, federation }) {
   const db = await openDb();
   
+  // Nettoyer le nom de l'église
   const cleanEglise = eglise ? eglise.trim() : '';
   if (!cleanEglise) {
     throw new Error('Le nom de l\'église est requis');
   }
 
-  console.log(`📝 saveGLData: Mois=${month}, Église=${cleanEglise}`);
+  console.log(`📝 saveGLData: Mois=${month}, Église=${cleanEglise}, Sabbats=${Object.keys(data).filter(k => !isNaN(k)).length}`);
 
+  // Extraire les indices des sabbats
   const sabbathIndices = Object.keys(data).filter(key => !isNaN(key));
   
   for (const sabbathIndex of sabbathIndices) {
     const entries = data[sabbathIndex];
     if (!entries || entries.length === 0) continue;
     
+    // Enrichir les entrées avec les métadonnées
     const enrichedEntries = entries.map(entry => ({
       ...entry,
       monthId: month,
@@ -217,18 +225,20 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
       sabbathIndex: parseInt(sabbathIndex)
     }));
 
+    // Vérification : Les données existent-elles déjà ?
     const existing = await db.get(
       'SELECT id FROM gl_data WHERE month = ? AND eglise = ? AND sabbath_index = ?',
       month, cleanEglise, parseInt(sabbathIndex)
     );
     
     if (existing) {
+      // ✅ Mise à jour des données existantes
       console.log(`📝 Mise à jour des données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
       if (db.isPostgres) {
         await db.run(
           `UPDATE gl_data 
-           SET data = $1, district = $2, federation = $3, user_id = $4
+           SET data = $1, district = $2, federation = $3, user_id = $4, updated_at = CURRENT_TIMESTAMP
            WHERE month = $5 AND eglise = $6 AND sabbath_index = $7`,
           JSON.stringify(enrichedEntries), district, federation, userId,
           month, cleanEglise, parseInt(sabbathIndex)
@@ -243,6 +253,7 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
         );
       }
     } else {
+      // ✅ Insertion de nouvelles données
       console.log(`📝 Insertion de nouvelles données pour ${cleanEglise} - ${month} - Sabbat ${sabbathIndex}`);
       
       if (db.isPostgres) {
@@ -261,9 +272,10 @@ async function saveGLData({ userId, month, data, eglise, district, federation })
     }
   }
   
-  console.log(`✅ GL sauvegardé pour ${cleanEglise} - ${month}`);
+  console.log(`✅ GL sauvegardé pour ${cleanEglise} - ${month} (${sabbathIndices.length} sabbats)`);
 }
 
+// ---------- LECTURE GL ----------
 async function getGLDataByEglise(month, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -374,9 +386,8 @@ async function getGLDataForAdmin(month, federation, district, eglise) {
 }
 
 // ============================================================
-// VÉRIFICATION DES DONNÉES EXISTANTES
+// ✅ VÉRIFICATION SI DES DONNÉES EXISTENT DÉJÀ
 // ============================================================
-
 async function hasGLDataForEglise(month, eglise, sabbathIndex = null) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -395,7 +406,7 @@ async function hasGLDataForEglise(month, eglise, sabbathIndex = null) {
 }
 
 // ============================================================
-// DÉPENSES
+// ✅ DÉPENSES - AVEC SUPPORT DU CHAMP SABATA
 // ============================================================
 
 async function saveDepenses({ userId, month, data, eglise, district, federation }) {
@@ -415,7 +426,7 @@ async function saveDepenses({ userId, month, data, eglise, district, federation 
     );
   }
   
-  console.log(`✅ Dépenses sauvegardées pour ${cleanEglise} - ${month}`);
+  console.log(`✅ Dépenses sauvegardées pour ${cleanEglise} - ${month} (${data.length} dépenses)`);
 }
 
 async function getDepensesByEglise(month, eglise) {
@@ -498,10 +509,7 @@ async function getDepensesForAdmin(month, federation, district, eglise) {
   return result;
 }
 
-// ============================================================
-// MEMBRES
-// ============================================================
-
+// ---------- Membres ----------
 async function getMembres(userId) {
   const db = await openDb();
   return db.all('SELECT * FROM membres WHERE user_id = ?', userId);
@@ -531,10 +539,7 @@ async function deleteMembre(userId, id) {
   await db.run('DELETE FROM membres WHERE id = ? AND user_id = ?', id, userId);
 }
 
-// ============================================================
-// MOIS
-// ============================================================
-
+// ---------- Mois ----------
 async function getMonths() {
   const db = await openDb();
   return db.all('SELECT id, name FROM months ORDER BY id');
@@ -548,10 +553,7 @@ async function addMonth(id, name) {
   }
 }
 
-// ============================================================
-// CONFIGURATION ÉGLISE
-// ============================================================
-
+// ---------- Configuration église ----------
 async function getChurchConfig(userId) {
   const db = await openDb();
   return db.get('SELECT * FROM church_config WHERE user_id = ?', userId);
@@ -578,7 +580,7 @@ async function saveChurchConfig(userId, config) {
 }
 
 // ============================================================
-// RAPPORTS MENSUELS
+// ✅ RAPPORTS MENSUELS
 // ============================================================
 
 async function getMonthlyReport(month, eglise) {
@@ -643,6 +645,7 @@ async function upsertMonthlyReport(month, eglise, data) {
   }
 }
 
+// ---------- Fonction de recalcul du rapport mensuel ----------
 async function computeAndSaveMonthlyReports(monthId, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -768,10 +771,7 @@ async function computeAndSaveMonthlyReports(monthId, eglise) {
   console.log(`✅ Rapport mensuel recalculé pour ${monthId} - ${cleanEglise}`);
 }
 
-// ============================================================
-// FRAIS
-// ============================================================
-
+// ---------- Frais ----------
 async function getFrais(month, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -798,15 +798,19 @@ async function setFrais(month, eglise, amount) {
 }
 
 // ============================================================
-// VOLA SISA TEO ALOHA
+// ✅ VOLA SISA TEO ALOHA - FONCTIONS CRUCIALES AVEC CRÉATION AUTO DE LA TABLE
 // ============================================================
 
+/**
+ * Récupère la valeur de volaSisaTeoAloha pour un mois et une église donnés
+ */
 async function getVolaSisa(month, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
   if (!cleanEglise || !month) return 0;
   
   try {
+    // Essayer de récupérer depuis la table dédiée
     const row = await db.get(
       'SELECT amount FROM vola_sisa_teo_aloha WHERE month_id = ? AND eglise = ?',
       month, cleanEglise
@@ -815,6 +819,7 @@ async function getVolaSisa(month, eglise) {
       return row.amount;
     }
     
+    // Fallback: récupérer depuis le rapport mensuel
     const report = await db.get(
       'SELECT volaSisaTeoAloha FROM monthly_reports WHERE month_id = ? AND eglise = ?',
       month, cleanEglise
@@ -830,6 +835,10 @@ async function getVolaSisa(month, eglise) {
   }
 }
 
+/**
+ * Sauvegarde la valeur de volaSisaTeoAloha pour un mois et une église donnés
+ * Crée automatiquement la table si elle n'existe pas
+ */
 async function setVolaSisa(month, eglise, amount) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -838,6 +847,48 @@ async function setVolaSisa(month, eglise, amount) {
   const finalAmount = parseFloat(amount) || 0;
   
   try {
+    // Vérifier si la table existe et la créer si nécessaire
+    try {
+      await db.get('SELECT 1 FROM vola_sisa_teo_aloha LIMIT 1');
+    } catch (err) {
+      console.log('📝 Création de la table vola_sisa_teo_aloha...');
+      if (db.isPostgres) {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS vola_sisa_teo_aloha (
+            id SERIAL PRIMARY KEY,
+            month_id VARCHAR(10) NOT NULL,
+            eglise VARCHAR(255) NOT NULL,
+            amount INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(month_id, eglise)
+          )
+        `);
+        await db.run(`
+          CREATE INDEX IF NOT EXISTS idx_vola_sisa_month_eglise 
+          ON vola_sisa_teo_aloha(month_id, eglise)
+        `);
+      } else {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS vola_sisa_teo_aloha (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            month_id VARCHAR(10) NOT NULL,
+            eglise VARCHAR(255) NOT NULL,
+            amount INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(month_id, eglise)
+          )
+        `);
+        await db.run(`
+          CREATE INDEX IF NOT EXISTS idx_vola_sisa_month_eglise 
+          ON vola_sisa_teo_aloha(month_id, eglise)
+        `);
+      }
+      console.log('✅ Table vola_sisa_teo_aloha créée');
+    }
+    
+    // Sauvegarder dans la table dédiée
     if (db.isPostgres) {
       await db.run(
         `INSERT INTO vola_sisa_teo_aloha (month_id, eglise, amount, updated_at)
@@ -854,6 +905,7 @@ async function setVolaSisa(month, eglise, amount) {
       );
     }
     
+    // Mettre à jour également le rapport mensuel pour compatibilité
     try {
       await db.run(
         `UPDATE monthly_reports SET volaSisaTeoAloha = ? WHERE month_id = ? AND eglise = ?`,
@@ -870,10 +922,7 @@ async function setVolaSisa(month, eglise, amount) {
   }
 }
 
-// ============================================================
-// SUPPRESSION
-// ============================================================
-
+// ---------- Suppression ----------
 async function deleteAllDataForMonth(month, eglise) {
   const db = await openDb();
   const cleanEglise = eglise ? eglise.trim() : '';
@@ -882,6 +931,7 @@ async function deleteAllDataForMonth(month, eglise) {
   await db.run('DELETE FROM monthly_reports WHERE month_id = ? AND eglise = ?', month, cleanEglise);
   await db.run('DELETE FROM frais WHERE month_id = ? AND eglise = ?', month, cleanEglise);
   
+  // Supprimer aussi de la table vola_sisa_teo_aloha
   try {
     await db.run('DELETE FROM vola_sisa_teo_aloha WHERE month_id = ? AND eglise = ?', month, cleanEglise);
   } catch (err) {
@@ -891,10 +941,7 @@ async function deleteAllDataForMonth(month, eglise) {
   console.log(`🗑️ Données supprimées pour ${month} - ${cleanEglise}`);
 }
 
-// ============================================================
-// LOGS
-// ============================================================
-
+// ---------- LOGS ----------
 async function addUserLog(userId, userName, userFonction, ip = '', userAgent = '') {
   const db = await openDb();
   await db.run(
@@ -952,17 +999,22 @@ async function getVisitsPerUser() {
   `);
 }
 
-// ============================================================
-// STATISTIQUES MEMBRES
-// ============================================================
-
+// ---------- Statistiques membres ----------
 async function getMembersStats() {
   const db = await openDb();
   return db.all('SELECT * FROM members_stats');
 }
 
+// ---------- Récupérer les infos d'une église ----------
+async function getEgliseInfo(eglise) {
+  const db = await openDb();
+  const cleanEglise = eglise ? eglise.trim() : '';
+  const row = await db.get('SELECT district, federation FROM users WHERE eglise = ? LIMIT 1', cleanEglise);
+  return row;
+}
+
 // ============================================================
-// EXPORTATIONS
+// ✅ EXPORTATIONS COMPLÈTES - AVEC TOUTES LES FONCTIONS
 // ============================================================
 
 module.exports = {
@@ -974,13 +1026,13 @@ module.exports = {
   getAllUsers,
   deleteUser,
   createAdminIfNotExists,
+  createEgliseIfNotExists,
+  sanitizeEgliseName,
   
   // Églises
   getEglisesByDistrict,
   getEglisesByFederation,
   getEgliseInfo,
-  createEgliseIfNotExists,
-  sanitizeEgliseName,
   
   // GL
   saveGLData,
@@ -1021,7 +1073,7 @@ module.exports = {
   getFrais,
   setFrais,
   
-  // Vola Sisa
+  // ✅ FONCTIONS VOLA SISA
   getVolaSisa,
   setVolaSisa,
   

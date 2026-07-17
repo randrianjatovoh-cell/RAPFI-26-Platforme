@@ -1,5 +1,6 @@
 // frontend/src/services/api.js
-const API_URL = process.env.REACT_APP_API_URL || 'https://rapfi-backend.onrender.com/api';
+// ⚠️ URL forcée pour la production (Render)
+const API_URL = 'https://rapfi-backend.onrender.com/api';
 
 console.log('🚀 API_URL =', API_URL);
 
@@ -80,10 +81,7 @@ class ApiService {
     }
   }
 
-  // ============================================================
-  // AUTH
-  // ============================================================
-
+  // ===== AUTH =====
   async login(email, password) {
     const data = await this.request('/auth/login', {
       method: 'POST',
@@ -110,10 +108,7 @@ class ApiService {
     return this.request('/auth/users');
   }
 
-  // ============================================================
-  // USERS
-  // ============================================================
-
+  // ===== USERS =====
   async getAllUsers() {
     return this.request('/users');
   }
@@ -159,10 +154,7 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // GL - GRAND LIVRE
-  // ============================================================
-
+  // ===== GL =====
   async getGL(month, federation = null, district = null, eglise = null) {
     let url = `/gl/${month}`;
     const params = new URLSearchParams();
@@ -173,6 +165,9 @@ class ApiService {
     return this.request(url);
   }
 
+  // ============================================================
+  // ✅ SAUVEGARDE GL AVEC VÉRIFICATION
+  // ============================================================
   async saveGL(data) {
     try {
       const response = await this.request('/gl/save', {
@@ -181,6 +176,7 @@ class ApiService {
       });
       return response;
     } catch (error) {
+      // Améliorer le message d'erreur
       if (error.message && error.message.includes('existe déjà')) {
         throw new Error('⚠️ Des données existent déjà pour ce mois et cette église.');
       }
@@ -188,6 +184,9 @@ class ApiService {
     }
   }
 
+  // ============================================================
+  // ✅ VÉRIFICATION DES DONNÉES EXISTANTES
+  // ============================================================
   async checkGLDataExists(month, eglise) {
     try {
       const response = await this.request(`/gl/check/${month}/${eglise}`);
@@ -199,9 +198,35 @@ class ApiService {
   }
 
   // ============================================================
-  // VOLA SISA TEO ALOHA
+  // ✅ VÉRIFICATION DE L'EXISTENCE D'UNE ÉGLISE
+  // ============================================================
+  async egliseExists(eglise) {
+    try {
+      const users = await this.getAllUsers();
+      return users.some(u => u.eglise === eglise);
+    } catch (err) {
+      console.warn('⚠️ Erreur egliseExists:', err);
+      return false;
+    }
+  }
+
+  // ============================================================
+  // ✅ CRÉATION D'UNE ÉGLISE (Pasteur)
+  // ============================================================
+  async createEglise(eglise, district, federation) {
+    return this.request('/eglises', {
+      method: 'POST',
+      body: JSON.stringify({ eglise, district, federation })
+    });
+  }
+
+  // ============================================================
+  // ✅ MÉTHODES POUR VOLA SISA TEO ALOHA
   // ============================================================
 
+  /**
+   * Récupère la valeur de volaSisaTeoAloha pour un mois et une église
+   */
   async getVolaSisa(month, eglise) {
     try {
       const data = await this.request(`/reports/volaSisa/${month}/${eglise}`);
@@ -212,6 +237,9 @@ class ApiService {
     }
   }
 
+  /**
+   * Sauvegarde la valeur de volaSisaTeoAloha pour un mois et une église
+   */
   async saveVolaSisa(month, eglise, amount) {
     return this.request('/reports/volaSisa', {
       method: 'POST',
@@ -219,10 +247,7 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // DÉPENSES
-  // ============================================================
-
+  // ===== DÉPENSES =====
   async getDepenses(month, federation = null, district = null, eglise = null) {
     let url = `/depenses/${month}`;
     const params = new URLSearchParams();
@@ -240,10 +265,7 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // MEMBRES
-  // ============================================================
-
+  // ===== MEMBRES =====
   async getMembres() {
     return this.request('/membres');
   }
@@ -268,10 +290,7 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // MOIS
-  // ============================================================
-
+  // ===== MOIS =====
   async getMonths() {
     return this.request('/months');
   }
@@ -289,10 +308,7 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // CONFIG
-  // ============================================================
-
+  // ===== CONFIG =====
   async getChurchConfig() {
     return this.request('/config');
   }
@@ -304,10 +320,7 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // REPORTS
-  // ============================================================
-
+  // ===== REPORTS =====
   async getMonthlyReport(month, eglise) {
     return this.request(`/reports/monthly/${month}/${eglise}`);
   }
@@ -355,10 +368,7 @@ class ApiService {
     return this.request(url);
   }
 
-  // ============================================================
-  // FRAIS
-  // ============================================================
-
+  // ===== FRAIS =====
   async getFrais(month, eglise) {
     return this.request(`/frais/${month}/${eglise}`);
   }
@@ -370,18 +380,12 @@ class ApiService {
     });
   }
 
-  // ============================================================
-  // STATS
-  // ============================================================
-
+  // ===== STATS =====
   async getMembersStats() {
     return this.request('/stats/members');
   }
 
-  // ============================================================
-  // LOGS
-  // ============================================================
-
+  // ===== LOGS =====
   async addLog(userId, userName, userFonction) {
     return this.request('/logs', {
       method: 'POST',
@@ -406,10 +410,7 @@ class ApiService {
     return this.request('/logs/visits');
   }
 
-  // ============================================================
-  // ÉGLISES
-  // ============================================================
-
+  // ===== EGLISES =====
   async getEglisesByDistrict(district) {
     return this.request(`/eglises/district/${district}`);
   }
@@ -418,25 +419,22 @@ class ApiService {
     return this.request(`/eglises/federation/${federation}`);
   }
 
-  async createEglise(eglise, district, federation) {
-    return this.request('/eglises', {
-      method: 'POST',
-      body: JSON.stringify({ eglise, district, federation })
-    });
-  }
+  // ============================================================
+  // ✅ MÉTHODES OPTIMISÉES (pour l'avenir)
+  // ============================================================
 
-  async getEgliseInfo(eglise) {
-    return this.request(`/eglises/${eglise}`);
-  }
-
-  async egliseExists(eglise) {
-    try {
-      const users = await this.getAllUsers();
-      return users.some(u => u.eglise === eglise);
-    } catch (err) {
-      console.warn('⚠️ Erreur egliseExists:', err);
-      return false;
-    }
+  /**
+   * Récupère toutes les données d'une année pour une église en 1 appel
+   * ⚠️ Nécessite que le backend ait les fonctions getYearlyGLData etc.
+   */
+  async getYearlyData(year, eglise = null, district = null, federation = null) {
+    let url = `/gl/yearly/${year}`;
+    const params = new URLSearchParams();
+    if (eglise) params.append('eglise', eglise);
+    if (district) params.append('district', district);
+    if (federation) params.append('federation', federation);
+    if (params.toString()) url += '?' + params.toString();
+    return this.request(url);
   }
 }
 

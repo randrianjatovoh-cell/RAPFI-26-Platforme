@@ -2,6 +2,9 @@
 const jwt = require('jsonwebtoken');
 const { getAllUsers } = require('../models');
 
+// ============================================================
+// AUTHENTIFICATION JWT
+// ============================================================
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -20,6 +23,9 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// ============================================================
+// AUTORISATION PAR RÔLE (Admin uniquement)
+// ============================================================
 function authorize(...roles) {
   return (req, res, next) => {
     if (!req.user) {
@@ -33,12 +39,17 @@ function authorize(...roles) {
   };
 }
 
+// ============================================================
+// CHECK ACCESS - LOGIQUE COMPLÈTE
+// ============================================================
 async function checkAccess(req, res, next) {
   const user = req.user;
   const eglise = req.params.eglise || req.body.eglise || req.query.eglise;
   
+  // Si pas d'église spécifiée, on continue (accès global)
   if (!eglise) return next();
 
+  // ADMIN : accès total
   if (user.fonction === 'Admin') return next();
 
   try {
@@ -46,6 +57,7 @@ async function checkAccess(req, res, next) {
     const church = users.find(u => u.eglise === eglise);
 
     if (church) {
+      // CAS PASTEUR : ACCÈS AU DISTRICT
       if (user.fonction === 'Pasteur') {
         if (church.district !== user.district) {
           return res.status(403).json({ 
@@ -55,6 +67,7 @@ async function checkAccess(req, res, next) {
         return next();
       }
       
+      // CAS VÉRIFICATEUR : ACCÈS À LA FÉDÉRATION
       if (user.fonction === 'Vérificateur') {
         if (church.federation !== user.federation) {
           return res.status(403).json({ 
@@ -64,6 +77,7 @@ async function checkAccess(req, res, next) {
         return next();
       }
       
+      // CAS ANCIEN / TRÉSORIER : ACCÈS À LEUR PROPRE ÉGLISE
       if (user.eglise !== eglise) {
         return res.status(403).json({ 
           error: 'Accès interdit à cette église' 
@@ -72,8 +86,9 @@ async function checkAccess(req, res, next) {
       return next();
     }
 
+    // L'ÉGLISE N'EXISTE PAS : LE PASTEUR PEUT LA CRÉER
     if (user.fonction === 'Pasteur') {
-      req.newEglise = true;
+      req.newEglise = true;  // Flag pour la création
       return next();
     }
 

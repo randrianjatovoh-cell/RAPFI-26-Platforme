@@ -7,16 +7,13 @@ export default function Formulaire({
   currentMonth, 
   setCurrentMonth, 
   months, 
+  setMonths, 
   refreshAll,
   onDataSaved,
   selectedSabbath,
   onSabbathChange,
   selectedEglise,
   onEgliseChange,
-  selectedDistrict,
-  onDistrictChange,
-  selectedFederation,
-  onFederationChange,
   readOnly = false,
   onOpenReceipts
 }) {
@@ -27,47 +24,46 @@ export default function Formulaire({
   const [glData, setGlData] = useState({});
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isNewEglise, setIsNewEglise] = useState(false);
-  const [entries, setEntries] = useState([]);
   
   const isPasteur = user?.fonction === 'Pasteur';
   const isAdmin = user?.fonction === 'Admin';
-  const isVerificateur = user?.fonction === 'Vérificateur';
 
   // ============================================================
-  // CHARGEMENT DES DONNÉES GL
+  // VÉRIFICATION DES DONNÉES EXISTANTES (API)
   // ============================================================
   useEffect(() => {
-    async function loadGLData() {
+    async function checkExistingData() {
       if (!currentMonth || !selectedEglise) {
-        setGlData({});
-        setEntries([]);
+        setHasExistingData(false);
         return;
       }
 
-      setLoading(true);
       try {
-        const data = await api.getGL(currentMonth, null, null, selectedEglise);
-        setGlData(data);
-        
-        if (selectedSabbath && data[selectedSabbath]) {
-          setEntries(data[selectedSabbath]);
-        } else {
-          setEntries([]);
+        const response = await api.getGL(currentMonth, null, null, selectedEglise);
+        let hasData = false;
+        for (let s = 1; s <= 5; s++) {
+          if (response[s] && response[s].length > 0) {
+            hasData = true;
+            break;
+          }
         }
-        
-        // Vérifier si des données existent pour ce sabbat
-        const hasData = data[selectedSabbath] && data[selectedSabbath].length > 0;
         setHasExistingData(hasData);
         
+        // Mettre à jour le flag pour le mode Pasteur
+        if (isPasteur && hasData) {
+          setMessage({
+            type: 'info',
+            text: `📌 Des données existent déjà pour cette église. La sauvegarde mettra à jour les données existantes.`
+          });
+        } else if (!hasData && isPasteur) {
+          setMessage(null);
+        }
       } catch (err) {
-        console.error('Erreur chargement GL:', err);
-        setMessage({ type: 'error', text: 'Erreur lors du chargement des données' });
-      } finally {
-        setLoading(false);
+        console.error('Erreur vérification données:', err);
       }
     }
-    loadGLData();
-  }, [currentMonth, selectedEglise, selectedSabbath]);
+    checkExistingData();
+  }, [currentMonth, selectedEglise, isPasteur]);
 
   // ============================================================
   // VÉRIFICATION SI L'ÉGLISE EST NOUVELLE (Pasteur)
@@ -80,7 +76,8 @@ export default function Formulaire({
       }
 
       try {
-        const exists = await api.egliseExists(selectedEglise);
+        const users = await api.getAllUsers();
+        const exists = users.some(u => u.eglise === selectedEglise);
         setIsNewEglise(!exists);
         
         if (!exists && isPasteur) {
@@ -88,13 +85,11 @@ export default function Formulaire({
             type: 'success',
             text: `🆕 Nouvelle église "${selectedEglise}". Elle sera automatiquement créée lors de la sauvegarde.`
           });
-        } else if (exists && hasExistingData) {
+        } else if (exists && !hasExistingData) {
           setMessage({
             type: 'info',
-            text: `📌 Des données existent déjà pour cette église. La sauvegarde mettra à jour les données existantes.`
+            text: `📝 Église "${selectedEglise}" existante. Vous pouvez saisir les données.`
           });
-        } else {
-          setMessage(null);
         }
       } catch (err) {
         console.error('Erreur vérification église:', err);
@@ -122,7 +117,9 @@ export default function Formulaire({
       return;
     }
 
-    if (entries.length === 0) {
+    // Vérifier si des données existent déjà pour ce sabbat
+    const sabbathData = glData[selectedSabbath] || [];
+    if (sabbathData.length === 0) {
       setMessage({ type: 'warning', text: 'Aucune donnée à sauvegarder' });
       return;
     }
@@ -132,8 +129,9 @@ export default function Formulaire({
 
     try {
       const dataToSave = {};
-      dataToSave[selectedSabbath] = entries;
+      dataToSave[selectedSabbath] = sabbathData;
 
+      // Informations supplémentaires pour le backend
       const saveData = {
         month: currentMonth,
         data: dataToSave,
@@ -144,6 +142,7 @@ export default function Formulaire({
 
       const response = await api.saveGL(saveData);
       
+      // Message de succès adapté
       setMessage({
         type: 'success',
         text: response.message || `✅ Données sauvegardées pour ${selectedEglise}`
@@ -155,11 +154,14 @@ export default function Formulaire({
       setHasExistingData(true);
       
       if (onDataSaved) onDataSaved();
+      
+      // Recharger la liste des mois
       if (refreshAll) refreshAll();
 
     } catch (err) {
       console.error('❌ Erreur sauvegarde:', err);
       
+      // Message d'erreur personnalisé
       let errorMsg = 'Erreur lors de la sauvegarde';
       if (err.message.includes('existe déjà')) {
         errorMsg = '⚠️ Ces données existent déjà. La mise à jour a été effectuée.';
@@ -176,51 +178,30 @@ export default function Formulaire({
   };
 
   // ============================================================
-  // AJOUT D'UNE LIGNE
+  // CHARGEMENT DES DONNÉES
   // ============================================================
-  const addEntry = () => {
-    const newEntry = {
-      memberName: '',
-      f1: 0, f2: 0, f3: 0, f4: 0, f5: 0, f6: 0, f7: 0, f8: 0,
-      b9: 0, b10: 0,
-      rosia: '',
-      sabbathIndex: selectedSabbath,
-      eglise: selectedEglise,
-      monthId: currentMonth
-    };
-    setEntries([...entries, newEntry]);
-  };
+  useEffect(() => {
+    async function loadData() {
+      if (!currentMonth || !selectedEglise || !selectedSabbath) {
+        return;
+      }
 
-  // ============================================================
-  // SUPPRESSION D'UNE LIGNE
-  // ============================================================
-  const removeEntry = (index) => {
-    const newEntries = entries.filter((_, i) => i !== index);
-    setEntries(newEntries);
-  };
-
-  // ============================================================
-  // MISE À JOUR D'UNE LIGNE
-  // ============================================================
-  const updateEntry = (index, field, value) => {
-    const newEntries = [...entries];
-    newEntries[index][field] = value;
-    setEntries(newEntries);
-  };
+      setLoading(true);
+      try {
+        const data = await api.getGL(currentMonth, null, null, selectedEglise);
+        setGlData(data);
+      } catch (err) {
+        console.error('Erreur chargement données:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [currentMonth, selectedEglise, selectedSabbath]);
 
   // ============================================================
   // RENDU
   // ============================================================
-  if (isVerificateur) {
-    return (
-      <div className="text-center p-8 text-gray-500">
-        <i className="fas fa-lock text-4xl mb-3 block"></i>
-        <p>Le Vérificateur est en mode lecture seule.</p>
-        <p className="text-sm mt-2">Utilisez les onglets de consultation pour visualiser les données.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4">
       {/* Message */}
@@ -237,12 +218,13 @@ export default function Formulaire({
 
       {/* Sélecteurs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Mois */}
         <div>
           <label className="block font-medium mb-1">Mois</label>
           <select
             value={currentMonth || ''}
             onChange={(e) => setCurrentMonth(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded px-3 py-2"
             disabled={readOnly || saving}
           >
             <option value="">Sélectionner un mois</option>
@@ -252,13 +234,14 @@ export default function Formulaire({
           </select>
         </div>
 
+        {/* Église */}
         <div>
           <label className="block font-medium mb-1">Église</label>
           <input
             type="text"
             value={selectedEglise || ''}
             onChange={(e) => onEgliseChange(e.target.value)}
-            className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full border rounded px-3 py-2 ${
               isNewEglise && isPasteur ? 'border-amber-500 bg-amber-50' : ''
             }`}
             placeholder={isPasteur ? "Nom de l'église (nouvelle ou existante)" : "Église"}
@@ -272,12 +255,13 @@ export default function Formulaire({
           )}
         </div>
 
+        {/* Sabbat */}
         <div>
           <label className="block font-medium mb-1">Sabbat</label>
           <select
             value={selectedSabbath || ''}
             onChange={(e) => onSabbathChange(parseInt(e.target.value))}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded px-3 py-2"
             disabled={readOnly || saving}
           >
             <option value="">Sélectionner un sabbat</option>
@@ -289,214 +273,68 @@ export default function Formulaire({
       </div>
 
       {/* Info données existantes */}
-      {hasExistingData && !isNewEglise && (
+      {hasExistingData && (
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-center">
           <i className="fas fa-info-circle text-blue-600 mr-2"></i>
           <span className="text-blue-800">
-            Des données existent déjà pour ce sabbat. La sauvegarde mettra à jour les données.
+            Des données existent déjà pour cette église. La sauvegarde mettra à jour les données.
           </span>
         </div>
       )}
 
-      {/* Chargement */}
+      {/* Contenu du formulaire */}
       {loading ? (
-        <div className="flex justify-center items-center p-12">
-          <i className="fas fa-spinner fa-spin text-3xl text-blue-600"></i>
-          <span className="ml-3 text-gray-600">Chargement des données...</span>
+        <div className="text-center py-8">
+          <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+          <p className="mt-2 text-gray-500">Chargement des données...</p>
         </div>
       ) : (
-        <>
-          {/* Tableau des entrées */}
-          {entries.length > 0 && (
-            <div className="overflow-x-auto mb-4">
-              <table className="w-full border-collapse">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="border p-2 text-left">Membre</th>
-                    <th className="border p-2 text-right">F1</th>
-                    <th className="border p-2 text-right">F2</th>
-                    <th className="border p-2 text-right">F3</th>
-                    <th className="border p-2 text-right">F4</th>
-                    <th className="border p-2 text-right">F5</th>
-                    <th className="border p-2 text-right">F6</th>
-                    <th className="border p-2 text-right">F7</th>
-                    <th className="border p-2 text-right">F8</th>
-                    <th className="border p-2 text-right">B9</th>
-                    <th className="border p-2 text-right">B10</th>
-                    <th className="border p-2 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((entry, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="border p-2">
-                        <input
-                          type="text"
-                          value={entry.memberName || ''}
-                          onChange={(e) => updateEntry(index, 'memberName', e.target.value)}
-                          className="w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500"
-                          placeholder="Nom du membre"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f1 || 0}
-                          onChange={(e) => updateEntry(index, 'f1', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f2 || 0}
-                          onChange={(e) => updateEntry(index, 'f2', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f3 || 0}
-                          onChange={(e) => updateEntry(index, 'f3', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f4 || 0}
-                          onChange={(e) => updateEntry(index, 'f4', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f5 || 0}
-                          onChange={(e) => updateEntry(index, 'f5', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f6 || 0}
-                          onChange={(e) => updateEntry(index, 'f6', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f7 || 0}
-                          onChange={(e) => updateEntry(index, 'f7', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.f8 || 0}
-                          onChange={(e) => updateEntry(index, 'f8', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.b9 || 0}
-                          onChange={(e) => updateEntry(index, 'b9', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={entry.b10 || 0}
-                          onChange={(e) => updateEntry(index, 'b10', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 border rounded text-right focus:ring-2 focus:ring-blue-500"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="border p-2 text-center">
-                        <button
-                          onClick={() => removeEntry(index)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          disabled={readOnly}
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Boutons */}
-          <div className="flex flex-wrap gap-2">
-            {!readOnly && !isVerificateur && (
-              <button
-                onClick={addEntry}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
-                disabled={!selectedEglise || !selectedSabbath || !currentMonth}
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Ajouter une ligne
-              </button>
-            )}
-
-            {!readOnly && !isVerificateur && (
-              <button
-                onClick={handleSave}
-                disabled={saving || !selectedEglise || !selectedSabbath || !currentMonth || entries.length === 0}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
-              >
-                {saving ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Sauvegarde...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-save mr-2"></i>
-                    {hasExistingData ? 'Mettre à jour' : 'Sauvegarder'}
-                  </>
-                )}
-              </button>
-            )}
-
-            {onOpenReceipts && glData[selectedSabbath] && glData[selectedSabbath].length > 0 && (
-              <button
-                onClick={() => onOpenReceipts({
-                  entries: glData[selectedSabbath],
-                  eglise: selectedEglise,
-                  district: user?.district,
-                  federation: user?.federation,
-                  monthId: currentMonth,
-                  sabbathIndex: selectedSabbath
-                })}
-                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-              >
-                <i className="fas fa-receipt mr-2"></i>
-                Voir les reçus
-              </button>
-            )}
+        <div className="border rounded-lg p-4 bg-gray-50">
+          {/* Ici le contenu du formulaire GL (tableau des entrées) */}
+          <div className="text-center py-4 text-gray-500">
+            <i className="fas fa-table text-2xl mb-2 block"></i>
+            Formulaire de saisie des dîmes et offrandes
           </div>
-        </>
+        </div>
       )}
+
+      {/* Boutons */}
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={handleSave}
+          disabled={saving || readOnly || !selectedEglise || !selectedSabbath}
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <i className="fas fa-spinner fa-spin mr-2"></i>
+              Sauvegarde...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-save mr-2"></i>
+              {hasExistingData ? 'Mettre à jour' : 'Sauvegarder'}
+            </>
+          )}
+        </button>
+
+        {onOpenReceipts && glData[selectedSabbath] && glData[selectedSabbath].length > 0 && (
+          <button
+            onClick={() => onOpenReceipts({
+              entries: glData[selectedSabbath],
+              eglise: selectedEglise,
+              district: user?.district,
+              federation: user?.federation,
+              monthId: currentMonth,
+              sabbathIndex: selectedSabbath
+            })}
+            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+          >
+            <i className="fas fa-receipt mr-2"></i>
+            Voir les reçus
+          </button>
+        )}
+      </div>
     </div>
   );
 }

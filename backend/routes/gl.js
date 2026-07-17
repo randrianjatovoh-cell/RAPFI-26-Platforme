@@ -17,13 +17,14 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // ============================================================
-// SAUVEGARDE GL
+// ✅ SAUVEGARDE GL - AVEC GESTION DES CONFLITS
 // ============================================================
 router.post('/save', checkAccess, async (req, res) => {
   try {
     const { month, data, eglise, district, federation } = req.body;
     const user = req.user;
 
+    // Validation
     if (!eglise || eglise.trim() === '') {
       return res.status(400).json({ error: 'Le nom de l\'église est requis' });
     }
@@ -34,10 +35,11 @@ router.post('/save', checkAccess, async (req, res) => {
 
     const cleanEglise = eglise.trim();
 
-    // Vérifier si l'église existe
+    // VÉRIFICATION : L'église existe-t-elle ?
     const allUsers = await getAllUsers();
     const churchExists = allUsers.some(u => u.eglise === cleanEglise);
     
+    // Si l'église n'existe pas et que c'est un Pasteur, on la crée
     if (!churchExists) {
       if (user.fonction === 'Pasteur') {
         console.log(`📝 Création de la nouvelle église: ${cleanEglise}`);
@@ -53,7 +55,7 @@ router.post('/save', checkAccess, async (req, res) => {
       }
     }
 
-    // Vérifier si des données existent déjà pour chaque sabbat
+    // VÉRIFICATION : Les données existent-elles déjà ?
     let existingData = false;
     const sabbathIndices = Object.keys(data).filter(key => !isNaN(key));
     
@@ -65,6 +67,7 @@ router.post('/save', checkAccess, async (req, res) => {
       }
     }
 
+    // Déterminer les paramètres finaux
     let finalEglise = cleanEglise;
     let finalDistrict = district;
     let finalFederation = federation;
@@ -75,6 +78,7 @@ router.post('/save', checkAccess, async (req, res) => {
       finalFederation = federation || user.federation;
     }
 
+    // Vérification supplémentaire pour les non-admin
     if (user.fonction !== 'Admin' && 
         user.fonction !== 'Pasteur' && 
         user.fonction !== 'Vérificateur') {
@@ -87,6 +91,7 @@ router.post('/save', checkAccess, async (req, res) => {
 
     console.log(`📝 Sauvegarde GL - Mois: ${month}, Église: ${finalEglise}`);
 
+    // Sauvegarde
     await saveGLData({
       userId: user.id,
       month,
@@ -96,8 +101,10 @@ router.post('/save', checkAccess, async (req, res) => {
       federation: finalFederation
     });
     
+    // Recalcul du rapport mensuel
     await computeAndSaveMonthlyReports(month, finalEglise);
     
+    // Message adapté à la situation
     const message = existingData 
       ? `Données mises à jour pour ${finalEglise}` 
       : `Données sauvegardées pour ${finalEglise}`;
@@ -122,7 +129,7 @@ router.post('/save', checkAccess, async (req, res) => {
 });
 
 // ============================================================
-// LECTURE MOIS
+// ✅ LECTURE MOIS
 // ============================================================
 router.get('/:month', async (req, res) => {
   try {
@@ -159,18 +166,20 @@ router.get('/:month', async (req, res) => {
 });
 
 // ============================================================
-// VÉRIFICATION DES DONNÉES EXISTANTES
+// ✅ VÉRIFICATION DES DONNÉES EXISTANTES
 // ============================================================
 router.get('/check/:month/:eglise', async (req, res) => {
   try {
     const { month, eglise } = req.params;
     const user = req.user;
     
+    // Vérifier les permissions
     if (user.fonction !== 'Admin' && user.fonction !== 'Pasteur') {
       return res.status(403).json({ error: 'Accès interdit' });
     }
     
-    const exists = await hasGLDataForEglise(month, eglise);
+    const cleanEglise = eglise ? eglise.trim() : '';
+    const exists = await hasGLDataForEglise(month, cleanEglise);
     res.json({ exists });
   } catch (err) {
     console.error('❌ Erreur /gl/check:', err);
@@ -179,7 +188,7 @@ router.get('/check/:month/:eglise', async (req, res) => {
 });
 
 // ============================================================
-// DONNÉES ANNUELLES
+// ✅ NOUVEAU : Récupération des données annuelles groupées
 // ============================================================
 router.get('/yearly/:year', async (req, res) => {
   try {
@@ -187,12 +196,52 @@ router.get('/yearly/:year', async (req, res) => {
     const user = req.user;
     const { eglise, district, federation } = req.query;
     
-    res.json({ 
-      glData: {}, 
-      depenses: {}, 
-      frais: {}, 
-      reports: {} 
-    });
+    const cleanEglise = eglise ? eglise.trim() : null;
+    const cleanDistrict = district ? district.trim() : null;
+    const cleanFederation = federation ? federation.trim() : null;
+    
+    let result = {
+      glData: {},
+      depenses: {},
+      frais: {},
+      reports: {}
+    };
+    
+    if (user.fonction === 'Admin') {
+      result.glData = await getYearlyGLData(year, cleanEglise, cleanDistrict, cleanFederation);
+      result.depenses = await getYearlyDepensesData(year, cleanEglise, cleanDistrict, cleanFederation);
+      result.frais = await getYearlyFraisData(year, cleanEglise);
+      result.reports = await getYearlyReportsData(year, cleanEglise);
+    } else if (user.fonction === 'Vérificateur') {
+      const fed = user.federation;
+      result.glData = await getYearlyGLData(year, null, null, fed, 'federation');
+      result.depenses = await getYearlyDepensesData(year, null, null, fed, 'federation');
+      result.frais = await getYearlyFraisData(year, null, fed);
+      result.reports = await getYearlyReportsData(year, null, fed);
+    } else if (user.fonction === 'Pasteur') {
+      if (cleanEglise) {
+        result.glData = await getYearlyGLData(year, cleanEglise);
+        result.depenses = await getYearlyDepensesData(year, cleanEglise);
+        result.frais = await getYearlyFraisData(year, cleanEglise);
+        result.reports = await getYearlyReportsData(year, cleanEglise);
+      } else {
+        const dist = user.district;
+        result.glData = await getYearlyGLData(year, null, dist);
+        result.depenses = await getYearlyDepensesData(year, null, dist);
+        result.frais = await getYearlyFraisData(year, null, dist);
+        result.reports = await getYearlyReportsData(year, null, dist);
+      }
+    } else {
+      // Ancien/Trésorier
+      const egl = user.eglise;
+      result.glData = await getYearlyGLData(year, egl);
+      result.depenses = await getYearlyDepensesData(year, egl);
+      result.frais = await getYearlyFraisData(year, egl);
+      result.reports = await getYearlyReportsData(year, egl);
+    }
+    
+    res.json(result);
+    
   } catch (err) {
     console.error('❌ Erreur /gl/yearly:', err);
     res.status(500).json({ error: err.message });

@@ -1,13 +1,14 @@
 // backend/routes/eglises.js
 const express = require('express');
 const { getAllUsers, createEgliseIfNotExists, getEgliseInfo } = require('../models');
-const { authenticateToken, checkAccess, authorize } = require('../middleware/auth');
+const { authenticateToken, checkAccess } = require('../middleware/auth');
 
 const router = express.Router();
+
 router.use(authenticateToken);
 
 // ============================================================
-// RÉCUPÉRER LES ÉGLISES D'UN DISTRICT
+// ✅ RÉCUPÉRER LES ÉGLISES D'UN DISTRICT
 // ============================================================
 router.get('/district/:district', async (req, res) => {
   try {
@@ -25,7 +26,7 @@ router.get('/district/:district', async (req, res) => {
 });
 
 // ============================================================
-// RÉCUPÉRER LES ÉGLISES D'UNE FÉDÉRATION
+// ✅ RÉCUPÉRER LES ÉGLISES D'UNE FÉDÉRATION
 // ============================================================
 router.get('/federation/:federation', async (req, res) => {
   try {
@@ -43,7 +44,7 @@ router.get('/federation/:federation', async (req, res) => {
 });
 
 // ============================================================
-// CRÉER UNE NOUVELLE ÉGLISE (Pasteur ou Admin)
+// ✅ CRÉER UNE ÉGLISE (Pasteur ou Admin)
 // ============================================================
 router.post('/', async (req, res) => {
   try {
@@ -54,10 +55,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Le nom de l\'église est requis' });
     }
     
+    // Vérifier les permissions
     if (user.fonction !== 'Admin' && user.fonction !== 'Pasteur') {
       return res.status(403).json({ error: 'Accès interdit' });
     }
     
+    // Pour un Pasteur, l'église doit être dans son district
     if (user.fonction === 'Pasteur') {
       if (district && district !== user.district) {
         return res.status(403).json({ 
@@ -86,22 +89,6 @@ router.post('/', async (req, res) => {
     
   } catch (err) {
     console.error('❌ Erreur création église:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// RÉCUPÉRER LES INFOS D'UNE ÉGLISE
-// ============================================================
-router.get('/:eglise', async (req, res) => {
-  try {
-    const info = await getEgliseInfo(req.params.eglise);
-    if (!info) {
-      return res.status(404).json({ error: 'Église non trouvée' });
-    }
-    res.json(info);
-  } catch (err) {
-    console.error('Erreur récupération infos église :', err);
     res.status(500).json({ error: err.message });
   }
 });
